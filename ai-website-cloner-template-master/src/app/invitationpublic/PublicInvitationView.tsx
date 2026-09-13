@@ -91,46 +91,55 @@ export function PublicInvitationView() {
         )}
 
         <InvitationCanvas value={invitation} variant="standalone" readOnly={isPreview || !id} />
-      </div>
 
-      {isPreview && (
-        // A tiled, low-opacity diagonal stamp (like a stock-photo preview
-        // watermark) rather than one giant centered word — that earlier
-        // version was `fixed inset-0`, so it stayed pinned to the viewport
-        // center no matter how far the guest scrolled, permanently blocking
-        // the view of whatever content was underneath instead of just
-        // marking the page as a preview.
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 z-40 select-none overflow-hidden"
-          style={{
-            backgroundImage:
-              "repeating-linear-gradient(-35deg, transparent 0, transparent 60px, rgba(0,0,0,0.09) 60px, rgba(0,0,0,0.09) 61px)",
-          }}
-        >
+        {isPreview && (
+          // A tiled, low-opacity diagonal stamp (like a stock-photo preview
+          // watermark) rather than one giant centered word — that earlier
+          // version was `fixed inset-0`, so it stayed pinned to the viewport
+          // center no matter how far the guest scrolled, permanently blocking
+          // the view of whatever content was underneath instead of just
+          // marking the page as a preview.
+          //
+          // Lives inside this `relative` wrapper (sized by InvitationCanvas's
+          // full height), not as a sibling of it — an `absolute inset-0` on
+          // an unpositioned ancestor sizes against the viewport instead of
+          // the full scrollable card, so it used to fade out below the fold.
           <div
-            className="absolute inset-0 grid grid-cols-2"
-            style={{ gridAutoRows: "96px" }}
+            aria-hidden
+            className="pointer-events-none absolute inset-0 z-40 select-none overflow-hidden"
+            style={{
+              backgroundImage:
+                "repeating-linear-gradient(-35deg, transparent 0, transparent 60px, rgba(0,0,0,0.09) 60px, rgba(0,0,0,0.09) 61px)",
+            }}
           >
-            {Array.from({ length: 96 }).map((_, index) => {
-              // Rows come in groups of 3 (each row = 2 cells, since
-              // grid-cols-2) alternating "غير مدفوعة" / the domain, so a
-              // stolen screen recording carries more "unpaid" lines than
-              // plain branding lines.
-              const row = Math.floor(index / 2);
-              const label = Math.floor(row / 3) % 2 === 0 ? "غير مدفوعة" : "zaytorainvites.com";
-              return (
-                <span
-                  key={index}
-                  className="flex -rotate-[35deg] items-center justify-center whitespace-nowrap text-xs font-bold tracking-[0.15em] text-black/30"
-                >
-                  {label}
-                </span>
-              );
-            })}
+            <div
+              className="absolute inset-0 grid grid-cols-2"
+              style={{ gridAutoRows: "96px" }}
+            >
+              {/* 400 rather than a size just covering one screen — the card's
+                full height varies a lot by which sections are enabled
+                (gallery, guestbook, RSVP, gifts...), and undershooting here
+                is exactly the bug this watermark just had. */}
+            {Array.from({ length: 400 }).map((_, index) => {
+                // Rows come in groups of 3 (each row = 2 cells, since
+                // grid-cols-2) alternating "غير مدفوعة" / the domain, so a
+                // stolen screen recording carries more "unpaid" lines than
+                // plain branding lines.
+                const row = Math.floor(index / 2);
+                const label = Math.floor(row / 3) % 2 === 0 ? "غير مدفوعة" : "zaytorainvites.com";
+                return (
+                  <span
+                    key={index}
+                    className="flex -rotate-[35deg] items-center justify-center whitespace-nowrap text-xs font-bold tracking-[0.15em] text-black/30"
+                  >
+                    {label}
+                  </span>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
