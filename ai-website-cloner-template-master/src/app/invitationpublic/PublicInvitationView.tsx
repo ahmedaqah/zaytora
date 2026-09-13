@@ -85,8 +85,8 @@ export function PublicInvitationView() {
     <div className="min-h-screen bg-white">
       <div className="relative mx-auto w-full max-w-[393px] overflow-x-clip">
         {isPreview && (
-          <div className="absolute left-1/2 top-6 z-40 -translate-x-1/2 rounded-full border border-gray-200 bg-white/60 px-6 py-2 shadow-sm backdrop-blur-md">
-            <span className="text-sm font-medium text-gray-700">Preview Mode</span>
+          <div className="absolute left-1/2 top-6 z-40 -translate-x-1/2 rounded-full border border-gray-200 bg-white/75 px-6 py-2 shadow-sm backdrop-blur-md">
+            <span className="text-sm font-medium text-gray-700">معاينة غير نهائية</span>
           </div>
         )}
 
@@ -110,16 +110,24 @@ export function PublicInvitationView() {
         >
           <div
             className="absolute inset-0 grid grid-cols-2"
-            style={{ gridAutoRows: "160px" }}
+            style={{ gridAutoRows: "96px" }}
           >
-            {Array.from({ length: 40 }).map((_, index) => (
-              <span
-                key={index}
-                className="flex -rotate-[35deg] items-center justify-center whitespace-nowrap text-xs font-bold uppercase tracking-[0.3em] text-black/10"
-              >
-                Preview
-              </span>
-            ))}
+            {Array.from({ length: 96 }).map((_, index) => {
+              // Rows come in groups of 3 (each row = 2 cells, since
+              // grid-cols-2) alternating "غير مدفوعة" / the domain, so a
+              // stolen screen recording carries more "unpaid" lines than
+              // plain branding lines.
+              const row = Math.floor(index / 2);
+              const label = Math.floor(row / 3) % 2 === 0 ? "غير مدفوعة" : "zaytorainvites.com";
+              return (
+                <span
+                  key={index}
+                  className="flex -rotate-[35deg] items-center justify-center whitespace-nowrap text-xs font-bold tracking-[0.15em] text-black/30"
+                >
+                  {label}
+                </span>
+              );
+            })}
           </div>
         </div>
       )}
