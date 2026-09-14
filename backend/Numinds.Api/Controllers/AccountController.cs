@@ -22,6 +22,23 @@ public class AccountController(
 {
     private string FrontendBaseUrl => configuration["Frontend:BaseUrl"] ?? "http://localhost:3000";
 
+    // returnUrl round-trips through Google's own redirect (embedded in the
+    // callback URL we register as the OAuth redirect_uri) before we ever use
+    // it, so an attacker who starts the flow with e.g.
+    // "@evil.example/phish" would otherwise get it concatenated straight
+    // onto FrontendBaseUrl -- "https://www.zaytorainvites.com@evil.example"
+    // parses as evil.example with zaytorainvites.com as mere userinfo, an
+    // open redirect served from our own login flow. Restricting to a single
+    // leading "/" with no "://" anywhere keeps the concatenation on our own
+    // origin no matter what follows.
+    private static string SanitizeReturnUrl(string? returnUrl) =>
+        !string.IsNullOrEmpty(returnUrl)
+        && returnUrl.StartsWith('/')
+        && !returnUrl.StartsWith("//")
+        && !returnUrl.Contains("://")
+            ? returnUrl
+            : "/dashboard";
+
     // GET /api/account/me
     [HttpGet("me")]
     [Authorize]
@@ -222,7 +239,7 @@ public class AccountController(
         }
 
         var callbackUrl = $"{Request.Scheme}://{Request.Host}" +
-            $"/api/account/external-login/callback?returnUrl={Uri.EscapeDataString(returnUrl)}";
+            $"/api/account/external-login/callback?returnUrl={Uri.EscapeDataString(SanitizeReturnUrl(returnUrl))}";
         var properties = signInManager.ConfigureExternalAuthenticationProperties(GoogleDefaults.AuthenticationScheme, callbackUrl);
         return Challenge(properties, GoogleDefaults.AuthenticationScheme);
     }
@@ -231,6 +248,7 @@ public class AccountController(
     [HttpGet("external-login/callback")]
     public async Task<IActionResult> ExternalLoginCallback([FromQuery] string returnUrl = "/dashboard")
     {
+        returnUrl = SanitizeReturnUrl(returnUrl);
         var info = await signInManager.GetExternalLoginInfoAsync();
         if (info is null)
         {
