@@ -147,7 +147,9 @@ function StatCard({
 }: {
   icon: typeof ClipboardListIcon;
   label: string;
-  value: number;
+  // null while the real count is still loading, so this never flashes a
+  // believable-but-wrong "0" right before the real number replaces it.
+  value: number | null;
   index: number;
 }) {
   return (
@@ -156,7 +158,7 @@ function StatCard({
         <Icon className="size-5" />
       </span>
       <div>
-        <p className="text-2xl font-semibold text-foreground">{value}</p>
+        <p className="text-2xl font-semibold text-foreground">{value ?? "—"}</p>
         <p className="text-xs text-muted-foreground">{label}</p>
       </div>
     </motion.div>
@@ -340,12 +342,17 @@ export function DashboardView() {
     loadBookings();
   }, [authLoading, loadBookings]);
 
-  const email = user?.email || DEMO_USER.email;
+  // DEMO_USER is only for a confirmed guest (auth check finished and there's
+  // genuinely no user) — while authLoading, `user` is null too, but that's
+  // not the same thing: showing DEMO_USER's fake email/id in that gap once
+  // looked like real (but wrong) account data flashing before the actual one
+  // loaded, right when a customer who just paid would be most alarmed by it.
+  const email = authLoading ? null : user?.email || DEMO_USER.email;
   // Only fall back to the fake demo phone when there's no real user at all
   // (guest/demo mode) — a signed-in user who simply never entered a phone
   // number must never see that placeholder rendered as if it were theirs.
-  const phone = user ? user.phoneNumber || t.noPhone : DEMO_USER.phone;
-  const userId = user ? `#U-${user.id.slice(0, 6).toUpperCase()}` : DEMO_USER.userId;
+  const phone = authLoading ? null : user ? user.phoneNumber || t.noPhone : DEMO_USER.phone;
+  const userId = authLoading ? null : user ? `#U-${user.id.slice(0, 6).toUpperCase()}` : DEMO_USER.userId;
   const loading = authLoading || bookingsLoading;
 
   const stats = useMemo(
@@ -483,7 +490,7 @@ export function DashboardView() {
       <div className={cn("flex flex-wrap items-center gap-x-8 gap-y-2 px-5 py-4 text-sm text-body-foreground", GLASS_CARD)}>
         <span className="flex items-center gap-1.5">
           <MailIcon className="size-4 text-gold" />
-          <span dir="ltr">{email}</span>
+          <span dir="ltr">{email ?? "…"}</span>
         </span>
         <span className="flex items-center gap-1.5">
           <PhoneIcon className="size-4 text-gold" />
@@ -492,12 +499,12 @@ export function DashboardView() {
               {phone}
             </Link>
           ) : (
-            <span dir="ltr">{phone}</span>
+            <span dir="ltr">{phone ?? "…"}</span>
           )}
         </span>
         <span className="flex items-center gap-1.5">
           <UserIcon className="size-4 text-gold" />
-          {t.userId}: <span dir="ltr">{userId}</span>
+          {t.userId}: <span dir="ltr">{userId ?? "…"}</span>
         </span>
         {loading && <LoaderIcon className="size-4 animate-spin text-muted-foreground" />}
       </div>
@@ -513,9 +520,9 @@ export function DashboardView() {
 
       {/* Stat cards */}
       <div className="grid grid-cols-3 gap-3">
-        <StatCard icon={ClipboardListIcon} label={t.stats.total} value={stats.total} index={0} />
-        <StatCard icon={CheckIcon} label={t.stats.upcoming} value={stats.upcoming} index={1} />
-        <StatCard icon={HeartIcon} label={t.stats.responses} value={stats.responses} index={2} />
+        <StatCard icon={ClipboardListIcon} label={t.stats.total} value={loading ? null : stats.total} index={0} />
+        <StatCard icon={CheckIcon} label={t.stats.upcoming} value={loading ? null : stats.upcoming} index={1} />
+        <StatCard icon={HeartIcon} label={t.stats.responses} value={loading ? null : stats.responses} index={2} />
       </div>
 
       {/* Search */}
@@ -553,7 +560,7 @@ export function DashboardView() {
           />
         ))}
 
-        {visibleBookings.length === 0 && (
+        {!loading && visibleBookings.length === 0 && (
           <div className={cn("px-5 py-10 text-center text-sm text-muted-foreground", GLASS_CARD)}>
             {bookings.length === 0 ? (
               <>
