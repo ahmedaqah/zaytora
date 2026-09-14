@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { cn, isVideoSource } from "@/lib/utils";
+import { toLatinInitial } from "@/lib/arabicToLatinInitial";
 import { STANDALONE_FULLSCREEN_CLASS } from "./standaloneCoverPosition";
 
 const FADE_DURATION_MS = 500;
@@ -84,7 +85,7 @@ export function EnvelopeMediaCover({
   const startedRef = useRef(false);
   const [closing, setClosing] = useState(false);
   const [hidden, setHidden] = useState(false);
-  const initials = [firstName?.[0], secondName?.[0]].filter(Boolean).join(" & ");
+  const initials = [toLatinInitial(firstName), toLatinInitial(secondName)].filter(Boolean).join(" & ");
   const showInitialsPatch = Boolean(initials) && initialsXPercent != null && initialsYPercent != null;
 
   // Same fix AmbientVideoBackground already needed for the same reason:
@@ -228,7 +229,7 @@ export function EnvelopeMediaCover({
       {showInitialsPatch && (
         <div
           aria-hidden
-          className="pointer-events-none absolute z-20 flex items-center justify-center rounded-full bg-[#f9f1e2]/75 shadow-[0_2px_10px_rgba(0,0,0,0.15)] backdrop-blur-md"
+          className="pointer-events-none absolute z-20 flex items-center justify-center"
           style={{
             top: `${initialsYPercent}%`,
             left: `${initialsXPercent}%`,
@@ -237,9 +238,26 @@ export function EnvelopeMediaCover({
             transform: "translate(-50%, -50%)",
           }}
         >
+          {/* A real wax-seal blob (matching the ivory seal baked into most
+              envelope media) instead of a plain frosted circle -- so the
+              patch reads as part of the envelope's own artwork rather than
+              a UI overlay pasted on top of it. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/images/wax-seal-blank.png"
+            alt=""
+            className="absolute inset-0 h-full w-full object-contain drop-shadow-[0_2px_6px_rgba(0,0,0,0.18)]"
+          />
           <span
-            className={cn("text-[#8a6a2f]", namesFont || "font-cinzel")}
-            style={{ fontSize: "clamp(16px, 6vw, 26px)" }}
+            className={cn("relative", namesFont || "font-herr-von-muellerhoff")}
+            style={{
+              fontSize: "clamp(18px, 6.5vw, 28px)",
+              backgroundImage: "linear-gradient(135deg, #a3792f 0%, #f6e2b0 30%, #caa456 55%, #f6e2b0 78%, #a3792f 100%)",
+              WebkitBackgroundClip: "text",
+              backgroundClip: "text",
+              color: "transparent",
+              filter: "drop-shadow(0 1px 0 rgba(255,255,255,0.5))",
+            }}
           >
             {initials}
           </span>

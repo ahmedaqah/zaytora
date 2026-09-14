@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { toLatinInitial } from "@/lib/arabicToLatinInitial";
 import { FloralSprig } from "./decorative";
 import { STANDALONE_FULLSCREEN_CLASS } from "./standaloneCoverPosition";
 
@@ -204,7 +205,7 @@ export function WaxSealEnvelopeCover({
 
   if (hidden) return null;
 
-  const initials = [firstName?.[0], secondName?.[0]].filter(Boolean).join(" & ");
+  const initials = [toLatinInitial(firstName), toLatinInitial(secondName)].filter(Boolean).join(" & ");
 
   return (
     <div
