@@ -9,10 +9,12 @@ import { getContactSettings } from "@/lib/services/contactSettings.service";
 import { useEmailCopyToast } from "@/hooks/useEmailCopyToast";
 import type { ContactSettingsDto } from "@/types/api";
 
-const paymentBadges = ["VISA", "Pay", "G Pay", "Samsung Pay"];
-
 // Matches Header.tsx's ROUTES mapping for the same nav items.
 const PAGE_LINK_HREFS = ["/#templates", "/studio", "/guide", "/contact-us"];
+
+// Same order as legalLinks below (Terms, Privacy, Refund, Delete Account) --
+// only Refund Policy has a real page so far, the rest stay dead "#" links.
+const LEGAL_LINK_HREFS: Array<string | undefined> = [undefined, undefined, "/refund-policy", undefined];
 
 const COPY = {
   ar: {
@@ -22,7 +24,6 @@ const COPY = {
     featuresHeading: "المميزات",
     featureLinks: ["دعم ثنائي اللغة", "إدارة الردود", "كاميرا الحدث", "مشاركة رمز QR"],
     contactHeading: "تواصل معنا",
-    securePayments: "Secure Payments",
     copyright: "© 2026 ZAYTORA. جميع الحقوق محفوظة.",
     legalLinks: ["الشروط والأحكام", "سياسة الخصوصية", "سياسة الاسترداد", "Delete Account"],
     copied: (address: string) => `تم نسخ ${address} — الصقه في تطبيق البريد الذي تفضّله.`,
@@ -34,7 +35,6 @@ const COPY = {
     featuresHeading: "Features",
     featureLinks: ["Bilingual support", "RSVP management", "Event camera", "QR code sharing"],
     contactHeading: "Contact Us",
-    securePayments: "Secure Payments",
     copyright: "© 2026 ZAYTORA. All rights reserved.",
     legalLinks: ["Terms & Conditions", "Privacy Policy", "Refund Policy", "Delete Account"],
     copied: (address: string) => `Copied ${address} — paste it into your preferred mail app.`,
@@ -133,27 +133,26 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="border-t pt-8 pb-6 flex flex-col items-center gap-4 border-border">
-          <span className="text-xs text-muted-foreground">{t.securePayments}</span>
-          <div className="flex flex-wrap items-center justify-center gap-3">
-            {paymentBadges.map((label) => (
-              <span key={label} className="rounded-full border px-4 py-1.5 text-xs font-medium border-border text-muted-foreground">
-                {label}
-              </span>
-            ))}
-          </div>
-        </div>
-
         <div className="border-t pt-8 flex flex-col md:flex-row items-center justify-between gap-4 border-border">
           <p className="text-sm text-muted-foreground">{t.copyright}</p>
           <ul className="flex flex-wrap items-center justify-center gap-6">
-            {t.legalLinks.map((label) => (
-              <li key={label}>
-                <a href="#" className="text-sm hover:text-[#C8A24A] transition-colors text-muted-foreground">
-                  {label}
-                </a>
-              </li>
-            ))}
+            {t.legalLinks.map((label, index) => {
+              const href = LEGAL_LINK_HREFS[index];
+              const linkClassName = "text-sm hover:text-[#C8A24A] transition-colors text-muted-foreground";
+              return (
+                <li key={label}>
+                  {href ? (
+                    <Link href={href} className={linkClassName}>
+                      {label}
+                    </Link>
+                  ) : (
+                    <a href="#" className={linkClassName}>
+                      {label}
+                    </a>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </div>
       </div>
