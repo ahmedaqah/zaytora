@@ -52,9 +52,15 @@ public class InvitationsController(
         var userId = await GetCurrentUserIdAsync();
         var guestId = userId is null ? GetOrCreateGuestId() : (Guid?)null;
 
+        // The guest branch excludes already-claimed invitations (UserId set)
+        // the same way GetMine below does -- GuestId is never cleared once a
+        // draft is claimed (see OwnsInvitation), so a guest cookie that has
+        // accumulated several claimed drafts over time would otherwise keep
+        // counting all of them against this cap forever, long after they
+        // stopped being "this guest's" drafts to count.
         var existingCount = userId is not null
             ? await db.Invitations.Where(i => i.UserId == userId).CountAsync(HasContent, cancellationToken)
-            : await db.Invitations.Where(i => i.GuestId == guestId).CountAsync(HasContent, cancellationToken);
+            : await db.Invitations.Where(i => i.GuestId == guestId && i.UserId == null).CountAsync(HasContent, cancellationToken);
         if (existingCount >= MaxInvitationsPerUser)
         {
             return Conflict(new
