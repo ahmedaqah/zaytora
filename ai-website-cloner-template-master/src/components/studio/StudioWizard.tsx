@@ -64,9 +64,9 @@ const COPY = {
     back: "رجوع",
     next: "التالي",
     finish: "إنهاء",
-    stepOf: (current: number, total: number) => `خطوة ${current} / ${total}`,
-    stepsRemaining: (count: number) => `${count} خطوة متبقية`,
-    lastStep: "الخطوة الأخيرة",
+    stepOf: (current: number, total: number) => `مرحلة ${current} / ${total}`,
+    stepsRemaining: (count: number) => `${count} ${count === 1 ? "مرحلة" : "مراحل"} متبقية`,
+    lastStep: "المرحلة الأخيرة",
     saveChanges: "حفظ التغييرات",
     previewSaveError: "تعذّر حفظ آخر تعديلاتك، فالمعاينة الكاملة كانت ستعرض نسخة قديمة. تحقق من اتصالك وحاول مرة أخرى.",
     stepErrors: {
@@ -101,9 +101,9 @@ const COPY = {
     back: "Back",
     next: "Next",
     finish: "Finish",
-    stepOf: (current: number, total: number) => `Step ${current} / ${total}`,
-    stepsRemaining: (count: number) => `${count} step${count === 1 ? "" : "s"} remaining`,
-    lastStep: "Last step",
+    stepOf: (current: number, total: number) => `Stage ${current} / ${total}`,
+    stepsRemaining: (count: number) => `${count} stage${count === 1 ? "" : "s"} remaining`,
+    lastStep: "Last stage",
     saveChanges: "Save changes",
     previewSaveError: "Couldn't save your latest changes, so the full preview would have shown an old version. Check your connection and try again.",
     stepErrors: {
@@ -395,16 +395,30 @@ export function StudioWizard() {
 
   async function handleNext() {
     if (!form) return;
-    const error = wizardSteps[stepIndex].validate?.(form) ?? null;
-    if (error) {
-      setStepError(error);
-      return;
+    // "Next" now advances a whole group at a time (the guest browses folds
+    // within a group by clicking their headers, not this button) -- so
+    // every step in the current group has to pass validate() before moving
+    // on, not just whichever fold happens to be expanded. goToStep(idx) on
+    // a failure both shows the error and expands the offending fold (its
+    // StepAccordionGroup syncs open-fold state to the real active step).
+    const group = WIZARD_GROUPS.find((g) => (g.stepIds as readonly string[]).includes(wizardSteps[stepIndex].id));
+    const stepsToCheck = group
+      ? group.stepIds.map((id) => wizardSteps.findIndex((s) => s.id === id))
+      : [stepIndex];
+    for (const idx of stepsToCheck) {
+      const error = wizardSteps[idx]?.validate?.(form) ?? null;
+      if (error) {
+        setStepError(error);
+        if (idx !== stepIndex) goToStep(idx);
+        return;
+      }
     }
     await saveProgress();
-    if (stepIndex === wizardSteps.length - 1) {
+    const lastIndexInGroup = stepsToCheck[stepsToCheck.length - 1];
+    if (lastIndexInGroup >= wizardSteps.length - 1) {
       setPhase("preview");
     } else {
-      goToStep(stepIndex + 1);
+      goToStep(lastIndexInGroup + 1);
     }
   }
 
@@ -417,7 +431,16 @@ export function StudioWizard() {
     // No validate() call here on purpose — unlike handleNext, going back
     // should never be blocked by the step you're leaving being incomplete.
     await saveProgress();
-    goToStep(stepIndex - 1);
+    // Mirrors handleNext: "Back" returns to the previous group's first fold
+    // rather than just the previous fold within the same group.
+    const group = WIZARD_GROUPS.find((g) => (g.stepIds as readonly string[]).includes(wizardSteps[stepIndex].id));
+    const groupPos = group ? WIZARD_GROUPS.findIndex((g) => g.id === group.id) : -1;
+    const previousGroup = groupPos > 0 ? WIZARD_GROUPS[groupPos - 1] : null;
+    if (!previousGroup) {
+      goToStep(stepIndex - 1);
+      return;
+    }
+    goToStep(wizardSteps.findIndex((s) => s.id === previousGroup.stepIds[0]));
   }
 
   if (loadError) {
@@ -469,7 +492,6 @@ export function StudioWizard() {
   const step = wizardSteps[stepIndex];
   const StepIcon = step.icon;
   const StepComponent = step.Component;
-  const remaining = wizardSteps.length - (stepIndex + 1);
   // An admin already approved this invitation in a previous session (see
   // OrdersController.UpdateStatus) — reaching the end of the wizard again
   // is an edit, not a first-time checkout, so it shouldn't re-enter payment
@@ -479,6 +501,17 @@ export function StudioWizard() {
   const currentGroupSteps = currentGroup
     ? wizardSteps.filter((s) => (currentGroup.stepIds as readonly string[]).includes(s.id))
     : [];
+  // Every real step belongs to exactly one group, so the progress the guest
+  // actually sees (pill, dots, "N remaining") is counted in groups (1-5),
+  // not the 18 underlying steps -- stepIndex/wizardSteps.length still drive
+  // validation, saving, and the URL's ?step= under the hood, unchanged.
+  const currentGroupIndex = currentGroup ? WIZARD_GROUPS.findIndex((g) => g.id === currentGroup.id) : stepIndex;
+  const displayTotal = currentGroup ? WIZARD_GROUPS.length : wizardSteps.length;
+  const displayCurrent = currentGroupIndex + 1;
+  const remaining = displayTotal - displayCurrent;
+  const isLastGroup = currentGroup
+    ? currentGroupIndex === WIZARD_GROUPS.length - 1
+    : stepIndex === wizardSteps.length - 1;
 
   return (
     <div className="min-h-screen bg-background">
@@ -604,9 +637,9 @@ export function StudioWizard() {
                   onClick={() => setStepNavOpen(true)}
                   aria-haspopup="dialog"
                   aria-expanded={stepNavOpen}
-                  className="rounded-full border border-gold/20 bg-gold/5 px-3 py-1 text-xs text-gold transition-colors hover:bg-gold/10"
+                  className="rounded-full border-2 border-gold bg-gold/15 px-4 py-1.5 text-sm font-bold text-gold transition-colors hover:bg-gold/25"
                 >
-                  {stepIndex + 1} / {wizardSteps.length}
+                  {displayCurrent} / {displayTotal}
                 </button>
               </div>
 
@@ -635,7 +668,7 @@ export function StudioWizard() {
               )}
 
               <div className="flex items-center justify-between border-t border-border px-5 py-3 text-xs text-muted-foreground">
-                <span>{t.stepOf(stepIndex + 1, wizardSteps.length)}</span>
+                <span>{t.stepOf(displayCurrent, displayTotal)}</span>
                 <span>{remaining > 0 ? t.stepsRemaining(remaining) : t.lastStep}</span>
               </div>
 
@@ -659,13 +692,13 @@ export function StudioWizard() {
                   <ChevronLeftIcon className="size-4" />
                   {t.back}
                 </button>
-                {/* Same jump-to-any-step drawer as the "N / 18" pill in the
+                {/* Same jump-to-any-step drawer as the "N / 5" pill in the
                     header above — this label+dots row is a second, more
                     discoverable trigger for it (the reference design's own
                     footer stepper is clickable the same way), not just a
                     passive progress readout. Hidden below `sm` since the full
-                    label + 18-dot row doesn't fit next to the Back/Next
-                    buttons on a phone-width screen. */}
+                    label + dot row doesn't fit next to the Back/Next buttons
+                    on a phone-width screen. */}
                 <button
                   type="button"
                   onClick={() => setStepNavOpen(true)}
@@ -673,21 +706,23 @@ export function StudioWizard() {
                   aria-expanded={stepNavOpen}
                   className="hidden flex-col items-center gap-1.5 rounded-lg px-2 py-1 transition-colors hover:bg-gold/5 sm:flex"
                 >
-                  <span className="text-base font-semibold text-body-foreground">{step.label}</span>
+                  <span className="text-base font-semibold text-body-foreground">
+                    {currentGroup ? t.groupTitles[currentGroup.id] : step.label}
+                  </span>
                   <div className="flex items-center gap-1">
-                    {wizardSteps.map((s, i) => (
+                    {(currentGroup ? WIZARD_GROUPS : wizardSteps).map((g, i) => (
                       <span
-                        key={s.id}
+                        key={g.id}
                         className={cn(
                           "h-1 rounded-full transition-all",
-                          i === stepIndex ? "w-4 bg-gold" : "w-1 bg-background/10"
+                          i === currentGroupIndex ? "w-4 bg-gold" : "w-1 bg-background/10"
                         )}
                       />
                     ))}
                   </div>
                 </button>
                 {/* Mobile-only equivalent of the trigger above -- a compact
-                    "N/18 ⌄" pill instead of the label+dots row, which is too
+                    "N/5 ⌄" pill instead of the label+dots row, which is too
                     wide to fit between Back/Next on a phone screen. Without
                     this, phones had no visible, obviously-tappable way to
                     jump between steps (the only other trigger is the small
@@ -697,9 +732,9 @@ export function StudioWizard() {
                   onClick={() => setStepNavOpen(true)}
                   aria-haspopup="dialog"
                   aria-expanded={stepNavOpen}
-                  className="flex items-center gap-1 rounded-full border border-gold/20 bg-gold/5 px-3 py-2 text-xs font-medium text-gold transition-colors hover:bg-gold/10 sm:hidden"
+                  className="flex items-center gap-1.5 rounded-full border-2 border-gold bg-gold/15 px-4 py-2 text-sm font-bold text-gold transition-colors hover:bg-gold/25 sm:hidden"
                 >
-                  {stepIndex + 1}/{wizardSteps.length}
+                  {displayCurrent}/{displayTotal}
                   <ChevronDownIcon className="size-3.5" />
                 </button>
                 <button
@@ -712,7 +747,7 @@ export function StudioWizard() {
                 >
                   {saving ? (
                     <LoaderIcon className="size-4 animate-spin" />
-                  ) : stepIndex === wizardSteps.length - 1 ? (
+                  ) : isLastGroup ? (
                     t.finish
                   ) : (
                     <>
