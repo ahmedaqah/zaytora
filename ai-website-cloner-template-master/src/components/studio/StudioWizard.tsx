@@ -119,6 +119,15 @@ function readStepIndexFromParam(stepParam: string | null, stepCount: number) {
   return clampStepIndex(parsed - 1, stepCount);
 }
 
+// Mirrors readStepIndexFromParam's "resume where you left off" behavior for
+// the wizard's phase -- without it, a login redirect (the returnUrl below)
+// always reloaded this page fresh, which resets `phase` state back to its
+// "design" default no matter which phase the guest actually continued from,
+// dropping them back at the last design step instead of straight at payment.
+function readPhaseFromParam(phaseParam: string | null): Phase {
+  return phaseParam === "preview" || phaseParam === "payment" || phaseParam === "confirmation" ? phaseParam : "design";
+}
+
 export function StudioWizard() {
   const router = useRouter();
   const { user } = useAuth();
@@ -154,7 +163,7 @@ export function StudioWizard() {
   const [stepIndex, setStepIndexState] = useState(() =>
     readStepIndexFromParam(searchParams.get("step"), wizardSteps.length)
   );
-  const [phase, setPhase] = useState<Phase>("design");
+  const [phase, setPhase] = useState<Phase>(() => readPhaseFromParam(searchParams.get("phase")));
   const [completedOrder, setCompletedOrder] = useState<OrderCreatedResponse | null>(null);
   const [saving, setSaving] = useState(false);
   const [previewSaving, setPreviewSaving] = useState(false);
@@ -448,8 +457,14 @@ export function StudioWizard() {
                   // Design/preview stay guest-friendly — login is only
                   // required here, right before payment, so the invitation
                   // (already saved above) can be claimed to an account. The
-                  // returnUrl brings them straight back to this same draft.
-                  const returnUrl = window.location.pathname + window.location.search;
+                  // returnUrl brings them straight back to this same draft —
+                  // with phase=payment added so readPhaseFromParam resumes
+                  // straight at payment instead of the login redirect's full
+                  // page reload dropping `phase` state back to "design" and
+                  // making them click through Finish/Continue all over again.
+                  const returnParams = new URLSearchParams(searchParams.toString());
+                  returnParams.set("phase", "payment");
+                  const returnUrl = `${window.location.pathname}?${returnParams.toString()}`;
                   router.push(`/login?returnUrl=${encodeURIComponent(returnUrl)}`);
                   return;
                 }
