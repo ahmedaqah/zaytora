@@ -512,6 +512,13 @@ export function StudioWizard() {
   const isLastGroup = currentGroup
     ? currentGroupIndex === WIZARD_GROUPS.length - 1
     : stepIndex === wizardSteps.length - 1;
+  // Feeds StepNavigatorDrawer -- it jumps between the 5 stages now, not the
+  // 18 underlying steps, so each entry represents a whole group and points
+  // at that group's first fold.
+  const groupNavItems = WIZARD_GROUPS.map((g) => {
+    const firstStep = wizardSteps.find((s) => s.id === g.stepIds[0])!;
+    return { id: g.id, label: t.groupTitles[g.id], icon: firstStep.icon, firstStepIndex: wizardSteps.indexOf(firstStep) };
+  });
 
   return (
     <div className="min-h-screen bg-background">
@@ -627,7 +634,7 @@ export function StudioWizard() {
                   <span className="flex size-9 items-center justify-center rounded-full bg-gold/10 text-gold">
                     <StepIcon className="size-4" />
                   </span>
-                  <span className="text-sm font-medium text-body-foreground">
+                  <span className="text-base font-bold text-foreground">
                     {currentGroup ? t.groupTitles[currentGroup.id] : step.label}
                   </span>
                 </div>
@@ -768,10 +775,10 @@ export function StudioWizard() {
 
       {stepNavOpen && (
         <StepNavigatorDrawer
-          steps={wizardSteps}
-          currentIndex={stepIndex}
+          steps={groupNavItems}
+          currentIndex={currentGroupIndex}
           language={language}
-          onSelect={goToStep}
+          onSelect={(index) => goToStep(groupNavItems[index].firstStepIndex)}
           onClose={() => setStepNavOpen(false)}
         />
       )}

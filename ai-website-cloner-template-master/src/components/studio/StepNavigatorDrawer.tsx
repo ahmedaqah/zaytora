@@ -1,20 +1,26 @@
 "use client";
 
+import type { ComponentType } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { CheckIcon, XIcon } from "@/components/icons";
-import type { StepDefinition } from "./stepsConfig";
+
+export interface StepNavigatorItem {
+  id: string;
+  label: string;
+  icon: ComponentType<{ className?: string }>;
+}
 
 const COPY = {
-  ar: { title: "الانتقال إلى خطوة", close: "إغلاق" },
-  en: { title: "Jump to a step", close: "Close" },
+  ar: { title: "الانتقال إلى مرحلة", close: "إغلاق" },
+  en: { title: "Jump to a stage", close: "Close" },
 };
 
-// Lets a designer jump straight to any of the 18 wizard steps instead of
-// clicking "Next"/"Back" one at a time — opened from the "3 / 18" pill in
-// StudioWizard's header. Steps before the current one are marked done
+// Lets a guest jump straight to any of the wizard's 5 stages instead of
+// clicking "Next"/"Back" one at a time — opened from the "3 / 5" pill in
+// StudioWizard's header. Stages before the current one are marked done
 // (checkmark), the current one is highlighted, later ones read as plain
-// upcoming stops — all purely visual, every step stays clickable regardless
+// upcoming stops — all purely visual, every stage stays clickable regardless
 // of position since nothing here is actually gated/required in order.
 export function StepNavigatorDrawer({
   steps,
@@ -23,7 +29,7 @@ export function StepNavigatorDrawer({
   onSelect,
   onClose,
 }: {
-  steps: StepDefinition[];
+  steps: StepNavigatorItem[];
   currentIndex: number;
   language: "ar" | "en";
   onSelect: (index: number) => void;
