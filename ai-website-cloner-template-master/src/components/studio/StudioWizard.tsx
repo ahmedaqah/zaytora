@@ -29,18 +29,31 @@ import type { OrderCreatedResponse } from "@/types/api";
 
 type Phase = "design" | "preview" | "payment" | "confirmation";
 
-// First trial run of grouping several one-field wizard steps into a single
-// page (accordion folds instead of separate full-page steps) -- see the
-// StepAccordionGroup this renders through. Deliberately scoped to just these
-// three for now so the rest of the 18-step flow is completely untouched
-// while this shape gets tried out; more groups can adopt the same pattern
-// once this one's confirmed to feel right.
-const START_GROUP_IDS = ["language", "occasion", "template"] as const;
+// Groups the 18 one-field wizard steps into 5 pages, each rendered as an
+// accordion of folds (see StepAccordionGroup) instead of one full page per
+// field -- cuts the studio's forced "Next" clicks from 18 down to 5 without
+// dropping or merging any of the underlying fields. Every step id must
+// appear in exactly one group; stepsConfig's own ids are the source of
+// truth this is checked against implicitly by StepNavigatorDrawer/goToStep
+// still addressing steps by their real, unchanged global index.
+const WIZARD_GROUPS = [
+  { id: "start", stepIds: ["language", "occasion", "template"] },
+  { id: "basics", stepIds: ["basic-info", "invitation-text", "location"] },
+  { id: "program", stepIds: ["program", "rules", "accommodation"] },
+  { id: "media", stepIds: ["gallery", "personal-message", "contacts", "music", "gift"] },
+  { id: "advanced", stepIds: ["camera", "qr-entry", "rsvp", "additional"] },
+] as const;
 
 const COPY = {
   ar: {
     title: "إنشاء دعوة",
-    startGroupTitle: "البداية والتصميم",
+    groupTitles: {
+      start: "البداية والتصميم",
+      basics: "الأساسيات والنص",
+      program: "البرنامج والتفاصيل",
+      media: "الوسائط والضيوف",
+      advanced: "الإعدادات المتقدمة",
+    } satisfies Record<(typeof WIZARD_GROUPS)[number]["id"], string>,
     loadError: "تعذّر بدء الاستوديو. تأكد من تشغيل الخادم الخلفي وحاول مرة أخرى.",
     limitReached: "وصلت للحد الأقصى (5) دعوات. احذف إحدى دعواتك الحالية من لوحة التحكم لتتمكن من إنشاء دعوة جديدة.",
     forbidden: "هذه الدعوة ليست ملكك، ولا يمكنك تعديلها. تأكد من الرابط أو ارجع للوحة التحكم لفتح دعواتك الخاصة.",
@@ -71,7 +84,13 @@ const COPY = {
   },
   en: {
     title: "Create Invitation",
-    startGroupTitle: "Getting Started & Design",
+    groupTitles: {
+      start: "Getting Started & Design",
+      basics: "Basics & Text",
+      program: "Program & Details",
+      media: "Media & Guests",
+      advanced: "Advanced Settings",
+    } satisfies Record<(typeof WIZARD_GROUPS)[number]["id"], string>,
     loadError: "Couldn't start the studio. Make sure the backend is running and try again.",
     limitReached: "You've reached the maximum of 5 invitations. Delete one from your dashboard to create a new one.",
     forbidden: "This invitation isn't yours, so you can't edit it. Double-check the link, or go to your dashboard to open your own invitations.",
@@ -456,8 +475,10 @@ export function StudioWizard() {
   // is an edit, not a first-time checkout, so it shouldn't re-enter payment
   // or create a second order for the same invitation.
   const isAlreadyApproved = form.status === "paid" || form.status === "shared";
-  const isStartGroupStep = (START_GROUP_IDS as readonly string[]).includes(step.id);
-  const startGroupSteps = wizardSteps.filter((s) => (START_GROUP_IDS as readonly string[]).includes(s.id));
+  const currentGroup = WIZARD_GROUPS.find((g) => (g.stepIds as readonly string[]).includes(step.id));
+  const currentGroupSteps = currentGroup
+    ? wizardSteps.filter((s) => (currentGroup.stepIds as readonly string[]).includes(s.id))
+    : [];
 
   return (
     <div className="min-h-screen bg-background">
@@ -574,7 +595,7 @@ export function StudioWizard() {
                     <StepIcon className="size-4" />
                   </span>
                   <span className="text-sm font-medium text-body-foreground">
-                    {isStartGroupStep ? t.startGroupTitle : step.label}
+                    {currentGroup ? t.groupTitles[currentGroup.id] : step.label}
                   </span>
                 </div>
                 <button
@@ -589,9 +610,9 @@ export function StudioWizard() {
                 </button>
               </div>
 
-              {isStartGroupStep ? (
+              {currentGroup ? (
                 <StepAccordionGroup
-                  steps={startGroupSteps}
+                  steps={currentGroupSteps}
                   activeStepId={step.id}
                   value={form}
                   onChange={updateForm}
