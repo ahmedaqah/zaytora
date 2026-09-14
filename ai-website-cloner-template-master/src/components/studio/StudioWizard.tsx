@@ -139,22 +139,35 @@ const RESUME_PHASE_KEY_PREFIX = "zaytora:resumePhase:";
 // the URL at all, so it survives regardless of what the navigation does to
 // the query string; keyed per invitation so it can never leak onto a
 // different draft opened in the same tab/session.
+//
+// Deliberately read-only, no removeItem here -- a useState initializer isn't
+// guaranteed to only ever run once (React may invoke it, throw the render
+// away for an unrelated reason, then invoke it again), so clearing the flag
+// as a side effect of *reading* it here meant the first, discarded attempt
+// could consume it before the render that actually commits ever saw it.
+// clearResumePhase (called from a real useEffect below, which only ever
+// runs after a render actually commits) is the only thing that removes it.
 function readPhaseFromParam(phaseParam: string | null, invitationId: string | null): Phase {
   if (isValidPhase(phaseParam)) return phaseParam;
   if (!invitationId) return "design";
   try {
-    const key = RESUME_PHASE_KEY_PREFIX + invitationId;
-    const stored = sessionStorage.getItem(key);
-    if (isValidPhase(stored)) {
-      sessionStorage.removeItem(key);
-      return stored;
-    }
+    const stored = sessionStorage.getItem(RESUME_PHASE_KEY_PREFIX + invitationId);
+    if (isValidPhase(stored)) return stored;
   } catch {
     // Storage can throw (private browsing, disabled storage) -- falling
     // back to "design" here is exactly today's pre-fix behavior, not a
     // regression.
   }
   return "design";
+}
+
+function clearResumePhase(invitationId: string | null) {
+  if (!invitationId) return;
+  try {
+    sessionStorage.removeItem(RESUME_PHASE_KEY_PREFIX + invitationId);
+  } catch {
+    // Nothing to clean up if storage isn't available in the first place.
+  }
 }
 
 export function StudioWizard() {
@@ -193,6 +206,14 @@ export function StudioWizard() {
     readStepIndexFromParam(searchParams.get("step"), wizardSteps.length)
   );
   const [phase, setPhase] = useState<Phase>(() => readPhaseFromParam(searchParams.get("phase"), invitationIdParam));
+  // Only fires once this specific mount has actually committed (unlike the
+  // lazy initializer above, a useEffect can't run for a render React ends up
+  // discarding) -- see readPhaseFromParam for why the clear has to happen
+  // here instead of inline with the read.
+  useEffect(() => {
+    clearResumePhase(invitationIdParam);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [invitationIdParam]);
   const [completedOrder, setCompletedOrder] = useState<OrderCreatedResponse | null>(null);
   const [saving, setSaving] = useState(false);
   const [previewSaving, setPreviewSaving] = useState(false);
