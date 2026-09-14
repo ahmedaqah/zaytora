@@ -23,14 +23,24 @@ const PreviewPhase = dynamic(() => import("./PreviewPhase").then((m) => m.Previe
 const PaymentPhase = dynamic(() => import("./PaymentPhase").then((m) => m.PaymentPhase));
 const OrderConfirmation = dynamic(() => import("./OrderConfirmation").then((m) => m.OrderConfirmation));
 import { getWizardSteps, type StepErrorCode } from "./stepsConfig";
+import { StepAccordionGroup } from "./StepAccordionGroup";
 import { StepNavigatorDrawer } from "./StepNavigatorDrawer";
 import type { OrderCreatedResponse } from "@/types/api";
 
 type Phase = "design" | "preview" | "payment" | "confirmation";
 
+// First trial run of grouping several one-field wizard steps into a single
+// page (accordion folds instead of separate full-page steps) -- see the
+// StepAccordionGroup this renders through. Deliberately scoped to just these
+// three for now so the rest of the 18-step flow is completely untouched
+// while this shape gets tried out; more groups can adopt the same pattern
+// once this one's confirmed to feel right.
+const START_GROUP_IDS = ["language", "occasion", "template"] as const;
+
 const COPY = {
   ar: {
     title: "إنشاء دعوة",
+    startGroupTitle: "البداية والتصميم",
     loadError: "تعذّر بدء الاستوديو. تأكد من تشغيل الخادم الخلفي وحاول مرة أخرى.",
     limitReached: "وصلت للحد الأقصى (5) دعوات. احذف إحدى دعواتك الحالية من لوحة التحكم لتتمكن من إنشاء دعوة جديدة.",
     forbidden: "هذه الدعوة ليست ملكك، ولا يمكنك تعديلها. تأكد من الرابط أو ارجع للوحة التحكم لفتح دعواتك الخاصة.",
@@ -61,6 +71,7 @@ const COPY = {
   },
   en: {
     title: "Create Invitation",
+    startGroupTitle: "Getting Started & Design",
     loadError: "Couldn't start the studio. Make sure the backend is running and try again.",
     limitReached: "You've reached the maximum of 5 invitations. Delete one from your dashboard to create a new one.",
     forbidden: "This invitation isn't yours, so you can't edit it. Double-check the link, or go to your dashboard to open your own invitations.",
@@ -445,6 +456,8 @@ export function StudioWizard() {
   // is an edit, not a first-time checkout, so it shouldn't re-enter payment
   // or create a second order for the same invitation.
   const isAlreadyApproved = form.status === "paid" || form.status === "shared";
+  const isStartGroupStep = (START_GROUP_IDS as readonly string[]).includes(step.id);
+  const startGroupSteps = wizardSteps.filter((s) => (START_GROUP_IDS as readonly string[]).includes(s.id));
 
   return (
     <div className="min-h-screen bg-background">
@@ -560,7 +573,9 @@ export function StudioWizard() {
                   <span className="flex size-9 items-center justify-center rounded-full bg-gold/10 text-gold">
                     <StepIcon className="size-4" />
                   </span>
-                  <span className="text-sm font-medium text-body-foreground">{step.label}</span>
+                  <span className="text-sm font-medium text-body-foreground">
+                    {isStartGroupStep ? t.startGroupTitle : step.label}
+                  </span>
                 </div>
                 <button
                   type="button"
@@ -574,17 +589,29 @@ export function StudioWizard() {
                 </button>
               </div>
 
-              <div className="border-b border-gold/15 px-5 pb-4 pt-4">
-                <p className="text-base font-medium text-foreground">{step.question}</p>
-              </div>
+              {isStartGroupStep ? (
+                <StepAccordionGroup
+                  steps={startGroupSteps}
+                  activeStepId={step.id}
+                  value={form}
+                  onChange={updateForm}
+                  onSelect={(id) => goToStep(wizardSteps.findIndex((s) => s.id === id))}
+                />
+              ) : (
+                <>
+                  <div className="border-b border-gold/15 px-5 pb-4 pt-4">
+                    <p className="text-base font-medium text-foreground">{step.question}</p>
+                  </div>
 
-              <div className="px-5 pb-2 pt-4">
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{step.label}</p>
-              </div>
+                  <div className="px-5 pb-2 pt-4">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{step.label}</p>
+                  </div>
 
-              <div className="px-5 pb-4 pt-2">
-                <StepComponent value={form} onChange={updateForm} />
-              </div>
+                  <div className="px-5 pb-4 pt-2">
+                    <StepComponent value={form} onChange={updateForm} />
+                  </div>
+                </>
+              )}
 
               <div className="flex items-center justify-between border-t border-border px-5 py-3 text-xs text-muted-foreground">
                 <span>{t.stepOf(stepIndex + 1, wizardSteps.length)}</span>
