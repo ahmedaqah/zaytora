@@ -124,8 +124,37 @@ function readStepIndexFromParam(stepParam: string | null, stepCount: number) {
 // always reloaded this page fresh, which resets `phase` state back to its
 // "design" default no matter which phase the guest actually continued from,
 // dropping them back at the last design step instead of straight at payment.
-function readPhaseFromParam(phaseParam: string | null): Phase {
-  return phaseParam === "preview" || phaseParam === "payment" || phaseParam === "confirmation" ? phaseParam : "design";
+function isValidPhase(value: string | null): value is Phase {
+  return value === "preview" || value === "payment" || value === "confirmation" || value === "design";
+}
+
+const RESUME_PHASE_KEY_PREFIX = "zaytora:resumePhase:";
+
+// Belt-and-suspenders alongside the ?phase= query param: claiming a guest
+// draft right after the pre-payment login (register/login + the "claim this
+// draft" call in the effect below, all racing the very first render here)
+// was observed to sometimes still land back on "design" even with ?phase=
+// present in the URL -- some part of that race clobbers the query string
+// before this component's first paint reads it. sessionStorage isn't tied to
+// the URL at all, so it survives regardless of what the navigation does to
+// the query string; keyed per invitation so it can never leak onto a
+// different draft opened in the same tab/session.
+function readPhaseFromParam(phaseParam: string | null, invitationId: string | null): Phase {
+  if (isValidPhase(phaseParam)) return phaseParam;
+  if (!invitationId) return "design";
+  try {
+    const key = RESUME_PHASE_KEY_PREFIX + invitationId;
+    const stored = sessionStorage.getItem(key);
+    if (isValidPhase(stored)) {
+      sessionStorage.removeItem(key);
+      return stored;
+    }
+  } catch {
+    // Storage can throw (private browsing, disabled storage) -- falling
+    // back to "design" here is exactly today's pre-fix behavior, not a
+    // regression.
+  }
+  return "design";
 }
 
 export function StudioWizard() {
@@ -163,7 +192,7 @@ export function StudioWizard() {
   const [stepIndex, setStepIndexState] = useState(() =>
     readStepIndexFromParam(searchParams.get("step"), wizardSteps.length)
   );
-  const [phase, setPhase] = useState<Phase>(() => readPhaseFromParam(searchParams.get("phase")));
+  const [phase, setPhase] = useState<Phase>(() => readPhaseFromParam(searchParams.get("phase"), invitationIdParam));
   const [completedOrder, setCompletedOrder] = useState<OrderCreatedResponse | null>(null);
   const [saving, setSaving] = useState(false);
   const [previewSaving, setPreviewSaving] = useState(false);
@@ -462,6 +491,20 @@ export function StudioWizard() {
                   // straight at payment instead of the login redirect's full
                   // page reload dropping `phase` state back to "design" and
                   // making them click through Finish/Continue all over again.
+                  // Also stashed in sessionStorage as a fallback (see
+                  // readPhaseFromParam) -- claiming a guest draft during this
+                  // exact redirect was observed to sometimes still wipe
+                  // ?phase= off the URL before this page's first paint reads
+                  // it, and this survives that regardless of the URL.
+                  if (form?.id) {
+                    try {
+                      sessionStorage.setItem(RESUME_PHASE_KEY_PREFIX + form.id, "payment");
+                    } catch {
+                      // Storage can throw (private browsing, disabled
+                      // storage) -- the ?phase= param below is still there
+                      // as the primary mechanism either way.
+                    }
+                  }
                   const returnParams = new URLSearchParams(searchParams.toString());
                   returnParams.set("phase", "payment");
                   const returnUrl = `${window.location.pathname}?${returnParams.toString()}`;
