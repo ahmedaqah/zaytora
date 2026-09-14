@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { ChevronDownIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import type { InvitationDetail } from "@/types/studio";
@@ -7,9 +8,12 @@ import type { StepDefinition } from "./stepsConfig";
 
 // Renders a handful of wizard steps as one page instead of one-step-per-page:
 // each step is a fold (its own icon/label header + its question + its own
-// Component), only the active one expanded. Navigation (Back/Next, the step
-// counter, validation) stays entirely in StudioWizard -- this only changes
-// how steps *look* while grouped, never how stepIndex advances.
+// Component). Navigation (Back/Next, the step counter, validation) stays
+// entirely in StudioWizard and always tracks activeStepId -- but which fold
+// is visually *open* is its own local state, so re-clicking the open fold's
+// own header can collapse it without that meaning "go to no step". It stays
+// synced to activeStepId otherwise, so Back/Next/the step drawer still
+// auto-expand whichever step they land on.
 export function StepAccordionGroup({
   steps,
   activeStepId,
@@ -23,17 +27,30 @@ export function StepAccordionGroup({
   onChange: (patch: Partial<InvitationDetail>) => void;
   onSelect: (stepId: string) => void;
 }) {
+  const [expandedId, setExpandedId] = useState<string | null>(activeStepId);
+
+  useEffect(() => {
+    setExpandedId(activeStepId);
+  }, [activeStepId]);
+
   return (
     <div className="divide-y divide-border">
       {steps.map((step) => {
-        const isOpen = step.id === activeStepId;
+        const isOpen = step.id === expandedId;
         const StepIcon = step.icon;
         const StepComponent = step.Component;
         return (
           <div key={step.id}>
             <button
               type="button"
-              onClick={() => onSelect(step.id)}
+              onClick={() => {
+                if (isOpen) {
+                  setExpandedId(null);
+                  return;
+                }
+                setExpandedId(step.id);
+                onSelect(step.id);
+              }}
               aria-expanded={isOpen}
               className="flex w-full items-center justify-between gap-3 px-5 py-4 text-start transition-colors hover:bg-gold/5"
             >
