@@ -18,6 +18,7 @@ import {
   PenLineIcon,
   PhoneIcon,
   SearchIcon,
+  SendIcon,
   TrashIcon,
   UserIcon,
 } from "@/components/icons";
@@ -25,6 +26,7 @@ import { cn } from "@/lib/utils";
 import { useLanguage } from "@/context/LanguageContext";
 import { useAuth } from "@/context/AuthContext";
 import {
+  createInvitationTransferLink,
   deleteInvitation,
   getInvitation,
   listInvitations,
@@ -70,7 +72,17 @@ const COPY = {
     tableTitle: "الحجوزات",
     responsesCount: (n: number) => `${n} ${n === 1 ? "رد" : "ردود"}`,
     galleryCount: (n: number) => `${n} ${n === 1 ? "صورة" : "صور"}`,
-    actionLabels: { preview: "معاينة", edit: "تعديل", gallery: "الصور والمعرض", delete: "حذف", copyLink: "نسخ رابط الدعوة", linkCopied: "تم نسخ الرابط" },
+    actionLabels: {
+      preview: "معاينة",
+      edit: "تعديل",
+      gallery: "الصور والمعرض",
+      delete: "حذف",
+      copyLink: "نسخ رابط الدعوة",
+      linkCopied: "تم نسخ الرابط",
+      handoff: "توليد رابط تسليم للزبون",
+      handoffCopied: "تم نسخ رابط التسليم",
+      handoffError: "تعذّر توليد رابط التسليم",
+    },
     copyLinkPendingHint: "الرابط بيشتغل بس بعد موافقة الأدمن على الدعوة",
     draftBadge: "مسودة، بانتظار المراجعة",
     emptyState: "لا توجد دعوات مطابقة",
@@ -93,7 +105,17 @@ const COPY = {
     tableTitle: "Bookings",
     responsesCount: (n: number) => `${n} response${n === 1 ? "" : "s"}`,
     galleryCount: (n: number) => `${n} photo${n === 1 ? "" : "s"}`,
-    actionLabels: { preview: "Preview", edit: "Edit", gallery: "Gallery & photos", delete: "Delete", copyLink: "Copy invitation link", linkCopied: "Link copied" },
+    actionLabels: {
+      preview: "Preview",
+      edit: "Edit",
+      gallery: "Gallery & photos",
+      delete: "Delete",
+      copyLink: "Copy invitation link",
+      linkCopied: "Link copied",
+      handoff: "Generate handoff link for customer",
+      handoffCopied: "Handoff link copied",
+      handoffError: "Couldn't generate the handoff link",
+    },
     copyLinkPendingHint: "The link only works once an admin approves this invitation",
     draftBadge: "Draft, awaiting review",
     emptyState: "No matching invitations",
@@ -175,11 +197,14 @@ function BookingCard({
   t,
   index,
   linkCopied,
+  isAdmin,
+  handoffState,
   onPreview,
   onDelete,
   onOpenResponses,
   onOpenGallery,
   onCopyLink,
+  onHandoff,
 }: {
   booking: BookingRow;
   language: "ar" | "en";
@@ -188,11 +213,18 @@ function BookingCard({
   // Whether *this* card's link was the most recently copied one — drives
   // the brief checkmark feedback, not a per-card toggle of its own.
   linkCopied: boolean;
+  // Every invitation on this dashboard already belongs to whoever's
+  // viewing it -- so when that's an admin, every card here is a candidate
+  // for the "hand off to the customer's own account" action below (see
+  // InvitationsController.CreateTransferLink's own admin-owned check).
+  isAdmin: boolean;
+  handoffState: "idle" | "loading" | "copied" | "error";
   onPreview: (row: BookingRow) => void;
   onDelete: (row: BookingRow) => void;
   onOpenResponses: (row: BookingRow) => void;
   onOpenGallery: (row: BookingRow) => void;
   onCopyLink: (row: BookingRow) => void;
+  onHandoff: (row: BookingRow) => void;
 }) {
   return (
     <motion.div
@@ -279,6 +311,43 @@ function BookingCard({
         >
           <CameraIcon className="size-4" />
         </button>
+        {isAdmin && (
+          <button
+            type="button"
+            onClick={() => onHandoff(booking)}
+            disabled={handoffState === "loading"}
+            aria-label={
+              handoffState === "error"
+                ? t.actionLabels.handoffError
+                : handoffState === "copied"
+                  ? t.actionLabels.handoffCopied
+                  : t.actionLabels.handoff
+            }
+            title={
+              handoffState === "error"
+                ? t.actionLabels.handoffError
+                : handoffState === "copied"
+                  ? t.actionLabels.handoffCopied
+                  : t.actionLabels.handoff
+            }
+            className={cn(
+              "flex size-9 items-center justify-center rounded-full transition-colors",
+              handoffState === "error"
+                ? "text-rose-700 dark:text-rose-400"
+                : handoffState === "copied"
+                  ? "text-emerald-700 dark:text-emerald-400"
+                  : "text-muted-foreground hover:bg-gold/10 hover:text-gold"
+            )}
+          >
+            {handoffState === "loading" ? (
+              <LoaderIcon className="size-4 animate-spin" />
+            ) : handoffState === "copied" ? (
+              <CheckIcon className="size-4" />
+            ) : (
+              <SendIcon className="size-4" />
+            )}
+          </button>
+        )}
         <button
           type="button"
           onClick={() => onDelete(booking)}
@@ -307,6 +376,8 @@ export function DashboardView() {
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
   const galleryRequestIdRef = useRef(0);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [handoffId, setHandoffId] = useState<string | null>(null);
+  const [handoffStatus, setHandoffStatus] = useState<"loading" | "copied" | "error">("loading");
 
   const loadBookings = useCallback(async () => {
     // Works whether the caller is signed in (by UserId) or anonymous (by
@@ -432,6 +503,24 @@ export function DashboardView() {
     window.setTimeout(() => setCopiedId((current) => (current === row.id ? null : current)), 2000);
   }
 
+  // Admin-only (see BookingCard's own isAdmin gate) -- generates a one-time
+  // link an admin can send a customer so the invitation the admin designed
+  // for them ends up owned by the customer's own account, not the admin's.
+  async function handleHandoff(row: BookingRow) {
+    setHandoffId(row.id);
+    setHandoffStatus("loading");
+    try {
+      const { url } = await createInvitationTransferLink(row.id);
+      await navigator.clipboard.writeText(url).catch(() => {});
+      setHandoffStatus("copied");
+    } catch (error) {
+      console.error("[dashboard] failed to create a transfer link:", error);
+      setHandoffStatus("error");
+    } finally {
+      window.setTimeout(() => setHandoffId((current) => (current === row.id ? null : current)), 2500);
+    }
+  }
+
   function openPreview(row: BookingRow) {
     // Same standalone full-page route (with the same real-data-vs-mock
     // switch) that the templates grid's "Preview" button and the studio's
@@ -552,11 +641,14 @@ export function DashboardView() {
             t={t}
             index={index}
             linkCopied={copiedId === booking.id}
+            isAdmin={user?.isAdmin ?? false}
+            handoffState={handoffId === booking.id ? handoffStatus : "idle"}
             onPreview={openPreview}
             onDelete={setDeleteTarget}
             onOpenResponses={setResponsesRow}
             onOpenGallery={openGallery}
             onCopyLink={copyLink}
+            onHandoff={handleHandoff}
           />
         ))}
 

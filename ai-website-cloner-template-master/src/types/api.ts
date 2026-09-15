@@ -271,6 +271,16 @@ export interface InvitationDto {
   editUrl: string;
 }
 
+// POST /api/invitations/{id}/transfer-link
+export interface InvitationTransferLinkDto {
+  url: string;
+}
+
+// POST /api/invitations/claim-transfer
+export interface ClaimInvitationTransferResponse {
+  invitationId: string;
+}
+
 // Row shape for GET /api/invitations — the dashboard's bookings table.
 export interface InvitationSummaryDto {
   id: string;

@@ -77,6 +77,7 @@ export {
   AlertTriangle as WarningIcon,
   Copy as CopyIcon,
   ShieldCheck as ShieldIcon,
+  Send as SendIcon,
 } from "lucide-react";
 
 export function InstagramIcon(props: React.SVGProps<SVGSVGElement>) {

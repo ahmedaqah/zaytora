@@ -23,6 +23,15 @@ public class Invitation
     public List<RsvpResponse> Responses { get; set; } = [];
     public List<CapturedPhoto> CapturedPhotos { get; set; } = [];
 
+    // Set by an admin generating a one-time "hand this off to the
+    // customer's own account" link (InvitationsController.CreateTransferLink)
+    // for an invitation the admin designed on their own account for
+    // someone else. Whoever is signed in when they open that link and
+    // claim it (ClaimTransfer) becomes the new UserId, and both fields are
+    // cleared immediately so the same link can never be reused.
+    public string? TransferToken { get; set; }
+    public DateTime? TransferTokenExpiresAt { get; set; }
+
     // Step 1 — Invitation Language
     public string? Language { get; set; }
 

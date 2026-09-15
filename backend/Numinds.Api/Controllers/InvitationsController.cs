@@ -1,5 +1,7 @@
 using System.Linq.Expressions;
+using System.Security.Cryptography;
 using System.Text.Json;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -16,8 +18,11 @@ namespace Numinds.Api.Controllers;
 public class InvitationsController(
     NumindsDbContext db,
     UserManager<ApplicationUser> userManager,
-    IFileStorageService storage) : ControllerBase
+    IFileStorageService storage,
+    IConfiguration configuration) : ControllerBase
 {
+    private string FrontendBaseUrl => configuration["Frontend:BaseUrl"] ?? "http://localhost:3000";
+
     // Matches numinds.me's "5 invitation cards" cap. Applies to authenticated
     // users (by UserId) and anonymous guests alike (by the GuestId tracking
     // cookie set in GetOrCreateGuestId) — nobody gets an unlimited number of
@@ -425,6 +430,79 @@ public class InvitationsController(
         }
 
         return Ok(ToDetailDto(invitation));
+    }
+
+    // POST /api/invitations/{id}/transfer-link
+    // Admin only, and only for an invitation an admin currently owns (see
+    // the check below) -- this is specifically the "an admin designed this
+    // on their own account for a customer who never signed up" escape
+    // hatch, not a general reassignment tool for invitations customers
+    // already own themselves. Generates a single-use, time-limited token;
+    // ClaimTransfer below is what actually redeems it.
+    [HttpPost("{id:guid}/transfer-link")]
+    [Authorize(Roles = Roles.Admin)]
+    public async Task<ActionResult<InvitationTransferLinkDto>> CreateTransferLink(Guid id, CancellationToken cancellationToken)
+    {
+        var invitation = await db.Invitations.Include(i => i.User).FirstOrDefaultAsync(i => i.Id == id, cancellationToken);
+        if (invitation is null)
+        {
+            return NotFound();
+        }
+
+        if (invitation.User is null || !await userManager.IsInRoleAsync(invitation.User, Roles.Admin))
+        {
+            return BadRequest(new
+            {
+                title = "This invitation isn't owned by an admin account, so it can't be handed off this way.",
+            });
+        }
+
+        invitation.TransferToken = Convert.ToHexString(RandomNumberGenerator.GetBytes(24));
+        invitation.TransferTokenExpiresAt = DateTime.UtcNow.AddDays(7);
+        await db.SaveChangesAsync(cancellationToken);
+
+        return Ok(new InvitationTransferLinkDto
+        {
+            Url = $"{FrontendBaseUrl}/claim-invitation?token={invitation.TransferToken}",
+        });
+    }
+
+    // POST /api/invitations/claim-transfer
+    // Any authenticated user -- whoever is signed in when they redeem a
+    // valid, unexpired token becomes the invitation's new owner. Looked up
+    // by token alone (not also an id) since the token itself, not the
+    // invitation id, is the only thing that needs to stay secret here.
+    [HttpPost("claim-transfer")]
+    [Authorize]
+    public async Task<ActionResult<ClaimInvitationTransferResponse>> ClaimTransfer(
+        ClaimInvitationTransferRequest request,
+        CancellationToken cancellationToken)
+    {
+        var userId = await GetCurrentUserIdAsync();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
+
+        var invitation = await db.Invitations.FirstOrDefaultAsync(
+            i => i.TransferToken == request.Token, cancellationToken);
+        if (invitation is null || invitation.TransferTokenExpiresAt is null || invitation.TransferTokenExpiresAt < DateTime.UtcNow)
+        {
+            return NotFound(new { title = "This handoff link is invalid or has expired." });
+        }
+
+        // GuestId is cleared too (unlike the normal claim-on-login path in
+        // Update, which leaves it as a harmless breadcrumb) -- an
+        // admin-created invitation's GuestId, if any, belongs to whoever
+        // was browsing anonymously on the admin's machine, not to the
+        // customer this is being handed off to.
+        invitation.UserId = userId;
+        invitation.GuestId = null;
+        invitation.TransferToken = null;
+        invitation.TransferTokenExpiresAt = null;
+        await db.SaveChangesAsync(cancellationToken);
+
+        return Ok(new ClaimInvitationTransferResponse { InvitationId = invitation.Id.ToString() });
     }
 
     // DELETE /api/invitations/{id}

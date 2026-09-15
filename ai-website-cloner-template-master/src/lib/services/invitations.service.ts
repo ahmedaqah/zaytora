@@ -3,9 +3,11 @@ import { API_BASE_URL } from "@/lib/api/config";
 import type {
   CapturedPhotoDto,
   CapturedPhotosPageDto,
+  ClaimInvitationTransferResponse,
   CreateInvitationRequest,
   InvitationDto,
   InvitationSummaryDto,
+  InvitationTransferLinkDto,
   RsvpResponseDto,
   RsvpSubmissionRequest,
 } from "@/types/api";
@@ -32,6 +34,18 @@ export function listInvitations() {
 
 export function deleteInvitation(id: string) {
   return apiClient.delete<void>(`/invitations/${id}`);
+}
+
+// Admin only -- generates a one-time link that hands this invitation off to
+// whichever account opens and claims it (see claimInvitationTransfer).
+export function createInvitationTransferLink(id: string) {
+  return apiClient.post<InvitationTransferLinkDto>(`/invitations/${id}/transfer-link`, {});
+}
+
+// Called by the /claim-invitation page once the visitor is signed in --
+// whoever that is becomes the invitation's new owner.
+export function claimInvitationTransfer(token: string) {
+  return apiClient.post<ClaimInvitationTransferResponse>("/invitations/claim-transfer", { token });
 }
 
 // Submitted by a guest viewing the published invitation, not its owner —
