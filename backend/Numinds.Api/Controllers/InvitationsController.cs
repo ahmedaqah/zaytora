@@ -505,6 +505,41 @@ public class InvitationsController(
         return Ok(new ClaimInvitationTransferResponse { InvitationId = invitation.Id.ToString() });
     }
 
+    // GET /api/invitations/{id}/ownership-debug
+    // Admin-only, read-only diagnostic for investigating handoff-link
+    // reports -- the normal InvitationDetailDto never exposes UserId/
+    // GuestId/TransferToken (correctly so, for every other caller), which
+    // otherwise leaves no way to see who actually owns an invitation right
+    // now without direct database access. Temporary-but-harmless: nothing
+    // here is ever written, so it's safe to leave in place afterward too.
+    [HttpGet("{id:guid}/ownership-debug")]
+    [Authorize(Roles = Roles.Admin)]
+    public async Task<ActionResult> GetOwnershipDebug(Guid id, CancellationToken cancellationToken)
+    {
+        var invitation = await db.Invitations.AsNoTracking().FirstOrDefaultAsync(i => i.Id == id, cancellationToken);
+        if (invitation is null)
+        {
+            return NotFound();
+        }
+
+        string? ownerEmail = invitation.UserId is { } uid
+            ? (await userManager.FindByIdAsync(uid.ToString()))?.Email
+            : null;
+
+        return Ok(new
+        {
+            invitationId = invitation.Id,
+            status = invitation.Status,
+            userId = invitation.UserId,
+            ownerEmail,
+            guestId = invitation.GuestId,
+            transferToken = invitation.TransferToken,
+            transferTokenExpiresAt = invitation.TransferTokenExpiresAt,
+            createdAt = invitation.CreatedAt,
+            updatedAt = invitation.UpdatedAt,
+        });
+    }
+
     // DELETE /api/invitations/{id}
     // Powers the dashboard's Delete action. Scoped to the caller's own
     // invitations (by UserId for a session, by GuestId cookie otherwise) —
