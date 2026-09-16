@@ -48,6 +48,23 @@ export function claimInvitationTransfer(token: string) {
   return apiClient.post<ClaimInvitationTransferResponse>("/invitations/claim-transfer", { token });
 }
 
+// Admin-only diagnostic (see InvitationsController.GetOwnershipDebug) --
+// surfaces UserId/GuestId/TransferToken, which the normal DTO never
+// includes, for investigating a specific handoff-link report.
+export function getInvitationOwnershipDebug(id: string) {
+  return apiClient.get<{
+    invitationId: string;
+    status: string;
+    userId: string | null;
+    ownerEmail: string | null;
+    guestId: string | null;
+    transferToken: string | null;
+    transferTokenExpiresAt: string | null;
+    createdAt: string;
+    updatedAt: string;
+  }>(`/invitations/${id}/ownership-debug`);
+}
+
 // Submitted by a guest viewing the published invitation, not its owner —
 // anonymous is fine here the same way it's fine on createInvitation.
 export function submitRsvp(id: string, payload: RsvpSubmissionRequest) {
