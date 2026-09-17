@@ -368,9 +368,12 @@ export interface CapturedPhotosPageDto {
   totalCount: number;
 }
 
-// GET/PUT /api/payment-settings (admin only) — the admin's own receiving
-// account for manual bank-transfer checkout. Never carries a CVV/expiry.
-export interface PaymentSettingsDto {
+// GET /api/payment-settings (admin only) returns every configured
+// PaymentAccountDto (one per country, plus the always-present "INTL"
+// fallback); PUT /api/payment-settings/{countryCode} upserts one. Never
+// carries a CVV/expiry.
+export interface PaymentAccountDto {
+  countryCode: string;
   recipientName: string;
   accountNumber: string;
   bankName?: string | null;
@@ -378,7 +381,7 @@ export interface PaymentSettingsDto {
   instructions?: string | null;
 }
 
-export type PaymentSettingsWriteRequest = PaymentSettingsDto;
+export type PaymentAccountWriteRequest = Omit<PaymentAccountDto, "countryCode">;
 
 // GET (public) / PUT (admin) /api/pricing-settings.
 export interface PricingSettingsDto {
@@ -405,6 +408,7 @@ export interface OrderDto {
   qrGuestCount?: number | null;
   giftFeeCoverage: boolean;
   promoCodeUsed?: string | null;
+  country?: string | null;
   amountUsd: number;
   currency: string;
   convertedAmount: number;
@@ -429,13 +433,17 @@ export interface CreateOrderRequest {
   enableGifts: boolean;
   giftFeeCoverage: boolean;
   promoCode?: string | null;
+  // The country/region the customer picked at checkout — resolves which
+  // PaymentAccountDto they're shown, falling back to the "INTL" account
+  // server-side when unset or unconfigured.
+  country: string;
   currency: string;
   convertedAmount: number;
 }
 
 export interface OrderCreatedResponse {
   order: OrderDto;
-  paymentSettings: PaymentSettingsDto;
+  paymentSettings: PaymentAccountDto;
 }
 
 export interface UpdateOrderStatusRequest {

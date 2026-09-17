@@ -1,11 +1,21 @@
 import { apiClient } from "@/lib/api/client";
-import type { PaymentSettingsDto, PaymentSettingsWriteRequest } from "@/types/api";
+import type { PaymentAccountDto, PaymentAccountWriteRequest } from "@/types/api";
 
-// Admin-only in both directions — see /admin/settings' Payment Settings form.
-export function getPaymentSettings() {
-  return apiClient.get<PaymentSettingsDto>("/payment-settings");
+// Admin-only in both directions — see /admin/settings' Payment Settings
+// section. Every configured country's receiving account, plus the
+// always-present "INTL" fallback once it's been saved at least once.
+export function listPaymentAccounts() {
+  return apiClient.get<PaymentAccountDto[]>("/payment-settings");
 }
 
-export function updatePaymentSettings(payload: PaymentSettingsWriteRequest) {
-  return apiClient.put<PaymentSettingsDto>("/payment-settings", payload);
+// countryCode is an ISO 3166-1 alpha-2 code, "PS48" for the occupied
+// Palestinian interior, or "INTL" for the fallback (see src/lib/countries.ts).
+export function upsertPaymentAccount(countryCode: string, payload: PaymentAccountWriteRequest) {
+  return apiClient.put<PaymentAccountDto>(`/payment-settings/${countryCode}`, payload);
+}
+
+// Removes a country's own override so it falls back to "INTL" again. The
+// fallback itself can't be deleted this way (only edited).
+export function deletePaymentAccount(countryCode: string) {
+  return apiClient.delete<void>(`/payment-settings/${countryCode}`);
 }

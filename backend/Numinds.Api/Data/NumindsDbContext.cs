@@ -22,7 +22,7 @@ public class NumindsDbContext(DbContextOptions<NumindsDbContext> options)
     public DbSet<CapturedPhoto> CapturedPhotos => Set<CapturedPhoto>();
     public DbSet<ContactSettings> ContactSettings => Set<ContactSettings>();
     public DbSet<ContactWhatsAppNumber> ContactWhatsAppNumbers => Set<ContactWhatsAppNumber>();
-    public DbSet<PaymentSettings> PaymentSettings => Set<PaymentSettings>();
+    public DbSet<PaymentAccount> PaymentAccounts => Set<PaymentAccount>();
     public DbSet<PricingSettings> PricingSettings => Set<PricingSettings>();
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<Partner> Partners => Set<Partner>();
@@ -34,7 +34,6 @@ public class NumindsDbContext(DbContextOptions<NumindsDbContext> options)
     // Fixed id so the seed row (and its child WhatsApp numbers below) stay
     // stable across migrations — same reasoning as SeedTemplates' fixed GUIDs.
     private static readonly Guid ContactSettingsSeedId = Guid.Parse("11111111-1111-1111-1111-111111111111");
-    private static readonly Guid PaymentSettingsSeedId = Guid.Parse("44444444-4444-4444-4444-444444444444");
     private static readonly Guid PricingSettingsSeedId = Guid.Parse("55555555-5555-5555-5555-555555555555");
 
     protected override void OnModelCreating(ModelBuilder builder)
@@ -188,22 +187,22 @@ public class NumindsDbContext(DbContextOptions<NumindsDbContext> options)
             );
         });
 
-        builder.Entity<PaymentSettings>(entity =>
+        builder.Entity<PaymentAccount>(entity =>
         {
+            entity.Property(p => p.CountryCode).HasMaxLength(8).IsRequired();
             entity.Property(p => p.RecipientName).HasMaxLength(128).IsRequired();
             entity.Property(p => p.AccountNumber).HasMaxLength(64).IsRequired();
             entity.Property(p => p.BankName).HasMaxLength(128);
             entity.Property(p => p.Iban).HasMaxLength(64);
             entity.Property(p => p.Instructions).HasMaxLength(1024);
+            entity.HasIndex(p => p.CountryCode).IsUnique();
 
-            // Seeded empty — there's nothing safe to show a paying customer
-            // until the admin fills this in themselves via /admin/settings.
-            entity.HasData(new PaymentSettings
-            {
-                Id = PaymentSettingsSeedId,
-                RecipientName = string.Empty,
-                AccountNumber = string.Empty,
-            });
+            // No HasData seed here on purpose -- the migration that
+            // introduces this table carries the old singleton
+            // PaymentSettings row's real data forward as the "INTL" row
+            // via raw SQL instead, so a real admin's already-filled-in
+            // account isn't silently lost. A fresh database genuinely
+            // starts with zero rows until the admin configures one.
         });
 
         builder.Entity<PricingSettings>(entity =>

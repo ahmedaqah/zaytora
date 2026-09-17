@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CheckIcon, ExternalLinkIcon, LoaderIcon, MailIcon, QrCodeIcon, SearchIcon, TrashIcon, XIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
+import { findCountry } from "@/lib/countries";
 import { useLanguage } from "@/context/LanguageContext";
 import { listOrders, updateOrderStatus, deleteOrder, sendOrderReminder } from "@/lib/services/orders.service";
 import { formatUsd } from "@/lib/format";
@@ -295,6 +296,11 @@ export default function AdminOrdersPage() {
                   {order.promoCodeUsed && (
                     <span className="truncate text-muted-foreground" dir="ltr" title={order.promoCodeUsed}>
                       {order.promoCodeUsed}
+                    </span>
+                  )}
+                  {order.country && (
+                    <span className="truncate text-muted-foreground">
+                      {findCountry(order.country)?.[language] ?? order.country}
                     </span>
                   )}
                   <span className="text-muted-foreground">{formatDate(order.createdAt, language)}</span>

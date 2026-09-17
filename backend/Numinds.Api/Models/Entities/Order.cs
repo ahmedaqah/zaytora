@@ -29,6 +29,13 @@ public class Order
 
     public string? PromoCodeUsed { get; set; }
 
+    // The country/region the customer picked at checkout — records which
+    // PaymentAccount (see PaymentSettingsController.ResolveForCountryAsync)
+    // was actually shown to them for this order, for the admin's own
+    // reference when reviewing it. Null for orders placed before this
+    // field existed.
+    public string? Country { get; set; }
+
     // The authoritative amount, always USD — computed server-side from
     // PricingSettings (+ any promo discount) at creation time.
     public decimal AmountUsd { get; set; }

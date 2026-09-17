@@ -11,6 +11,7 @@ public class OrderDto
     public int? QrGuestCount { get; set; }
     public bool GiftFeeCoverage { get; set; }
     public string? PromoCodeUsed { get; set; }
+    public string? Country { get; set; }
     public decimal AmountUsd { get; set; }
     public string Currency { get; set; } = "USD";
     public decimal ConvertedAmount { get; set; }
@@ -39,6 +40,11 @@ public class CreateOrderRequest
     public bool EnableGifts { get; set; }
     public bool GiftFeeCoverage { get; set; }
     public string? PromoCode { get; set; }
+    // The country/region the customer picked at checkout — resolves which
+    // PaymentAccount they're shown (see
+    // PaymentSettingsController.ResolveForCountryAsync); falls back to the
+    // "INTL" account when null or unconfigured.
+    public string? Country { get; set; }
     public string Currency { get; set; } = "USD";
     public decimal ConvertedAmount { get; set; }
 }
@@ -49,7 +55,7 @@ public class CreateOrderRequest
 public class OrderCreatedResponse
 {
     public OrderDto Order { get; set; } = new();
-    public PaymentSettingsDto PaymentSettings { get; set; } = new();
+    public PaymentAccountDto PaymentSettings { get; set; } = new();
 }
 
 public class UpdateOrderStatusRequest

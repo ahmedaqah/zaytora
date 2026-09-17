@@ -101,6 +101,7 @@ public class OrdersController(
             PromoCodeUsed = matchedPartner is not null
                 ? matchedPartner.PromoCode
                 : (string.Equals(promoCode, pricing.PlatformDiscountCode, StringComparison.OrdinalIgnoreCase) ? promoCode : null),
+            Country = string.IsNullOrWhiteSpace(request.Country) ? null : request.Country.Trim().ToUpperInvariant(),
             AmountUsd = amountUsd,
             Currency = string.IsNullOrWhiteSpace(request.Currency) ? "USD" : request.Currency,
             ConvertedAmount = request.ConvertedAmount,
@@ -117,12 +118,12 @@ public class OrdersController(
         // never close.
         await db.SaveChangesAsync(cancellationToken);
 
-        var paymentSettings = await db.PaymentSettings.AsNoTracking().FirstOrDefaultAsync(cancellationToken);
+        var resolvedAccount = await PaymentSettingsController.ResolveForCountryAsync(db, order.Country, cancellationToken);
 
         return CreatedAtAction(nameof(GetById), new { id = order.Id }, new OrderCreatedResponse
         {
             Order = await ToDtoAsync(order, cancellationToken),
-            PaymentSettings = paymentSettings is null ? new PaymentSettingsDto() : PaymentSettingsController.ToDto(paymentSettings),
+            PaymentSettings = resolvedAccount ?? new PaymentAccountDto(),
         });
     }
 
@@ -442,6 +443,7 @@ public class OrdersController(
         QrGuestCount = order.QrGuestCount,
         GiftFeeCoverage = order.GiftFeeCoverage,
         PromoCodeUsed = order.PromoCodeUsed,
+        Country = order.Country,
         AmountUsd = order.AmountUsd,
         Currency = order.Currency,
         ConvertedAmount = order.ConvertedAmount,

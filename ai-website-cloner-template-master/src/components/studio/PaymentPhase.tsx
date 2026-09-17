@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { CardIcon, CheckIcon, ChevronLeftIcon, InfoIcon, LoaderIcon, MailIcon, UserIcon } from "@/components/icons";
+import { CountrySelect } from "@/components/CountrySelect";
 import { cn } from "@/lib/utils";
 import {
   DEFAULT_PRICE_RATES,
@@ -60,6 +61,7 @@ const COPY = {
     discountBadge: "تم تطبيق خصم الشريك 🏷️",
     nameLabel: "الاسم الكامل",
     emailLabel: "البريد الإلكتروني",
+    countryLabel: "الدولة / المنطقة",
     currencyLabel: "العملة",
     fxNotice: "الأسعار أدناه محوّلة تقريبياً للعملة المختارة — المبلغ النهائي يُحدَّد عند التحويل الفعلي.",
     premiumInvitation: "دعوة مميزة",
@@ -69,7 +71,7 @@ const COPY = {
     placeOrder: "إتمام الطلب",
     manualPaymentNotice: "لا توجد بوابة دفع إلكترونية — بعد إتمام الطلب ستظهر لك تفاصيل حساب التحويل اليدوي.",
     backToDesign: "العودة للتصميم",
-    missingFields: "الرجاء إدخال الاسم والبريد الإلكتروني.",
+    missingFields: "الرجاء إدخال الاسم والبريد الإلكتروني واختيار الدولة.",
     orderError: "تعذّر إنشاء الطلب. حاول مرة أخرى.",
   },
   en: {
@@ -84,6 +86,7 @@ const COPY = {
     discountBadge: "Partner Discount Applied 🏷️",
     nameLabel: "Full name",
     emailLabel: "Email",
+    countryLabel: "Country / Region",
     currencyLabel: "Currency",
     fxNotice: "Prices below are an approximate conversion — the final amount is set when you actually transfer it.",
     premiumInvitation: "Premium invitation",
@@ -93,7 +96,7 @@ const COPY = {
     placeOrder: "Place Order",
     manualPaymentNotice: "There's no online payment gateway — after placing your order you'll see manual transfer account details.",
     backToDesign: "Back to design",
-    missingFields: "Please enter your name and email.",
+    missingFields: "Please enter your name, email, and select your country.",
     orderError: "Couldn't create the order. Please try again.",
   },
 };
@@ -121,6 +124,7 @@ export function PaymentPhase({
 
   const [customerName, setCustomerName] = useState(user?.displayName ?? "");
   const [customerEmail, setCustomerEmail] = useState(user?.email ?? "");
+  const [country, setCountry] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -207,7 +211,7 @@ export function PaymentPhase({
   }
 
   async function handlePlaceOrder() {
-    if (!customerName.trim() || !customerEmail.trim()) {
+    if (!customerName.trim() || !customerEmail.trim() || !country) {
       setSubmitError(t.missingFields);
       return;
     }
@@ -224,6 +228,7 @@ export function PaymentPhase({
         enableGifts: value.enableGifts,
         giftFeeCoverage: value.enableGifts,
         promoCode: partnerCode.trim() || null,
+        country,
         currency,
         convertedAmount: totalAmount,
       });
@@ -322,6 +327,14 @@ export function PaymentPhase({
               {t.invalidCode}
             </p>
           )}
+        </div>
+
+        {/* Country / region -- picks which of the admin's PaymentAccount
+            rows the confirmation screen shows after this order is placed
+            (see PaymentSettingsController.ResolveForCountryAsync). */}
+        <div>
+          <label className="mb-1.5 block text-sm text-body-foreground">{t.countryLabel}</label>
+          <CountrySelect language={language} value={country} onChange={setCountry} />
         </div>
 
         {/* Currency */}

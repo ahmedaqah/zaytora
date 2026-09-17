@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { CheckIcon, CopyIcon, InfoIcon } from "@/components/icons";
 import { useLanguage } from "@/context/LanguageContext";
-import type { OrderDto, PaymentSettingsDto } from "@/types/api";
+import type { OrderDto, PaymentAccountDto } from "@/types/api";
 
 const COPY = {
   ar: {
@@ -76,7 +76,7 @@ export function OrderConfirmation({
   paymentSettings,
 }: {
   order: OrderDto;
-  paymentSettings: PaymentSettingsDto;
+  paymentSettings: PaymentAccountDto;
 }) {
   const { language } = useLanguage();
   const t = COPY[language];
