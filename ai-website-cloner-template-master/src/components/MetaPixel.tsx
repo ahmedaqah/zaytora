@@ -41,28 +41,40 @@ export function MetaPixel() {
             : Date.now() + '-' + Math.random().toString(16).slice(2);
           fbq('track', 'PageView', {}, { eventID: __pvId });
 
-          // Delayed so fbevents.js (loaded async above) has had a chance to
-          // set its own _fbc/_fbp cookies first -- reading them immediately
-          // here would almost always see last page's values or nothing, since
-          // this inline snippet runs before that script has finished loading.
-          setTimeout(function () {
-            try {
-              var fbcMatch = document.cookie.match(/(?:^|; )_fbc=([^;]*)/);
-              var fbpMatch = document.cookie.match(/(?:^|; )_fbp=([^;]*)/);
-              var payload = JSON.stringify({
-                eventId: __pvId,
-                url: location.href,
-                fbc: fbcMatch ? decodeURIComponent(fbcMatch[1]) : undefined,
-                fbp: fbpMatch ? decodeURIComponent(fbpMatch[1]) : undefined,
-              });
-              var endpoint = '${API_BASE_URL}/meta/pageview';
-              if (navigator.sendBeacon) {
-                navigator.sendBeacon(endpoint, new Blob([payload], { type: 'application/json' }));
-              } else {
-                fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: payload, keepalive: true });
+          // Fires immediately instead of waiting on fbevents.js to set its
+          // own _fbc/_fbp cookies first -- Events Manager's Event coverage
+          // report showed ~80% of this beacon getting lost, because a delay
+          // here means any visitor who bounces (very common on ad-driven
+          // landing traffic) closes/navigates away before it ever fires, and
+          // losing the whole server-side event (IP/UA included) is far worse
+          // than occasionally missing fbc/fbp on it.
+          try {
+            var fbcMatch = document.cookie.match(/(?:^|; )_fbc=([^;]*)/);
+            var fbpMatch = document.cookie.match(/(?:^|; )_fbp=([^;]*)/);
+            var fbc = fbcMatch ? decodeURIComponent(fbcMatch[1]) : undefined;
+            // _fbc cookie isn't set yet on a fresh ad click (fbevents.js
+            // hasn't loaded), but Meta documents this same fb.1.<click
+            // time>.<fbclid> format as safe to build directly from the URL
+            // param instead of waiting on the cookie.
+            if (!fbc) {
+              var fbclidMatch = location.search.match(/[?&]fbclid=([^&]+)/);
+              if (fbclidMatch) {
+                fbc = 'fb.1.' + Date.now() + '.' + fbclidMatch[1];
               }
-            } catch (e) {}
-          }, 500);
+            }
+            var payload = JSON.stringify({
+              eventId: __pvId,
+              url: location.href,
+              fbc: fbc,
+              fbp: fbpMatch ? decodeURIComponent(fbpMatch[1]) : undefined,
+            });
+            var endpoint = '${API_BASE_URL}/meta/pageview';
+            if (navigator.sendBeacon) {
+              navigator.sendBeacon(endpoint, new Blob([payload], { type: 'application/json' }));
+            } else {
+              fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: payload, keepalive: true });
+            }
+          } catch (e) {}
         `}
       </Script>
       <noscript>
