@@ -276,6 +276,15 @@ public class InvitationsController(
     [HttpGet("/i/{code}")]
     public async Task<ContentResult> ShareRedirect(string code, CancellationToken cancellationToken)
     {
+        // Program.cs's global response-header middleware appends a
+        // locked-down "default-src 'none'" CSP to every response, which
+        // silently blocks the inline <script> below from ever running (the
+        // redirect just never fires -- no console error a guest would ever
+        // see). That policy is right for a JSON API; this one action serves
+        // real HTML on purpose, so it needs its own, still-minimal policy.
+        Response.Headers.Remove("Content-Security-Policy");
+        Response.Headers.Append("Content-Security-Policy", "script-src 'unsafe-inline'; default-src 'none'; frame-ancestors 'none'");
+
         var invitation = await db.Invitations.AsNoTracking().FirstOrDefaultAsync(i => i.ShareCode == code, cancellationToken);
         if (invitation is null || !IsPubliclyVisible(invitation))
         {
