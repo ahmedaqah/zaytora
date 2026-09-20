@@ -1804,7 +1804,20 @@ export function InvitationCanvas({
                 <p className={cn("text-xs", TONE.muted)}>{formatShortDate(value.eventDateTime)}</p>
               )}
               <HeartIcon className="size-3.5 text-[var(--tpl-accent)] opacity-60" />
-              <p className="text-[9px] uppercase tracking-widest text-olive-vivid">Made by ZAYTORA</p>
+              {/* The one CTA on the whole guest-facing page that isn't part
+                  of the invitation itself -- every share is free reach to a
+                  wedding-adjacent audience, but only if this is actually a
+                  legible, clickable link. Opens in a new tab so a curious
+                  guest doesn't lose their place on the invitation they're
+                  viewing. */}
+              <a
+                href="/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[11px] font-semibold uppercase tracking-widest text-olive-vivid transition-opacity hover:opacity-75"
+              >
+                Made by ZAYTORA
+              </a>
             </motion.div>
           )}
             </>
