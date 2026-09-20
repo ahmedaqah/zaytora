@@ -32,6 +32,12 @@ public class Invitation
     public string? TransferToken { get; set; }
     public DateTime? TransferTokenExpiresAt { get; set; }
 
+    // Short public id for the guest-facing share link (InvitationsController
+    // ShareRedirect) -- kept separate from Id so the shared URL stays short
+    // and doesn't leak the real Guid. Nullable/backfilled lazily (see List)
+    // rather than migrated for every existing row.
+    public string? ShareCode { get; set; }
+
     // Step 1 — Invitation Language
     public string? Language { get; set; }
 

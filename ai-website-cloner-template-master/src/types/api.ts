@@ -285,6 +285,7 @@ export interface ClaimInvitationTransferResponse {
 export interface InvitationSummaryDto {
   id: string;
   bookingId: string;
+  shareCode: string;
   status: string;
   isPaid: boolean;
   hasPendingOrder: boolean;

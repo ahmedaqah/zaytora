@@ -23,6 +23,7 @@ import {
   UserIcon,
 } from "@/components/icons";
 import { cn } from "@/lib/utils";
+import { API_BASE_URL } from "@/lib/api/config";
 import { useLanguage } from "@/context/LanguageContext";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -39,6 +40,7 @@ import { GalleryModal } from "./GalleryModal";
 interface BookingRow {
   id: string;
   bookingId: string;
+  shareCode: string;
   bookingDate: string;
   eventDate: string | null;
   responses: number;
@@ -390,6 +392,7 @@ export function DashboardView() {
         summaries.map((s) => ({
           id: s.id,
           bookingId: s.bookingId,
+          shareCode: s.shareCode,
           bookingDate: s.createdAt,
           eventDate: s.eventDateTime ?? null,
           responses: s.responseCount,
@@ -491,13 +494,21 @@ export function DashboardView() {
     }
   }
 
-  // The real guest-facing link — no `&preview=true` (that flag watermarks
-  // the page and makes RSVP/etc. read-only, see PublicInvitationView.tsx).
-  // Every invitation reaching this dashboard is already admin-approved (see
-  // InvitationsController.List's gating), so this link works for anyone the
-  // instant it's shared.
+  // Short link served by the API (InvitationsController.ShareRedirect), not
+  // the long /invitationpublic?id=... page on this Vercel-hosted frontend --
+  // Facebook's/WhatsApp's crawler gets blocked by Vercel's edge System
+  // Mitigations on that route specifically (confirmed with Vercel support),
+  // so a shared link unfurled as a bare, title-less URL. This one is a tiny
+  // static page (on the unaffected API domain) with the right og:title, that
+  // then hands a real visitor on to the full app. Every invitation reaching
+  // this dashboard is already admin-approved (see InvitationsController.
+  // List's gating), so this link works for anyone the instant it's shared.
   function copyLink(row: BookingRow) {
-    const url = `${window.location.origin}/invitationpublic?id=${row.id}`;
+    // ShareRedirect is mapped at the API's root ("/i/{code}"), not under its
+    // "/api" prefix -- API_BASE_URL already includes that suffix (see
+    // lib/api/config.ts), so it's stripped back off here.
+    const apiOrigin = API_BASE_URL.replace(/\/api$/, "");
+    const url = `${apiOrigin}/i/${row.shareCode}`;
     navigator.clipboard.writeText(url).catch(() => {});
     setCopiedId(row.id);
     window.setTimeout(() => setCopiedId((current) => (current === row.id ? null : current)), 2000);

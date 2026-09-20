@@ -9,6 +9,9 @@ public class InvitationSummaryDto
     // Friendly display code (e.g. "ND1001") — derived from the caller's
     // invitations ordered by creation date, not a stored column.
     public string BookingId { get; set; } = string.Empty;
+    // Powers the dashboard's "copy link" button (GET /i/{code} short link) —
+    // see InvitationsController.ShareRedirect.
+    public string ShareCode { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public bool IsPaid { get; set; }
     // True when an Order for this invitation is still awaiting the admin's

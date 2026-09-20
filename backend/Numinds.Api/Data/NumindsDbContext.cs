@@ -99,6 +99,7 @@ public class NumindsDbContext(DbContextOptions<NumindsDbContext> options)
         builder.Entity<Invitation>(entity =>
         {
             entity.Property(i => i.Status).HasMaxLength(32).IsRequired();
+            entity.Property(i => i.ShareCode).HasMaxLength(12);
 
             entity.HasOne(i => i.User)
                 .WithMany()
@@ -115,6 +116,11 @@ public class NumindsDbContext(DbContextOptions<NumindsDbContext> options)
             // lookup key for every anonymous visitor's Create (cap check) and
             // List (dashboard) call, so it needs its own index just as much.
             entity.HasIndex(i => i.GuestId);
+
+            // Nullable + unique: Postgres treats multiple NULLs as distinct,
+            // so old rows without a ShareCode yet don't collide with each
+            // other while it's being lazily backfilled (see List).
+            entity.HasIndex(i => i.ShareCode).IsUnique();
         });
 
         builder.Entity<RsvpResponse>(entity =>

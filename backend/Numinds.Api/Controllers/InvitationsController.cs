@@ -81,6 +81,7 @@ public class InvitationsController(
             GuestId = guestId,
             TemplateId = templateId,
             Status = "draft",
+            ShareCode = await GenerateUniqueShareCodeAsync(cancellationToken),
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
         };
@@ -106,6 +107,32 @@ public class InvitationsController(
     // created yet" without actually destroying whatever the guest designed,
     // in case the reject was a mistake or the guest still wants to pay.
     private static bool IsPubliclyVisible(Invitation invitation) => invitation.Status is "paid" or "shared";
+
+    // No 0/O/1/I/l -- avoids characters a guest could misread when typing a
+    // link by hand off a screenshot or a printed card.
+    private const string ShareCodeAlphabet = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+    private async Task<string> GenerateUniqueShareCodeAsync(CancellationToken cancellationToken)
+    {
+        for (var attempt = 0; attempt < 5; attempt++)
+        {
+            var code = string.Create(8, 0, (span, _) =>
+            {
+                for (var i = 0; i < span.Length; i++)
+                {
+                    span[i] = ShareCodeAlphabet[RandomNumberGenerator.GetInt32(ShareCodeAlphabet.Length)];
+                }
+            });
+            if (!await db.Invitations.AnyAsync(i => i.ShareCode == code, cancellationToken))
+            {
+                return code;
+            }
+        }
+        // 58^8 possibilities -- reaching here would mean 5 collisions in a
+        // row, astronomically unlikely. Falls back to a value guaranteed
+        // unique instead of looping forever.
+        return Guid.NewGuid().ToString("N")[..8];
+    }
 
     // GET /api/invitations
     // Lists the caller's own invitations for the dashboard's bookings table —
@@ -143,6 +170,28 @@ public class InvitationsController(
             .OrderBy(i => i.CreatedAt)
             .ToListAsync(cancellationToken);
 
+        // Backfills a ShareCode for any invitation created before this field
+        // existed, so the dashboard's "copy link" (which needs one) always
+        // has a real value instead of null. New invitations already get one
+        // at Create time, so this only ever does real work for legacy rows.
+        var missingShareCode = invitations.Where(i => i.ShareCode is null).ToList();
+        if (missingShareCode.Count > 0)
+        {
+            var toBackfill = await db.Invitations
+                .Where(i => missingShareCode.Select(m => m.Id).Contains(i.Id))
+                .ToListAsync(cancellationToken);
+            foreach (var invitation in toBackfill)
+            {
+                invitation.ShareCode = await GenerateUniqueShareCodeAsync(cancellationToken);
+            }
+            await db.SaveChangesAsync(cancellationToken);
+            var codeById = toBackfill.ToDictionary(i => i.Id, i => i.ShareCode);
+            foreach (var invitation in missingShareCode)
+            {
+                invitation.ShareCode = codeById[invitation.Id];
+            }
+        }
+
         var invitationIds = invitations.Select(i => i.Id).ToList();
         var pendingOrderInvitationIds = await db.Orders
             .Where(o => o.InvitationId != null && invitationIds.Contains(o.InvitationId.Value) && o.PaymentStatus == "pending")
@@ -165,6 +214,7 @@ public class InvitationsController(
                 // useless for identifying a specific invitation in support
                 // conversations or the admin panel.
                 BookingId = $"ND-{invitation.Id.ToString("N")[..8].ToUpper()}",
+                ShareCode = invitation.ShareCode!,
                 Status = invitation.Status,
                 IsPaid = invitation.Status is "paid" or "shared",
                 CreatedAt = invitation.CreatedAt,
@@ -177,6 +227,86 @@ public class InvitationsController(
             .ToList();
 
         return Ok(summaries);
+    }
+
+    private static readonly Dictionary<string, (string Ar, string En)> OccasionLabels = new()
+    {
+        ["wedding"] = ("زفاف", "Wedding"),
+        ["engagement"] = ("خطوبة", "Engagement"),
+        ["marriage_contract"] = ("عقد قران", "Marriage Contract"),
+        ["henna"] = ("حنة", "Henna"),
+        ["bridal_shower"] = ("حفلة العروس", "Bridal Shower"),
+        ["gender_reveal"] = ("الكشف عن الجنس", "Gender Reveal"),
+        ["aqeeqah"] = ("عقيقه", "Aqeeqah"),
+        ["graduation"] = ("تخرج", "Graduation"),
+        ["birthday"] = ("عيد ميلاد", "Birthday"),
+    };
+
+    // Mirrors invitationpublic/page.tsx's buildInvitationTitle -- kept as an
+    // independent copy since that one runs in the Next.js app, not here.
+    private static string? BuildInvitationTitle(Invitation invitation)
+    {
+        var firstName = invitation.FirstName?.Trim();
+        if (string.IsNullOrEmpty(firstName))
+        {
+            return null;
+        }
+        var isEn = invitation.Language == "en";
+        var secondName = invitation.InvitationType == "couple" ? invitation.SecondName?.Trim() : null;
+        var names = !string.IsNullOrEmpty(secondName)
+            ? (isEn ? $"{firstName} & {secondName}" : $"{firstName} و{secondName}")
+            : firstName;
+        if (invitation.OccasionType is null || !OccasionLabels.TryGetValue(invitation.OccasionType, out var occasion))
+        {
+            return isEn ? $"You're Invited — {names}" : $"دعوة {names}";
+        }
+        return isEn ? $"{occasion.En} — {names}" : $"حفل {occasion.Ar} {names}";
+    }
+
+    // GET /i/{code} — the short link customers actually share (see copyLink
+    // in DashboardView.tsx). Lives on this API, not the Vercel frontend's
+    // own /invitationpublic, because Facebook's/WhatsApp's crawler gets a
+    // 403 from Vercel's edge System Mitigations on that route specifically
+    // (confirmed with Vercel support: the request never even reaches the
+    // Next.js function), while this API's domain is unaffected. Returns a
+    // tiny static page with the real og:title/og:description so link
+    // previews work, then hands a real browser on to the full app via a JS
+    // redirect -- Meta's crawler never executes JavaScript, so it only ever
+    // sees the tags below, not the redirect.
+    [HttpGet("/i/{code}")]
+    public async Task<ContentResult> ShareRedirect(string code, CancellationToken cancellationToken)
+    {
+        var invitation = await db.Invitations.AsNoTracking().FirstOrDefaultAsync(i => i.ShareCode == code, cancellationToken);
+        if (invitation is null || !IsPubliclyVisible(invitation))
+        {
+            return Content("<!doctype html><meta charset=\"utf-8\"><title>ZAYTORA</title>", "text/html");
+        }
+
+        var isEn = invitation.Language == "en";
+        var title = BuildInvitationTitle(invitation) ?? (isEn ? "You're Invited | ZAYTORA" : "دعوة | ZAYTORA");
+        var description = isEn
+            ? "You're warmly invited to celebrate with us."
+            : "يسعدنا دعوتكم لحضور هذه المناسبة.";
+        var destination = $"{FrontendBaseUrl}/invitationpublic?id={invitation.Id}";
+        var encodedTitle = System.Net.WebUtility.HtmlEncode(title);
+        var encodedDescription = System.Net.WebUtility.HtmlEncode(description);
+
+        var html = $"""
+            <!doctype html>
+            <html>
+            <head>
+            <meta charset="utf-8">
+            <title>{encodedTitle}</title>
+            <meta property="og:title" content="{encodedTitle}">
+            <meta property="og:description" content="{encodedDescription}">
+            <meta property="og:type" content="website">
+            <script>location.replace({JsonSerializer.Serialize(destination)});</script>
+            </head>
+            <body></body>
+            </html>
+            """;
+
+        return Content(html, "text/html");
     }
 
     // GET /api/invitations/{id}
