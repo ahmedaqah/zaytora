@@ -29,7 +29,7 @@ function isCurrencyCode(value: string | null): value is PublicCurrencyCode {
 // without any prop drilling; persisted to localStorage so it also survives
 // a full page reload or a fresh tab opened from a shared link.
 export function CurrencyProvider({ children }: { children: React.ReactNode }) {
-  const [currency, setCurrencyState] = useState<PublicCurrencyCode>("SAR");
+  const [currency, setCurrencyState] = useState<PublicCurrencyCode>("ILS");
   const [rates, setRates] = useState<PriceRates>(DEFAULT_PRICE_RATES);
   const [ratesLoading, setRatesLoading] = useState(true);
 
