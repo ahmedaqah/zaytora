@@ -7,7 +7,18 @@ import { getPricingSettings, updatePricingSettings } from "@/lib/services/pricin
 import { listPartners, updatePartnerDiscount } from "@/lib/services/partners.service";
 import { ApiError } from "@/lib/api/client";
 import { formatUsd } from "@/lib/format";
+import { CURRENCY_CODES } from "@/context/CurrencyContext";
+import type { PublicCurrencyCode } from "@/lib/priceRates";
 import type { PartnerDto, PricingSettingsDto } from "@/types/api";
+
+const CURRENCY_NAMES: Record<PublicCurrencyCode, Record<"ar" | "en", string>> = {
+  USD: { ar: "دولار أمريكي", en: "US Dollar" },
+  SAR: { ar: "ريال سعودي", en: "Saudi Riyal" },
+  GBP: { ar: "جنيه إسترليني", en: "British Pound" },
+  ILS: { ar: "شيكل إسرائيلي", en: "Israeli Shekel" },
+  AED: { ar: "درهم إماراتي", en: "UAE Dirham" },
+  JOD: { ar: "دينار أردني", en: "Jordanian Dinar" },
+};
 
 const COPY = {
   ar: {
@@ -16,6 +27,8 @@ const COPY = {
     qrRateLabel: "سعر دخول الضيف عبر QR (دولار أمريكي)",
     giftFeeLabel: "نسبة رسم تفعيل الهدايا (%)",
     giftFeeHint: "تُضاف هذه النسبة على السعر الأساسي عندما يفعّل صاحب الدعوة \"إضافة رسم الهدايا\" في خطوة الهدية.",
+    defaultCurrencyLabel: "العملة الافتراضية للموقع",
+    defaultCurrencyHint: "العملة اللي بتظهر تلقائياً للزائر الجديد بالصفحة الرئيسية وخطوة الدفع، قبل ما يغيّرها بنفسه.",
     save: "حفظ التغييرات",
     saved: "تم حفظ الأسعار الجديدة، وستنعكس فوراً في الصفحة الرئيسية وصفحة الأسعار والدفع.",
     previewTitle: "معاينة حية",
@@ -47,6 +60,8 @@ const COPY = {
     qrRateLabel: "QR guest entry rate (USD)",
     giftFeeLabel: "Gift-activation fee (%)",
     giftFeeHint: "Added on top of the base price when an invitation owner turns on \"Add gift fee\" in the Gift step.",
+    defaultCurrencyLabel: "Site default currency",
+    defaultCurrencyHint: "The currency a new visitor sees by default on Home and at checkout, before they switch it themselves.",
     save: "Save changes",
     saved: "New pricing saved — it reflects immediately on the Home, Prices, and checkout pages.",
     previewTitle: "Live preview",
@@ -132,6 +147,7 @@ export default function AdminPricingPage() {
   const [basePriceInput, setBasePriceInput] = useState("0");
   const [qrRateInput, setQrRateInput] = useState("0");
   const [giftFeeInput, setGiftFeeInput] = useState("0");
+  const [defaultCurrencyInput, setDefaultCurrencyInput] = useState<PublicCurrencyCode>("ILS");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -156,6 +172,7 @@ export default function AdminPricingPage() {
       setBasePriceInput(String(pricingData.basePriceUsd));
       setQrRateInput(String(pricingData.qrRateUsd));
       setGiftFeeInput(String(pricingData.giftFeePercent));
+      setDefaultCurrencyInput(pricingData.defaultCurrency);
       setDefaultDraft({
         type: pricingData.defaultPartnerDiscountType,
         value: String(pricingData.defaultPartnerDiscountValue),
@@ -212,6 +229,7 @@ export default function AdminPricingPage() {
         basePriceUsd: basePriceValue,
         qrRateUsd: qrRateValue,
         giftFeePercent: giftFeeValue,
+        defaultCurrency: defaultCurrencyInput,
       });
       setPricing(updated);
       setSaved(true);
@@ -352,6 +370,22 @@ export default function AdminPricingPage() {
                 </span>
               </div>
               <p className="mt-1.5 max-w-md text-xs text-muted-foreground">{t.giftFeeHint}</p>
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-body-foreground">{t.defaultCurrencyLabel}</label>
+              <select
+                value={defaultCurrencyInput}
+                onChange={(event) => setDefaultCurrencyInput(event.target.value as PublicCurrencyCode)}
+                className="w-48 rounded-xl border border-border bg-card py-2.5 px-3 text-sm text-foreground outline-none transition-colors focus:border-[#C8A24A]"
+              >
+                {CURRENCY_CODES.map((code) => (
+                  <option key={code} value={code}>
+                    {code} - {CURRENCY_NAMES[code][language]}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1.5 max-w-md text-xs text-muted-foreground">{t.defaultCurrencyHint}</p>
             </div>
 
             <div className="flex flex-wrap items-center gap-3 pt-2">

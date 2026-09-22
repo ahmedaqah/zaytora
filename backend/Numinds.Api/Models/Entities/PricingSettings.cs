@@ -26,4 +26,10 @@ public class PricingSettings
     public string PlatformDiscountType { get; set; } = "percent";
     public decimal PlatformDiscountValue { get; set; }
     public string PlatformDiscountCode { get; set; } = "PARTNER2026";
+
+    // The currency Home/Prices/checkout (PaymentPhase) show by default to a
+    // visitor who hasn't picked one yet on their own device -- see
+    // CurrencyContext's "no stored choice" branch. A visitor can always
+    // switch away from this to any other supported currency.
+    public string DefaultCurrency { get; set; } = "ILS";
 }

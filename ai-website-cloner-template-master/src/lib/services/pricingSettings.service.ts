@@ -28,6 +28,7 @@ const FALLBACK_PRICING: PricingSettingsDto = {
   platformDiscountType: "percent",
   platformDiscountValue: 0,
   platformDiscountCode: "",
+  defaultCurrency: "ILS",
 };
 
 // Shared by every live price estimate (Home, Prices, Studio) so they all

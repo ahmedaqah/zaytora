@@ -216,6 +216,7 @@ public class NumindsDbContext(DbContextOptions<NumindsDbContext> options)
             entity.Property(p => p.DefaultPartnerDiscountType).HasMaxLength(16).IsRequired();
             entity.Property(p => p.PlatformDiscountType).HasMaxLength(16).IsRequired();
             entity.Property(p => p.PlatformDiscountCode).HasMaxLength(32).IsRequired();
+            entity.Property(p => p.DefaultCurrency).HasMaxLength(8).IsRequired();
             entity.Property(p => p.BasePriceUsd).HasColumnType("decimal(10,2)");
             entity.Property(p => p.QrRateUsd).HasColumnType("decimal(10,2)");
             entity.Property(p => p.GiftFeePercent).HasColumnType("decimal(10,2)");

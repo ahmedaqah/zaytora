@@ -57,6 +57,16 @@ const CURRENCY_META: Record<PublicCurrencyCode, CurrencyMeta> = {
     name: { ar: "شيكل", en: "Shekel" },
     accentGradient: "from-[#0038B8] to-[#3E6BE0]",
   },
+  AED: {
+    flag: "🇦🇪",
+    name: { ar: "درهم إماراتي", en: "UAE Dirham" },
+    accentGradient: "from-[#CE1126] to-[#046A38]",
+  },
+  JOD: {
+    flag: "🇯🇴",
+    name: { ar: "دينار أردني", en: "Jordanian Dinar" },
+    accentGradient: "from-[#141414] to-[#CE1126]",
+  },
 };
 
 export function PricingSection() {

@@ -1,5 +1,7 @@
 // Shapes returned by the ASP.NET Core Web API (System.Text.Json camelCase).
 
+import type { PublicCurrencyCode } from "@/lib/priceRates";
+
 export interface TemplateDto {
   id: string;
   code: string;
@@ -408,6 +410,9 @@ export interface PricingSettingsDto {
   platformDiscountType: "percent" | "fixed";
   platformDiscountValue: number;
   platformDiscountCode: string;
+  // The currency Home/Prices/checkout default to for a visitor who hasn't
+  // picked one yet on their own device — see CurrencyContext.
+  defaultCurrency: PublicCurrencyCode;
 }
 
 export type PricingSettingsWriteRequest = PricingSettingsDto;

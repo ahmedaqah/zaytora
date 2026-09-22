@@ -68,6 +68,8 @@ const CURRENCY_SYMBOL: Record<PublicCurrencyCode, string> = {
   SAR: "ر.س",
   GBP: "£",
   ILS: "₪",
+  AED: "د.إ",
+  JOD: "د.أ",
 };
 
 const MAX_GUESTS = 1000;
@@ -127,6 +129,26 @@ const CURRENCY_META: Record<PublicCurrencyCode, CurrencyMeta> = {
     badgeText: "text-teal-700 dark:text-teal-400",
     checkBg: "bg-teal-100 dark:bg-teal-900/40",
     checkText: "text-teal-700 dark:text-teal-400",
+  },
+  AED: {
+    flag: "🇦🇪",
+    name: { ar: "درهم إماراتي", en: "UAE Dirham" },
+    accent: "text-amber-700 dark:text-amber-400",
+    border: "border-amber-200 dark:border-amber-900/50 hover:border-amber-700",
+    badgeBg: "bg-amber-100 dark:bg-amber-950/50",
+    badgeText: "text-amber-700 dark:text-amber-400",
+    checkBg: "bg-amber-100 dark:bg-amber-900/40",
+    checkText: "text-amber-700 dark:text-amber-400",
+  },
+  JOD: {
+    flag: "🇯🇴",
+    name: { ar: "دينار أردني", en: "Jordanian Dinar" },
+    accent: "text-rose-700 dark:text-rose-400",
+    border: "border-rose-200 dark:border-rose-900/50 hover:border-rose-700",
+    badgeBg: "bg-rose-100 dark:bg-rose-950/50",
+    badgeText: "text-rose-700 dark:text-rose-400",
+    checkBg: "bg-rose-100 dark:bg-rose-900/40",
+    checkText: "text-rose-700 dark:text-rose-400",
   },
 };
 

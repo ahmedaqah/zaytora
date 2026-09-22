@@ -35,6 +35,8 @@ const CURRENCY_META: Record<PriceCurrencyCode, { symbol: string; label: Record<"
   GBP: { symbol: "£", label: { ar: "GBP - جنيه إسترليني", en: "GBP - British Pound" } },
   SAR: { symbol: "ريال", label: { ar: "SAR - ريال سعودي", en: "SAR - Saudi Riyal" } },
   ILS: { symbol: "₪", label: { ar: "ILS - شيكل إسرائيلي", en: "ILS - Israeli Shekel" } },
+  AED: { symbol: "د.إ", label: { ar: "AED - درهم إماراتي", en: "AED - UAE Dirham" } },
+  JOD: { symbol: "د.أ", label: { ar: "JOD - دينار أردني", en: "JOD - Jordanian Dinar" } },
 };
 
 const DEFAULT_PRICING: PricingSettingsDto = {
@@ -46,6 +48,7 @@ const DEFAULT_PRICING: PricingSettingsDto = {
   platformDiscountType: "percent",
   platformDiscountValue: 0,
   platformDiscountCode: "",
+  defaultCurrency: "ILS",
 };
 
 const COPY = {

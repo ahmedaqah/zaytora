@@ -11,6 +11,7 @@ public class PricingSettingsDto
     public string PlatformDiscountType { get; set; } = "percent";
     public decimal PlatformDiscountValue { get; set; }
     public string PlatformDiscountCode { get; set; } = string.Empty;
+    public string DefaultCurrency { get; set; } = "ILS";
 }
 
 public class PricingSettingsWriteRequest
@@ -23,4 +24,5 @@ public class PricingSettingsWriteRequest
     public string PlatformDiscountType { get; set; } = "percent";
     public decimal PlatformDiscountValue { get; set; }
     public string PlatformDiscountCode { get; set; } = string.Empty;
+    public string DefaultCurrency { get; set; } = "ILS";
 }

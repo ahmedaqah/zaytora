@@ -4,11 +4,11 @@
 // blank (offline, API rate-limited, CORS hiccup, etc.). This is the single
 // source of truth for the $17.99 base price everywhere it's advertised.
 // EUR exists only for the checkout's currency selector — the public
-// pricing card/page intentionally only ever offers USD/SAR/GBP/ILS via
-// CurrencyContext's own explicit currency list.
-export type PriceCurrencyCode = "USD" | "SAR" | "GBP" | "ILS" | "EUR";
+// pricing card/page intentionally only ever offers USD/SAR/GBP/ILS/AED/JOD
+// via CurrencyContext's own explicit currency list.
+export type PriceCurrencyCode = "USD" | "SAR" | "GBP" | "ILS" | "AED" | "JOD" | "EUR";
 
-// The 4 currencies the public pricing card/page and CurrencyContext offer.
+// The currencies the public pricing card/page and CurrencyContext offer.
 // EUR exists only in PriceCurrencyCode for the Studio checkout's own
 // currency selector (PaymentPhase), which isn't tied to this narrower set.
 export type PublicCurrencyCode = Exclude<PriceCurrencyCode, "EUR">;
@@ -23,6 +23,10 @@ export const DEFAULT_PRICE_RATES: PriceRates = {
   SAR: 3.75,
   GBP: 0.79,
   ILS: 3.7,
+  // AED/JOD are both pegged to the US dollar, so these fixed rates stay
+  // accurate on their own even before/without a live-FX fetch.
+  AED: 3.6725,
+  JOD: 0.709,
   EUR: 0.92,
 };
 
@@ -41,6 +45,14 @@ function readCache(): PriceRates | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw) as CachedPayload;
     if (!parsed.fetchedAt || Date.now() - parsed.fetchedAt > CACHE_TTL_MS) return null;
+    // A payload cached before a currency (e.g. AED/JOD) existed here is
+    // missing that key entirely -- trusting it as-is would silently convert
+    // to NaN for it until the 24h TTL naturally expires. Treat any payload
+    // that doesn't cover every currency this build knows about as stale.
+    const hasEveryCurrency = (Object.keys(DEFAULT_PRICE_RATES) as PriceCurrencyCode[]).every(
+      (code) => typeof parsed.rates[code] === "number" && Number.isFinite(parsed.rates[code])
+    );
+    if (!hasEveryCurrency) return null;
     return parsed.rates;
   } catch {
     return null;

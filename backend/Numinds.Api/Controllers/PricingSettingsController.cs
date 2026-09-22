@@ -12,6 +12,9 @@ namespace Numinds.Api.Controllers;
 [Route("api/pricing-settings")]
 public class PricingSettingsController(NumindsDbContext db) : ControllerBase
 {
+    // Mirrors CurrencyContext's CURRENCY_CODES on the frontend.
+    private static readonly HashSet<string> SupportedCurrencies = ["USD", "SAR", "GBP", "ILS", "AED", "JOD"];
+
     // GET /api/pricing-settings — public: Home/Prices/Studio all need the
     // live base price and QR rate to quote a price before checkout even starts.
     [HttpGet]
@@ -27,6 +30,11 @@ public class PricingSettingsController(NumindsDbContext db) : ControllerBase
         [FromBody] PricingSettingsWriteRequest request,
         CancellationToken cancellationToken)
     {
+        if (!SupportedCurrencies.Contains(request.DefaultCurrency))
+        {
+            return BadRequest(new { title = $"Unsupported currency '{request.DefaultCurrency}'." });
+        }
+
         var settings = await db.PricingSettings.FirstOrDefaultAsync(cancellationToken);
         if (settings is null)
         {
@@ -42,6 +50,7 @@ public class PricingSettingsController(NumindsDbContext db) : ControllerBase
         settings.PlatformDiscountType = request.PlatformDiscountType;
         settings.PlatformDiscountValue = request.PlatformDiscountValue;
         settings.PlatformDiscountCode = request.PlatformDiscountCode;
+        settings.DefaultCurrency = request.DefaultCurrency;
 
         await db.SaveChangesAsync(cancellationToken);
         return Ok(ToDto(settings));
@@ -57,5 +66,6 @@ public class PricingSettingsController(NumindsDbContext db) : ControllerBase
         PlatformDiscountType = s.PlatformDiscountType,
         PlatformDiscountValue = s.PlatformDiscountValue,
         PlatformDiscountCode = s.PlatformDiscountCode,
+        DefaultCurrency = s.DefaultCurrency,
     };
 }
