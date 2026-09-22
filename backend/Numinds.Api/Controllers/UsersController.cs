@@ -6,6 +6,7 @@ using Numinds.Api.Data;
 using Numinds.Api.Models;
 using Numinds.Api.Models.Dtos;
 using Numinds.Api.Models.Entities;
+using Numinds.Api.Services;
 
 namespace Numinds.Api.Controllers;
 
@@ -15,7 +16,8 @@ namespace Numinds.Api.Controllers;
 public class UsersController(
     NumindsDbContext db,
     UserManager<ApplicationUser> userManager,
-    RoleManager<IdentityRole<Guid>> roleManager) : ControllerBase
+    RoleManager<IdentityRole<Guid>> roleManager,
+    IEmailSender emailSender) : ControllerBase
 {
     // GET /api/users — admin, for a new /admin/users page. `search` matches
     // DisplayName/Email. Sort order: every admin first (pinned to the top,
@@ -122,7 +124,7 @@ public class UsersController(
                         if (lastActivityAt is null || lastOrderAt > lastActivityAt) lastActivityAt = lastOrderAt;
                     }
 
-                    return ToDto(u, isAdmin, joinNumber, funnelStage, invitationCount, lastActivityAt);
+                    return ToDto(u, isAdmin, joinNumber, funnelStage, invitationCount, lastActivityAt, u.EngagementEmailSentAt);
                 })
                 .ToList(),
             TotalCount = ordered.Count,
@@ -219,7 +221,8 @@ public class UsersController(
         int? joinNumber,
         string? funnelStage = null,
         int? invitationCount = null,
-        DateTime? lastActivityAt = null) => new()
+        DateTime? lastActivityAt = null,
+        DateTime? engagementEmailSentAt = null) => new()
     {
         Id = u.Id.ToString(),
         DisplayName = u.DisplayName,
@@ -231,5 +234,82 @@ public class UsersController(
         FunnelStage = funnelStage,
         InvitationCount = invitationCount,
         LastActivityAt = lastActivityAt,
+        EngagementEmailSentAt = engagementEmailSentAt,
     };
+
+    // GET /api/users/engagement-email-eligible-count — lets the admin UI
+    // show how many people a click of "send engagement emails" would
+    // actually reach before committing to it.
+    [HttpGet("engagement-email-eligible-count")]
+    public async Task<ActionResult<SendEngagementEmailsResult>> GetEngagementEmailEligibleCount(CancellationToken cancellationToken)
+    {
+        var eligible = await GetEngagementEmailEligibleUsersAsync(cancellationToken);
+        return Ok(new SendEngagementEmailsResult { SentCount = eligible.Count });
+    }
+
+    // POST /api/users/send-engagement-emails — admin bulk-emails every
+    // account that registered but never placed a single Order (funnel
+    // stage "signed_up" or "created_invitation" on List(), above), asking
+    // in a reply-friendly way why they never ordered. EngagementEmailSentAt
+    // guards against re-emailing the same person if this is run again later
+    // -- only newly-eligible accounts (registered since, or who churned out
+    // of "has an order" -- not actually possible today, but harmless to
+    // guard against) get a second email.
+    [HttpPost("send-engagement-emails")]
+    public async Task<ActionResult<SendEngagementEmailsResult>> SendEngagementEmails(CancellationToken cancellationToken)
+    {
+        var eligible = await GetEngagementEmailEligibleUsersAsync(cancellationToken);
+
+        foreach (var user in eligible)
+        {
+            var displayName = string.IsNullOrWhiteSpace(user.DisplayName) ? "صديقنا" : user.DisplayName;
+            await emailSender.SendAsync(
+                user.Email!,
+                "هل نقدر نساعدك تكمل دعوتك على زيتورا؟",
+                $"<p>مرحباً {displayName}،</p>" +
+                "<p>لاحظنا إنك سجلت معنا على زيتورا، بس لسا ما كملت طلب دعوتك. حبينا نسأل بصراحة: في شي وقف بوجهك؟</p>" +
+                "<ul>" +
+                "<li>السعر؟</li>" +
+                "<li>خطوة مو واضحة بالتصميم؟</li>" +
+                "<li>مشكلة تقنية صادفتك؟</li>" +
+                "<li>ولا بس ما لقيت الوقت الكافي؟</li>" +
+                "</ul>" +
+                "<p>إذا حابب نساعدك بأي خطوة، أو عندك أي استفسار، فقط رد على هاد الإيميل مباشرة وبنكون جاهزين نساعدك.</p>" +
+                "<p>فريق زيتورا</p>",
+                cancellationToken);
+            user.EngagementEmailSentAt = DateTime.UtcNow;
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+        return Ok(new SendEngagementEmailsResult { SentCount = eligible.Count });
+    }
+
+    // Never-ordered = never emailed before, not an admin, has a real email,
+    // and none of their invitations (if any) has an Order against it --
+    // the same "has an order at all" test List() uses to distinguish
+    // "reached_checkout"/"paid" from "signed_up"/"created_invitation".
+    private async Task<List<ApplicationUser>> GetEngagementEmailEligibleUsersAsync(CancellationToken cancellationToken)
+    {
+        var adminIds = (await userManager.GetUsersInRoleAsync(Roles.Admin))
+            .Select(u => u.Id)
+            .ToHashSet();
+
+        var userIdsWithOrders = await db.Orders.AsNoTracking()
+            .Where(o => o.Invitation != null && o.Invitation.UserId != null)
+            .Select(o => o.Invitation!.UserId!.Value)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+        var userIdsWithOrdersSet = userIdsWithOrders.ToHashSet();
+
+        var candidates = await db.Users
+            .Where(u => u.EngagementEmailSentAt == null)
+            .ToListAsync(cancellationToken);
+
+        return candidates
+            .Where(u =>
+                !adminIds.Contains(u.Id) &&
+                !userIdsWithOrdersSet.Contains(u.Id) &&
+                !string.IsNullOrWhiteSpace(u.Email))
+            .ToList();
+    }
 }

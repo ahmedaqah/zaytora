@@ -220,12 +220,21 @@ export interface UserDto {
   funnelStage?: "signed_up" | "created_invitation" | "reached_checkout" | "paid" | null;
   invitationCount?: number | null;
   lastActivityAt?: string | null;
+  // Set once POST /api/users/send-engagement-emails has emailed this
+  // never-ordered account; null if they haven't been contacted.
+  engagementEmailSentAt?: string | null;
 }
 
 // PATCH /api/users/{id}/role — "Admin" to promote, null to demote back to a
 // regular user (only one role currently exists, so this is a binary toggle).
 export interface ChangeUserRoleRequest {
   role: "Admin" | null;
+}
+
+// GET /api/users/engagement-email-eligible-count and
+// POST /api/users/send-engagement-emails share this response shape.
+export interface SendEngagementEmailsResult {
+  sentCount: number;
 }
 
 // Envelope shared by every paginated admin list endpoint (Orders/Partners/

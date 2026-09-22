@@ -19,4 +19,9 @@ public class ApplicationUser : IdentityUser<Guid>
     // makes the seed a true one-time bootstrap per email instead of a
     // standing override that fights the in-app admin management UI.
     public bool AdminSeedApplied { get; set; }
+
+    // Set when UsersController.SendEngagementEmails contacts this account to
+    // ask why they never placed an order -- guards the bulk-send endpoint
+    // against emailing the same never-ordered user twice on a re-run.
+    public DateTime? EngagementEmailSentAt { get; set; }
 }

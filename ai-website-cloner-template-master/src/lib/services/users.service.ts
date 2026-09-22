@@ -1,5 +1,5 @@
 import { apiClient } from "@/lib/api/client";
-import type { ChangeUserRoleRequest, PagedQuery, PagedResult, UserDto } from "@/types/api";
+import type { ChangeUserRoleRequest, PagedQuery, PagedResult, SendEngagementEmailsResult, UserDto } from "@/types/api";
 
 // Admin — /admin/users. Server-side search (DisplayName/Email) + pagination.
 export function listUsers(query: PagedQuery = {}) {
@@ -22,4 +22,17 @@ export function changeUserRole(id: string, payload: ChangeUserRoleRequest) {
 // delete for that).
 export function deleteUser(id: string) {
   return apiClient.delete<void>(`/users/${id}`);
+}
+
+// Admin — how many never-ordered accounts a "send engagement emails" click
+// would actually reach, so the confirmation dialog can show a real count.
+export function getEngagementEmailEligibleCount() {
+  return apiClient.get<SendEngagementEmailsResult>("/users/engagement-email-eligible-count");
+}
+
+// Admin — emails every account that registered but never placed a single
+// order, asking (in a reply-friendly way) why they never ordered. Safe to
+// call more than once: the backend only ever emails a given account once.
+export function sendEngagementEmails() {
+  return apiClient.post<SendEngagementEmailsResult>("/users/send-engagement-emails", {});
 }

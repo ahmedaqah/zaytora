@@ -29,6 +29,10 @@ public class UserDto
     // Latest of this user's own Invitation.UpdatedAt / Order.CreatedAt --
     // the most recent thing they're known to have done on the site.
     public DateTime? LastActivityAt { get; set; }
+
+    // When UsersController.SendEngagementEmails last emailed this account to
+    // ask why they never ordered -- null if they've never been contacted.
+    public DateTime? EngagementEmailSentAt { get; set; }
 }
 
 // PATCH /api/users/{id}/role — Role is "Admin" to promote, or null/omitted
@@ -38,4 +42,10 @@ public class UserDto
 public class ChangeUserRoleRequest
 {
     public string? Role { get; set; }
+}
+
+// POST /api/users/send-engagement-emails — response summarizing a bulk send.
+public class SendEngagementEmailsResult
+{
+    public int SentCount { get; set; }
 }

@@ -1,14 +1,21 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { LoaderIcon, SearchIcon, ShieldIcon, TrashIcon, UserIcon } from "@/components/icons";
+import { LoaderIcon, MailIcon, SearchIcon, ShieldIcon, TrashIcon, UserIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
-import { listUsers, changeUserRole, deleteUser } from "@/lib/services/users.service";
+import {
+  listUsers,
+  changeUserRole,
+  deleteUser,
+  getEngagementEmailEligibleCount,
+  sendEngagementEmails,
+} from "@/lib/services/users.service";
 import { StatusBadge, type StatusTone } from "@/components/admin/StatusBadge";
 import { Pagination } from "@/components/admin/Pagination";
 import { UserDeleteDialog } from "@/components/admin/UserDeleteDialog";
+import { EngagementEmailDialog } from "@/components/admin/EngagementEmailDialog";
 import type { UserDto } from "@/types/api";
 
 const PAGE_SIZE = 20;
@@ -58,6 +65,10 @@ const COPY = {
     delete: "حذف",
     selfDeleteError: "لا يمكنك حذف حسابك الخاص من هنا.",
     deleteError: "تعذّر حذف المستخدم.",
+    engagementButton: "إرسال استفسار لمين ما طلب",
+    engagementSendError: "تعذّر إرسال الإيميلات.",
+    engagementSuccess: (count: number) => `تم إرسال الإيميل لـ ${count} مستخدم.`,
+    contacted: "تم التواصل معه",
   },
   en: {
     subtitle: "Manage user accounts and admin permissions.",
@@ -87,6 +98,10 @@ const COPY = {
     delete: "Delete",
     selfDeleteError: "You can't delete your own account from here.",
     deleteError: "Couldn't delete the user.",
+    engagementButton: "Ask never-ordered users why",
+    engagementSendError: "Couldn't send the emails.",
+    engagementSuccess: (count: number) => `Emailed ${count} user(s).`,
+    contacted: "Already contacted",
   },
 };
 
@@ -108,6 +123,12 @@ export default function AdminUsersPage() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const deletingUser = users.find((u) => u.id === deletingId) ?? null;
   const loadRequestIdRef = useRef(0);
+
+  const [engagementDialogOpen, setEngagementDialogOpen] = useState(false);
+  const [engagementCount, setEngagementCount] = useState(0);
+  const [engagementSending, setEngagementSending] = useState(false);
+  const [engagementError, setEngagementError] = useState<string | null>(null);
+  const [engagementSuccessMessage, setEngagementSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
     const id = window.setTimeout(() => setSearch(searchInput.trim()), SEARCH_DEBOUNCE_MS);
@@ -181,6 +202,38 @@ export default function AdminUsersPage() {
     }
   }
 
+  async function openEngagementDialog() {
+    setEngagementError(null);
+    setEngagementSuccessMessage(null);
+    setEngagementDialogOpen(true);
+    try {
+      const result = await getEngagementEmailEligibleCount();
+      setEngagementCount(result.sentCount);
+    } catch (error) {
+      console.error("[admin/users] failed to load engagement email eligible count:", error);
+      setEngagementCount(0);
+    }
+  }
+
+  async function confirmSendEngagementEmails() {
+    setEngagementSending(true);
+    setEngagementError(null);
+    try {
+      const result = await sendEngagementEmails();
+      setEngagementDialogOpen(false);
+      setEngagementSuccessMessage(t.engagementSuccess(result.sentCount));
+      window.setTimeout(() => setEngagementSuccessMessage(null), 6000);
+      // Rows now carry a fresh engagementEmailSentAt for whoever was just
+      // emailed -- reload so the "already contacted" marker shows up.
+      await load();
+    } catch (error) {
+      console.error("[admin/users] failed to send engagement emails:", error);
+      setEngagementError(t.engagementSendError);
+    } finally {
+      setEngagementSending(false);
+    }
+  }
+
   if (loading && users.length === 0) {
     return (
       <div className="flex justify-center py-16">
@@ -193,12 +246,28 @@ export default function AdminUsersPage() {
     <div className="space-y-6">
       <p className="text-sm text-muted-foreground">{t.subtitle}</p>
 
-      <div className="grid grid-cols-1 gap-4 sm:max-w-xs">
-        <div className="rounded-2xl border border-border bg-card p-4">
-          <p className="text-xl font-bold text-foreground" dir="ltr">
-            {totalCount}
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground">{t.totalUsers}</p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:max-w-xs">
+          <div className="rounded-2xl border border-border bg-card p-4">
+            <p className="text-xl font-bold text-foreground" dir="ltr">
+              {totalCount}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">{t.totalUsers}</p>
+          </div>
+        </div>
+
+        <div className="flex flex-col items-end gap-2">
+          <button
+            type="button"
+            onClick={openEngagementDialog}
+            className="flex items-center gap-1.5 rounded-full border border-[#C8A24A]/40 bg-[#C8A24A]/10 px-4 py-2 text-xs font-semibold text-[#8a6d1f] transition-colors hover:bg-[#C8A24A]/20 dark:text-[#e0be6e]"
+          >
+            <MailIcon className="size-3.5 shrink-0" />
+            {t.engagementButton}
+          </button>
+          {engagementSuccessMessage && (
+            <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400">{engagementSuccessMessage}</span>
+          )}
         </div>
       </div>
 
@@ -285,15 +354,26 @@ export default function AdminUsersPage() {
                         {u.isAdmin ? (
                           <span className="text-muted-foreground">—</span>
                         ) : (
-                          <StatusBadge tone={u.funnelStage ? FUNNEL_STAGE_TONE[u.funnelStage] : "neutral"}>
-                            {u.funnelStage === "paid"
-                              ? t.stagePaid
-                              : u.funnelStage === "reached_checkout"
-                                ? t.stageReachedCheckout
-                                : u.funnelStage === "created_invitation"
-                                  ? t.stageCreatedInvitation
-                                  : t.stageSignedUp}
-                          </StatusBadge>
+                          <div className="flex flex-col items-center gap-1">
+                            <StatusBadge tone={u.funnelStage ? FUNNEL_STAGE_TONE[u.funnelStage] : "neutral"}>
+                              {u.funnelStage === "paid"
+                                ? t.stagePaid
+                                : u.funnelStage === "reached_checkout"
+                                  ? t.stageReachedCheckout
+                                  : u.funnelStage === "created_invitation"
+                                    ? t.stageCreatedInvitation
+                                    : t.stageSignedUp}
+                            </StatusBadge>
+                            {u.engagementEmailSentAt && (
+                              <span
+                                className="flex items-center gap-1 text-[10px] text-muted-foreground"
+                                title={formatDate(u.engagementEmailSentAt, language)}
+                              >
+                                <MailIcon className="size-2.5 shrink-0" />
+                                {t.contacted}
+                              </span>
+                            )}
+                          </div>
                         )}
                       </td>
                       <td className="py-3 pe-3 text-left text-muted-foreground">
@@ -369,6 +449,16 @@ export default function AdminUsersPage() {
         deleting={deleting}
         onConfirm={confirmDeleteUser}
         onCancel={() => setDeletingId(null)}
+      />
+
+      <EngagementEmailDialog
+        open={engagementDialogOpen}
+        count={engagementCount}
+        language={language}
+        error={engagementError}
+        sending={engagementSending}
+        onConfirm={confirmSendEngagementEmails}
+        onCancel={() => setEngagementDialogOpen(false)}
       />
     </div>
   );
