@@ -215,6 +215,11 @@ export interface UserDto {
   // admins (pinned to the top, unnumbered) and everywhere else this DTO
   // is reused (account/me, register, login).
   joinNumber?: number | null;
+  // How far this account got, derived server-side from their own
+  // Invitations/Orders -- only populated on GET /api/users.
+  funnelStage?: "signed_up" | "created_invitation" | "reached_checkout" | "paid" | null;
+  invitationCount?: number | null;
+  lastActivityAt?: string | null;
 }
 
 // PATCH /api/users/{id}/role — "Admin" to promote, null to demote back to a

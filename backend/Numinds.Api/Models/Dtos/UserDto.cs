@@ -16,6 +16,19 @@ public class UserDto
     // list); null everywhere else (account/me, register, login), and null
     // for admins there too, since they're pinned to the top unnumbered.
     public int? JoinNumber { get; set; }
+
+    // How far this account actually got, derived from their own
+    // Invitations/Orders rather than stored anywhere -- lets an admin tell
+    // a real drop-off apart from someone who simply registered and never
+    // came back. "signed_up" (no invitation yet) -> "created_invitation"
+    // (built one, never reached checkout) -> "reached_checkout" (has an
+    // Order, any status) -> "paid" (at least one Order is "paid"). Only
+    // populated on GET /api/users; null everywhere else.
+    public string? FunnelStage { get; set; }
+    public int? InvitationCount { get; set; }
+    // Latest of this user's own Invitation.UpdatedAt / Order.CreatedAt --
+    // the most recent thing they're known to have done on the site.
+    public DateTime? LastActivityAt { get; set; }
 }
 
 // PATCH /api/users/{id}/role — Role is "Admin" to promote, or null/omitted

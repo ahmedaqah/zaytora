@@ -6,13 +6,28 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { listUsers, changeUserRole, deleteUser } from "@/lib/services/users.service";
-import { StatusBadge } from "@/components/admin/StatusBadge";
+import { StatusBadge, type StatusTone } from "@/components/admin/StatusBadge";
 import { Pagination } from "@/components/admin/Pagination";
 import { UserDeleteDialog } from "@/components/admin/UserDeleteDialog";
 import type { UserDto } from "@/types/api";
 
 const PAGE_SIZE = 20;
 const SEARCH_DEBOUNCE_MS = 350;
+
+const FUNNEL_STAGE_TONE: Record<NonNullable<UserDto["funnelStage"]>, StatusTone> = {
+  signed_up: "neutral",
+  created_invitation: "info",
+  reached_checkout: "warning",
+  paid: "success",
+};
+
+function formatDate(iso: string, language: "ar" | "en") {
+  return new Date(iso).toLocaleDateString(language === "ar" ? "ar-EG" : "en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
 
 const COPY = {
   ar: {
@@ -22,6 +37,13 @@ const COPY = {
     name: "الاسم",
     email: "البريد الإلكتروني",
     phone: "الهاتف",
+    stage: "مرحلة الاستخدام",
+    lastActivity: "آخر نشاط",
+    stageSignedUp: "تسجيل فقط",
+    stageCreatedInvitation: "أنشأ دعوة",
+    stageReachedCheckout: "وصل للدفع",
+    stagePaid: "دفع",
+    never: "—",
     role: "الصلاحية",
     actions: "الإجراءات",
     admin: "أدمن",
@@ -44,6 +66,13 @@ const COPY = {
     name: "Name",
     email: "Email",
     phone: "Phone",
+    stage: "Funnel stage",
+    lastActivity: "Last activity",
+    stageSignedUp: "Signed up only",
+    stageCreatedInvitation: "Created invitation",
+    stageReachedCheckout: "Reached checkout",
+    stagePaid: "Paid",
+    never: "—",
     role: "Role",
     actions: "Actions",
     admin: "Admin",
@@ -190,14 +219,16 @@ export default function AdminUsersPage() {
           <p className="py-8 text-center text-sm text-muted-foreground">{t.empty}</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[820px] table-fixed text-start text-sm">
+            <table className="w-full min-w-[1080px] table-fixed text-start text-sm">
               <colgroup>
-                <col className="w-[6%]" />
-                <col className="w-[20%]" />
-                <col className="w-[26%]" />
+                <col className="w-[5%]" />
+                <col className="w-[15%]" />
+                <col className="w-[18%]" />
+                <col className="w-[9%]" />
                 <col className="w-[14%]" />
-                <col className="w-[12%]" />
-                <col className="w-[22%]" />
+                <col className="w-[11%]" />
+                <col className="w-[9%]" />
+                <col className="w-[19%]" />
               </colgroup>
               <thead>
                 <tr className="border-b border-border text-xs uppercase tracking-wide text-muted-foreground">
@@ -205,6 +236,8 @@ export default function AdminUsersPage() {
                   <th className="py-2 text-start font-medium">{t.name}</th>
                   <th className="py-2 text-left font-medium">{t.email}</th>
                   <th className="py-2 text-left font-medium">{t.phone}</th>
+                  <th className="py-2 text-center font-medium">{t.stage}</th>
+                  <th className="py-2 text-left font-medium">{t.lastActivity}</th>
                   <th className="py-2 text-center font-medium">{t.role}</th>
                   <th className="py-2 text-start font-medium">{t.actions}</th>
                 </tr>
@@ -247,6 +280,24 @@ export default function AdminUsersPage() {
                         <span className="block truncate" dir="ltr">
                           {u.phoneNumber ?? "—"}
                         </span>
+                      </td>
+                      <td className="py-3 text-center">
+                        {u.isAdmin ? (
+                          <span className="text-muted-foreground">—</span>
+                        ) : (
+                          <StatusBadge tone={u.funnelStage ? FUNNEL_STAGE_TONE[u.funnelStage] : "neutral"}>
+                            {u.funnelStage === "paid"
+                              ? t.stagePaid
+                              : u.funnelStage === "reached_checkout"
+                                ? t.stageReachedCheckout
+                                : u.funnelStage === "created_invitation"
+                                  ? t.stageCreatedInvitation
+                                  : t.stageSignedUp}
+                          </StatusBadge>
+                        )}
+                      </td>
+                      <td className="py-3 pe-3 text-left text-muted-foreground">
+                        <span dir="ltr">{u.lastActivityAt ? formatDate(u.lastActivityAt, language) : t.never}</span>
                       </td>
                       <td className="py-3 text-center">
                         <StatusBadge tone={u.isAdmin ? "info" : "neutral"}>

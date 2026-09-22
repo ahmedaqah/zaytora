@@ -47,6 +47,33 @@ public class UsersController(
 
         var allUsers = await db.Users.AsNoTracking().ToListAsync(cancellationToken);
 
+        // Funnel data: how far each account actually got. Invitation.UserId
+        // is the only link back to a user (Order only points at an
+        // Invitation), so orders are attributed to a user by way of the
+        // invitation they were placed against.
+        var invitations = await db.Invitations.AsNoTracking()
+            .Where(i => i.UserId != null)
+            .Select(i => new { i.Id, UserId = i.UserId!.Value, i.UpdatedAt })
+            .ToListAsync(cancellationToken);
+        var invitationIdToUserId = invitations.ToDictionary(i => i.Id, i => i.UserId);
+        var invitationCountByUserId = invitations
+            .GroupBy(i => i.UserId)
+            .ToDictionary(g => g.Key, g => g.Count());
+        var lastInvitationActivityByUserId = invitations
+            .GroupBy(i => i.UserId)
+            .ToDictionary(g => g.Key, g => g.Max(i => i.UpdatedAt));
+
+        var relevantInvitationIds = invitationIdToUserId.Keys.ToList();
+        var orders = relevantInvitationIds.Count == 0
+            ? []
+            : await db.Orders.AsNoTracking()
+                .Where(o => o.InvitationId != null && relevantInvitationIds.Contains(o.InvitationId.Value))
+                .Select(o => new { InvitationId = o.InvitationId!.Value, o.PaymentStatus, o.CreatedAt })
+                .ToListAsync(cancellationToken);
+        var ordersByUserId = orders
+            .GroupBy(o => invitationIdToUserId[o.InvitationId])
+            .ToDictionary(g => g.Key, g => g.ToList());
+
         var joinNumberByUserId = allUsers
             .Where(u => !adminIds.Contains(u.Id))
             .OrderBy(u => u.CreatedAt)
@@ -81,7 +108,21 @@ public class UsersController(
                     // number, pinned to the top" on the frontend, not a
                     // literal 0th place.
                     int? joinNumber = isAdmin ? null : joinNumberByUserId.GetValueOrDefault(u.Id);
-                    return ToDto(u, isAdmin, joinNumber);
+
+                    var userOrders = ordersByUserId.GetValueOrDefault(u.Id);
+                    var invitationCount = invitationCountByUserId.GetValueOrDefault(u.Id);
+                    var funnelStage = userOrders is { Count: > 0 }
+                        ? (userOrders.Any(o => o.PaymentStatus == "paid") ? "paid" : "reached_checkout")
+                        : (invitationCount > 0 ? "created_invitation" : "signed_up");
+
+                    DateTime? lastActivityAt = lastInvitationActivityByUserId.GetValueOrDefault(u.Id);
+                    if (userOrders is { Count: > 0 })
+                    {
+                        var lastOrderAt = userOrders.Max(o => o.CreatedAt);
+                        if (lastActivityAt is null || lastOrderAt > lastActivityAt) lastActivityAt = lastOrderAt;
+                    }
+
+                    return ToDto(u, isAdmin, joinNumber, funnelStage, invitationCount, lastActivityAt);
                 })
                 .ToList(),
             TotalCount = ordered.Count,
@@ -172,7 +213,13 @@ public class UsersController(
         return Ok(ToDto(user, isAdmin, joinNumber: null));
     }
 
-    private static UserDto ToDto(ApplicationUser u, bool isAdmin, int? joinNumber) => new()
+    private static UserDto ToDto(
+        ApplicationUser u,
+        bool isAdmin,
+        int? joinNumber,
+        string? funnelStage = null,
+        int? invitationCount = null,
+        DateTime? lastActivityAt = null) => new()
     {
         Id = u.Id.ToString(),
         DisplayName = u.DisplayName,
@@ -181,5 +228,8 @@ public class UsersController(
         PhoneNumber = u.PhoneNumber,
         IsAdmin = isAdmin,
         JoinNumber = joinNumber,
+        FunnelStage = funnelStage,
+        InvitationCount = invitationCount,
+        LastActivityAt = lastActivityAt,
     };
 }
