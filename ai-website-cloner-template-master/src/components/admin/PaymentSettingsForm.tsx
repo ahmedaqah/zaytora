@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { CheckIcon, ChevronDownIcon, LoaderIcon, SearchIcon, TrashIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
-import { getOrderedCountries } from "@/lib/countries";
+import { getOrderedCountries, countryMatchesQuery } from "@/lib/countries";
 import {
   listPaymentAccounts,
   upsertPaymentAccount,
@@ -220,11 +220,7 @@ export function PaymentSettingsForm({ language }: { language: "ar" | "en" }) {
   }, []);
 
   const countries = useMemo(() => getOrderedCountries(language), [language]);
-  const filteredCountries = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return countries;
-    return countries.filter((c) => c.ar.toLowerCase().includes(q) || c.en.toLowerCase().includes(q));
-  }, [countries, search]);
+  const filteredCountries = useMemo(() => countries.filter((c) => countryMatchesQuery(c, search)), [countries, search]);
 
   function handleSaved(countryCode: string, account: PaymentAccountDto) {
     setAccounts((current) => ({ ...current, [countryCode]: account }));

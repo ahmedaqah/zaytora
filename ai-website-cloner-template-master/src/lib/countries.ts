@@ -240,3 +240,32 @@ export function getOrderedCountries(language: "ar" | "en"): Country[] {
 export function findCountry(code: string): Country | undefined {
   return COUNTRIES.find((c) => c.code === code);
 }
+
+// Loosens Arabic text matching so a search box doesn't demand the exact
+// hamza/alef form a country's official name happens to use -- e.g. typing
+// "الامارات" (plain alef) previously found nothing against "الإمارات
+// العربية المتحدة" (alef with hamza below), same for any other
+// أ/إ/آ/ٱ-prefixed name (dozens of them in REST above). Also folds alef
+// maqsura/ta marbuta and strips diacritics/tatweel for the same reason.
+// Safe to run on English text too -- the regexes are no-ops on it.
+export function normalizeSearchText(value: string): string {
+  return value
+    .normalize("NFKC")
+    .replace(/[ً-ٰٟ]/g, "") // tashkeel (diacritics)
+    .replace(/[آأإٱ]/g, "ا") // alef variants -> bare alef
+    .replace(/ى/g, "ي") // alef maqsura -> ya
+    .replace(/ة/g, "ه") // ta marbuta -> ha
+    .replace(/ـ/g, "") // tatweel
+    .toLowerCase()
+    .trim();
+}
+
+export function countryMatchesQuery(country: Country, rawQuery: string): boolean {
+  const q = normalizeSearchText(rawQuery);
+  if (!q) return true;
+  return (
+    normalizeSearchText(country.ar).includes(q) ||
+    normalizeSearchText(country.en).includes(q) ||
+    country.code.toLowerCase() === q
+  );
+}

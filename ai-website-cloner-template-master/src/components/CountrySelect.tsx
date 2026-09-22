@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDownIcon, SearchIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
-import { getOrderedCountries, findCountry } from "@/lib/countries";
+import { getOrderedCountries, findCountry, countryMatchesQuery } from "@/lib/countries";
 
 const COPY = {
   ar: { placeholder: "اختر الدولة / المنطقة", search: "ابحث عن دولة...", empty: "لا نتائج" },
@@ -32,13 +32,7 @@ export function CountrySelect({
   const countries = useMemo(() => getOrderedCountries(language), [language]);
   const selected = value ? findCountry(value) : undefined;
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return countries;
-    return countries.filter(
-      (c) => c.ar.toLowerCase().includes(q) || c.en.toLowerCase().includes(q) || c.code.toLowerCase() === q
-    );
-  }, [countries, query]);
+  const filtered = useMemo(() => countries.filter((c) => countryMatchesQuery(c, query)), [countries, query]);
 
   useEffect(() => {
     if (!open) return;
