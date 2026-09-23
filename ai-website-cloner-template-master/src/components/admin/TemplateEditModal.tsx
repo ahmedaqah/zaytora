@@ -227,6 +227,11 @@ function TemplateEditModalContent({
     heroFrameStyle: record.heroFrameStyle ?? "",
     dateRevealStyle: record.dateRevealStyle ?? "",
     invitationCardStyle: record.invitationCardStyle ?? "",
+    // Not editable from this modal (multi-scene templates are only created
+    // from /admin/video-templates, per product decision) -- carried through
+    // as-is so saving an unrelated field here can't silently wipe them.
+    sceneLayoutStyle: record.sceneLayoutStyle ?? "",
+    scenesJson: record.scenesJson,
     envelopeId: record.envelopeId ?? "",
     isPopular: record.isPopular,
     isActive: record.isActive,

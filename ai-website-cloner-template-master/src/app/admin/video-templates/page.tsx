@@ -7,17 +7,28 @@ import { useLanguage } from "@/context/LanguageContext";
 import { EyeIcon, LinkIcon, LoaderIcon, PenLineIcon, SparklesIcon, TrashIcon, UploadIcon } from "@/components/icons";
 import { TemplateEditModal } from "@/components/admin/TemplateEditModal";
 import { TemplateDeleteDialog } from "@/components/admin/TemplateDeleteDialog";
+import {
+  TemplateSceneEditor,
+  createEmptySceneDrafts,
+  draftsToScenes,
+  type SceneDraft,
+} from "@/components/admin/TemplateSceneEditor";
 import { CATEGORY_IDS, CATEGORY_LABELS, CATEGORY_META, type CategoryId } from "@/lib/categories";
 import { analyzeImageFile, themeFromCategoryColor } from "@/lib/colorAnalysis";
 import { uploadTemplateImage } from "@/lib/services/templates.service";
 import { useAdminTemplates } from "@/lib/adminTemplatesStore";
 import { ApiError } from "@/lib/api/client";
+import type { SceneSectionKey } from "@/lib/templateScenes";
 import type { TemplateWriteRequest } from "@/types/api";
 
 const COPY = {
   ar: {
     formTitle: "إنشاء قالب جديد",
     formHint: "ارفع صورة مرجعية أو الصق رابطها، اختر التصنيف، ودع الذكاء الاصطناعي يولّد الألوان والتصميم تلقائياً.",
+    templateStyleLabel: "نمط القالب",
+    templateStyleClassic: "كلاسيكي (خلفية واحدة)",
+    templateStyleScenes: "متعدد المشاهد (جديد)",
+    scenesHint: "بالإضافة للصورة والتصنيف أدناه، حدد خلفية مستقلة لأي قسم من أقسام الدعوة تحب تميّزه عن الباقي.",
     modeFile: "رفع ملف",
     modeUrl: "رابط",
     file: "الملف المرجعي",
@@ -55,6 +66,10 @@ const COPY = {
   en: {
     formTitle: "Create a new template",
     formHint: "Upload a reference image or paste its URL, pick a category, and let AI generate the colors and theme.",
+    templateStyleLabel: "Template style",
+    templateStyleClassic: "Classic (one background)",
+    templateStyleScenes: "Multi-scene (new)",
+    scenesHint: "On top of the image and category below, give any invitation section its own distinct background.",
     modeFile: "Upload file",
     modeUrl: "URL",
     file: "Reference file",
@@ -127,6 +142,12 @@ export default function AdminVideoTemplatesPage() {
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // "scenes" only changes what happens after the AI color analysis below —
+  // the image/URL + category inputs above stay shared by both modes.
+  const [templateStyle, setTemplateStyle] = useState<"classic" | "scenes">("classic");
+  const [sceneDrafts, setSceneDrafts] = useState<Record<SceneSectionKey, SceneDraft>>(createEmptySceneDrafts);
+  const [enabledScenes, setEnabledScenes] = useState<Set<SceneSectionKey>>(new Set());
+
   const [editingId, setEditingId] = useState<string | null>(null);
   const editingRecord = templates?.find((record) => record.id === editingId) ?? null;
 
@@ -196,12 +217,19 @@ export default function AdminVideoTemplatesPage() {
       const payload: TemplateWriteRequest = {
         category,
         imageUrl,
-        backgroundImageUrl: imageUrl,
-        layout: "full-bleed",
+        // A "scenes" template's sections each get their own background
+        // (see scenesJson below) — the shared full-bleed photo behind the
+        // whole canvas would just fight with them, so only the hero/envelope
+        // (still governed by pageBg/cardBg/etc. as the fallback for any
+        // section without its own scene entry) keep it.
+        backgroundImageUrl: templateStyle === "scenes" ? null : imageUrl,
+        layout: templateStyle === "scenes" ? "boxed-hero" : "full-bleed",
         pageBg: theme.pageBg,
         cardBg: theme.cardBg,
         textColor: theme.textColor,
         primaryAccent: theme.primaryAccent,
+        sceneLayoutStyle: templateStyle === "scenes" ? "scenes" : null,
+        scenesJson: templateStyle === "scenes" ? JSON.stringify(draftsToScenes(sceneDrafts, enabledScenes)) : "[]",
         isPopular: false,
         isActive: true,
       };
@@ -209,6 +237,9 @@ export default function AdminVideoTemplatesPage() {
       await create(payload);
       setFile(null);
       setSourceUrl("");
+      setTemplateStyle("classic");
+      setSceneDrafts(createEmptySceneDrafts());
+      setEnabledScenes(new Set());
       setCategory("");
     } catch {
       setError(t.genericError);
@@ -226,6 +257,32 @@ export default function AdminVideoTemplatesPage() {
         <div>
           <p className="text-sm font-semibold text-foreground">{t.formTitle}</p>
           <p className="mt-1 text-xs text-muted-foreground">{t.formHint}</p>
+        </div>
+
+        <div>
+          <p className="mb-1.5 text-xs font-medium text-body-foreground">{t.templateStyleLabel}</p>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setTemplateStyle("classic")}
+              className={cn(
+                "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+                templateStyle === "classic" ? "bg-[#C8A24A] text-white" : "bg-background/10 text-body-foreground hover:bg-background/15"
+              )}
+            >
+              {t.templateStyleClassic}
+            </button>
+            <button
+              type="button"
+              onClick={() => setTemplateStyle("scenes")}
+              className={cn(
+                "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+                templateStyle === "scenes" ? "bg-[#C8A24A] text-white" : "bg-background/10 text-body-foreground hover:bg-background/15"
+              )}
+            >
+              {t.templateStyleScenes}
+            </button>
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
@@ -287,6 +344,19 @@ export default function AdminVideoTemplatesPage() {
             ))}
           </select>
         </div>
+
+        {templateStyle === "scenes" && (
+          <div className="rounded-xl border border-[#C8A24A]/30 bg-[#C8A24A]/5 p-4">
+            <p className="mb-3 text-xs text-muted-foreground">{t.scenesHint}</p>
+            <TemplateSceneEditor
+              language={language}
+              drafts={sceneDrafts}
+              enabledSections={enabledScenes}
+              onDraftsChange={setSceneDrafts}
+              onEnabledSectionsChange={setEnabledScenes}
+            />
+          </div>
+        )}
 
         {error && <p className="text-xs font-medium text-rose-700 dark:text-rose-400">{error}</p>}
 

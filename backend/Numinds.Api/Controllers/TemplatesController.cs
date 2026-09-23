@@ -121,6 +121,8 @@ public class TemplatesController(NumindsDbContext db, IFileStorageService storag
                     HeroFrameStyle = t.HeroFrameStyle,
                     DateRevealStyle = t.DateRevealStyle,
                     InvitationCardStyle = t.InvitationCardStyle,
+                    SceneLayoutStyle = t.SceneLayoutStyle,
+                    ScenesJson = t.ScenesJson,
                     EnvelopeId = t.EnvelopeId != null ? t.EnvelopeId.ToString() : null,
                     EnvelopePhotoUrl = t.Envelope != null ? t.Envelope.PhotoUrl : null,
                     EnvelopeSealXPercent = t.Envelope != null ? t.Envelope.SealXPercent : (double?)null,
@@ -231,6 +233,8 @@ public class TemplatesController(NumindsDbContext db, IFileStorageService storag
                     HeroFrameStyle = t.HeroFrameStyle,
                     DateRevealStyle = t.DateRevealStyle,
                     InvitationCardStyle = t.InvitationCardStyle,
+                    SceneLayoutStyle = t.SceneLayoutStyle,
+                    ScenesJson = t.ScenesJson,
                     EnvelopeId = t.EnvelopeId != null ? t.EnvelopeId.ToString() : null,
                     EnvelopePhotoUrl = t.Envelope != null ? t.Envelope.PhotoUrl : null,
                     EnvelopeSealXPercent = t.Envelope != null ? t.Envelope.SealXPercent : (double?)null,
@@ -299,6 +303,8 @@ public class TemplatesController(NumindsDbContext db, IFileStorageService storag
                     HeroFrameStyle = t.HeroFrameStyle,
                     DateRevealStyle = t.DateRevealStyle,
                     InvitationCardStyle = t.InvitationCardStyle,
+                    SceneLayoutStyle = t.SceneLayoutStyle,
+                    ScenesJson = t.ScenesJson,
                     EnvelopeId = t.EnvelopeId != null ? t.EnvelopeId.ToString() : null,
                     EnvelopePhotoUrl = t.Envelope != null ? t.Envelope.PhotoUrl : null,
                     EnvelopeSealXPercent = t.Envelope != null ? t.Envelope.SealXPercent : (double?)null,
@@ -458,6 +464,8 @@ public class TemplatesController(NumindsDbContext db, IFileStorageService storag
             HeroFrameStyle = request.HeroFrameStyle,
             DateRevealStyle = request.DateRevealStyle,
             InvitationCardStyle = request.InvitationCardStyle,
+            SceneLayoutStyle = request.SceneLayoutStyle,
+            ScenesJson = string.IsNullOrWhiteSpace(request.ScenesJson) ? "[]" : request.ScenesJson,
             EnvelopeId = envelope?.Id,
             IsPopular = request.IsPopular,
             IsActive = request.IsActive,
@@ -541,6 +549,8 @@ public class TemplatesController(NumindsDbContext db, IFileStorageService storag
         template.HeroFrameStyle = request.HeroFrameStyle;
         template.DateRevealStyle = request.DateRevealStyle;
         template.InvitationCardStyle = request.InvitationCardStyle;
+        template.SceneLayoutStyle = request.SceneLayoutStyle;
+        template.ScenesJson = string.IsNullOrWhiteSpace(request.ScenesJson) ? "[]" : request.ScenesJson;
         template.EnvelopeId = envelope?.Id;
         template.IsPopular = request.IsPopular;
         template.IsActive = request.IsActive;
@@ -732,6 +742,8 @@ public class TemplatesController(NumindsDbContext db, IFileStorageService storag
         HeroFrameStyle = t.HeroFrameStyle,
         DateRevealStyle = t.DateRevealStyle,
         InvitationCardStyle = t.InvitationCardStyle,
+        SceneLayoutStyle = t.SceneLayoutStyle,
+        ScenesJson = t.ScenesJson,
         EnvelopeId = t.EnvelopeId?.ToString().ToLowerInvariant(),
         EnvelopePhotoUrl = envelope?.PhotoUrl,
         EnvelopeSealXPercent = envelope?.SealXPercent,

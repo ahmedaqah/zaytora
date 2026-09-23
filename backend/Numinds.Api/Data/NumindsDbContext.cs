@@ -71,6 +71,11 @@ public class NumindsDbContext(DbContextOptions<NumindsDbContext> options)
             entity.Property(t => t.HeroFrameStyle).HasMaxLength(16);
             entity.Property(t => t.DateRevealStyle).HasMaxLength(16);
             entity.Property(t => t.InvitationCardStyle).HasMaxLength(16);
+            entity.Property(t => t.SceneLayoutStyle).HasMaxLength(16);
+            // ~10 sections * a solid/gradient entry or a hosted image URL
+            // each, plus an optional per-section text color -- comfortably
+            // under this even with every section filled in.
+            entity.Property(t => t.ScenesJson).HasMaxLength(4096).IsRequired();
             entity.HasIndex(t => t.Code).IsUnique();
 
             entity.HasOne(t => t.Envelope)

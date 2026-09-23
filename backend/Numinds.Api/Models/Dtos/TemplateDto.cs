@@ -33,6 +33,13 @@ public class TemplateDto
     public string? HeroFrameStyle { get; set; }
     public string? DateRevealStyle { get; set; }
     public string? InvitationCardStyle { get; set; }
+    // "scenes" switches the sections after the hero to a distinct
+    // background each (see ScenesJson) instead of one shared PageBg/CardBg
+    // for the whole canvas -- null keeps every template's original behavior.
+    public string? SceneLayoutStyle { get; set; }
+    // Raw JSON array (frontend's TemplateScene[]) -- only meaningful when
+    // SceneLayoutStyle is "scenes".
+    public string ScenesJson { get; set; } = "[]";
     // Which Envelope (see Models/Entities/Envelope.cs) this template is
     // assigned, plus that envelope's own photo/seal position resolved
     // inline — PhotoWaxSealEnvelopeCover on the frontend renders straight
@@ -85,6 +92,8 @@ public class TemplateWriteRequest
     public string? HeroFrameStyle { get; set; }
     public string? DateRevealStyle { get; set; }
     public string? InvitationCardStyle { get; set; }
+    public string? SceneLayoutStyle { get; set; }
+    public string ScenesJson { get; set; } = "[]";
     // Which Envelope to assign, by id — null/empty clears the assignment.
     public string? EnvelopeId { get; set; }
     public bool IsPopular { get; set; }

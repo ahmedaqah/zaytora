@@ -218,6 +218,24 @@ public class Template
     public Guid? EnvelopeId { get; set; }
     public Envelope? Envelope { get; set; }
 
+    // SceneLayoutStyle == "scenes" switches InvitationCanvas from this
+    // template's one shared PageBg/CardBg palette (every section below the
+    // hero on the same background) to a distinct background per content
+    // section, read from ScenesJson -- the hero/envelope stay governed by
+    // the fields above exactly as before; only the sections after the hero
+    // (venue, program, gallery, etc. -- see SceneSectionKey on the frontend)
+    // can each get their own solid color / gradient / image. Null (every
+    // template before this existed) renders exactly as today.
+    public string? SceneLayoutStyle { get; set; }
+
+    // JSON array of { sectionKey, background: { type, solidColor?,
+    // gradientFrom?, gradientTo?, gradientAngle?, imageUrl? }, textColor? } --
+    // only read when SceneLayoutStyle == "scenes". A section with no entry
+    // here (or when SceneLayoutStyle isn't "scenes") falls back to the
+    // template's shared background, so a partially-filled-in scenes template
+    // never renders a broken/blank section.
+    public string ScenesJson { get; set; } = "[]";
+
     // Lets an admin hide a template from the public catalog/Studio picker
     // without deleting it outright (deleting would orphan any invitation
     // already built on it, since Invitation.Template is SetNull-on-delete).

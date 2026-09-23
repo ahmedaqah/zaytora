@@ -105,6 +105,14 @@ export interface TemplateDto {
   // invitationCardStyle: "archIslamic" swaps the main invitation card for a
   // pointed-arch card with Bismillah calligraphy + parent names.
   invitationCardStyle?: string | null;
+  // sceneLayoutStyle: "scenes" gives each section after the hero its own
+  // background (from scenesJson) instead of sharing pageBg for the whole
+  // canvas — see src/lib/templateScenes.ts. Null keeps the classic look.
+  sceneLayoutStyle?: string | null;
+  // Raw JSON string of TemplateScene[] (src/lib/templateScenes.ts) — only
+  // meaningful when sceneLayoutStyle is "scenes". Always parse it with
+  // parseScenes rather than JSON.parse directly.
+  scenesJson: string;
   // Which Envelope (see the admin "Envelopes" library, /admin/envelopes)
   // this template is assigned, plus that envelope's own photo/seal position
   // resolved inline by the API — PhotoWaxSealEnvelopeCover renders straight
@@ -158,6 +166,8 @@ export interface TemplateWriteRequest {
   heroFrameStyle?: string | null;
   dateRevealStyle?: string | null;
   invitationCardStyle?: string | null;
+  sceneLayoutStyle?: string | null;
+  scenesJson?: string;
   // Which Envelope to assign, by id — null/empty clears the assignment.
   envelopeId?: string | null;
   isPopular: boolean;

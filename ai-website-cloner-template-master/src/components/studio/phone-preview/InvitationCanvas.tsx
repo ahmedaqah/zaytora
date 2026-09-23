@@ -50,6 +50,7 @@ import { WishesCarousel } from "./WishesCarousel";
 import { useMusicPlayer } from "./useMusicPlayer";
 import { useAutoScroll } from "./useAutoScroll";
 import { AmbientParticles, type AmbientVariant } from "./AmbientParticles";
+import { parseScenes, sceneStyleFor, type SceneSectionKey } from "@/lib/templateScenes";
 
 // Keyed by the same `value` codes Step01Language hands out (see
 // steps/Step01Language.tsx). "bilingual" reads Arabic-first, so it shares the
@@ -849,6 +850,16 @@ export function InvitationCanvas({
   // DefaultMusicUrl -- a plain derived value, not a hook, so hoisting it
   // ahead of other hooks changes nothing about hook-call order.
   const template = templateOverride ?? templates.find((item) => item.id === value.templateId) ?? null;
+  // "scenes" templates give each section after the hero its own background
+  // (src/lib/templateScenes.ts) instead of sharing the template's one
+  // PageBg for the whole canvas -- every other template resolves an empty
+  // array here, so sceneStyle(key) below always returns undefined for them
+  // and every section renders exactly as before this existed.
+  const scenes = useMemo(
+    () => (template?.sceneLayoutStyle === "scenes" ? parseScenes(template.scenesJson) : []),
+    [template?.sceneLayoutStyle, template?.scenesJson]
+  );
+  const sceneStyle = (key: SceneSectionKey) => sceneStyleFor(scenes, key);
   // Which envelope-cover branch to render (the template's own library photo
   // vs. a named style vs. the generic fallback) depends on `template` below,
   // which is only known once this fetch resolves — without this flag the
@@ -1532,7 +1543,11 @@ export function InvitationCanvas({
               which adds the embedded map/"Open Google Maps" action on top
               of this same info. */}
           {primaryVenue && (
-            <motion.div {...sectionReveal} className={cn(sectionCardClass(undefined, transparentCards), "text-center")}>
+            <motion.div
+              {...sectionReveal}
+              style={sceneStyle("venue")}
+              className={cn(sectionCardClass(undefined, transparentCards), "text-center")}
+            >
               <p className={cn("mb-2 flex items-center justify-center gap-1.5 text-[11px] font-semibold", TONE.heading)}>
                 <MapPinIcon className="size-3.5 text-[var(--tpl-accent)]" />
                 {labels.location}
@@ -1549,7 +1564,7 @@ export function InvitationCanvas({
               pure fidelity-cloning, so it stays, placed next to the venue
               info it's thematically closest to rather than dropped. */}
           {value.showAccommodation && value.accommodations.length > 0 && (
-            <motion.div {...sectionReveal} className={sectionCardClass(undefined, transparentCards)}>
+            <motion.div {...sectionReveal} style={sceneStyle("accommodation")} className={sectionCardClass(undefined, transparentCards)}>
               <p className={cn("mb-2 flex items-center gap-1.5 text-[11px] font-semibold", TONE.heading)}>
                 <BedDoubleIcon className="size-3.5 text-[var(--tpl-accent)]" />
                 {canvas.accommodation}
@@ -1569,18 +1584,20 @@ export function InvitationCanvas({
               reference's torn-calendar-page treatment, plus the
               "احفظ الموعد" button that hands the guest a real .ics file. */}
           {calendar && (
-            <CalendarCard
-              month={calendar.month}
-              day={calendar.day}
-              weekday={calendar.weekday}
-              time={calendar.time}
-              eventIso={value.eventDateTime ?? null}
-              endEventIso={value.eventEndDateTime ?? null}
-              eventTitle={value.eventTitle}
-              venueName={primaryVenue?.name}
-              saveDateLabel={canvas.saveDate}
-              untitledEventLabel={canvas.untitledEvent}
-            />
+            <div style={sceneStyle("saveDate")}>
+              <CalendarCard
+                month={calendar.month}
+                day={calendar.day}
+                weekday={calendar.weekday}
+                time={calendar.time}
+                eventIso={value.eventDateTime ?? null}
+                endEventIso={value.eventEndDateTime ?? null}
+                eventTitle={value.eventTitle}
+                venueName={primaryVenue?.name}
+                saveDateLabel={canvas.saveDate}
+                untitledEventLabel={canvas.untitledEvent}
+              />
+            </div>
           )}
 
           {/* Countdown — its own widget (heading + live 4-box grid) rather
@@ -1589,6 +1606,7 @@ export function InvitationCanvas({
           {countdown && (
             <motion.div
               {...sectionReveal}
+              style={sceneStyle("countdown")}
               className={cn(sectionCardClass(undefined, transparentCards), "flex flex-col items-center gap-3 text-center")}
             >
               {eventDate && <p className={cn("text-xs", TONE.muted)}>{eventDate}</p>}
@@ -1628,7 +1646,7 @@ export function InvitationCanvas({
               a time as the guest scrolls, instead of the whole list
               appearing together the moment the card comes into view. */}
           {value.showEventProgram && value.programItems.length > 0 && (
-            <motion.div {...sectionReveal} className={sectionCardClass("p-4", transparentCards)}>
+            <motion.div {...sectionReveal} style={sceneStyle("program")} className={sectionCardClass("p-4", transparentCards)}>
               <p className={cn("mb-8 flex items-center gap-1.5 text-[11px] font-semibold", TONE.heading)}>
                 <ClipboardListIcon className="size-3.5 text-[var(--tpl-accent)]" />
                 {canvas.program}
@@ -1708,7 +1726,7 @@ export function InvitationCanvas({
 
           {/* Rules */}
           {value.showEventRules && rules.length > 0 && (
-            <motion.div {...sectionReveal} className={sectionCardClass(undefined, transparentCards)}>
+            <motion.div {...sectionReveal} style={sceneStyle("rules")} className={sectionCardClass(undefined, transparentCards)}>
               <p className={cn("mb-6 flex items-center gap-1.5 text-[11px] font-semibold", TONE.heading)}>
                 <ClipboardListIcon className="size-3.5 text-[var(--tpl-accent)]" />
                 {canvas.eventDetails}
@@ -1731,7 +1749,11 @@ export function InvitationCanvas({
 
           {/* Personal message */}
           {value.showPersonalMessage && value.personalMessageText && (
-            <motion.div {...sectionReveal} className={cn(sectionCardClass(undefined, transparentCards), "text-center")}>
+            <motion.div
+              {...sectionReveal}
+              style={sceneStyle("personalMessage")}
+              className={cn(sectionCardClass(undefined, transparentCards), "text-center")}
+            >
               {value.personalMessageTitle && (
                 <p className={cn("text-[11px] font-semibold", TONE.heading)}>{value.personalMessageTitle}</p>
               )}
@@ -1746,7 +1768,7 @@ export function InvitationCanvas({
               the canvas background with no glass card (matches the
               reference: a plain heading + 2-column grid, no border/blur). */}
           {value.galleryImages.filter(Boolean).length > 0 && (
-            <motion.div {...sectionReveal} className="px-4">
+            <motion.div {...sectionReveal} style={sceneStyle("gallery")} className="px-4">
               <h3 className={cn("mb-4 flex items-center justify-center gap-1.5 text-xl font-normal", TONE.muted)}>
                 <ImageIcon className="size-4 text-[var(--tpl-accent)]" />
                 {canvas.galleryMoments}
@@ -1774,18 +1796,23 @@ export function InvitationCanvas({
               Derived from real submissions (backend RsvpAttendingCount /
               RsvpWishes), not fabricated — so it only renders when there's
               actually something to show. */}
-          {value.rsvpShowLiveCount && value.rsvpAttendingCount > 0 && (
-            <motion.div {...sectionReveal} className="text-center">
-              <p className={cn("mb-2 flex items-center justify-center gap-2 text-xs", TONE.heading)}>{canvas.attendeeCount}</p>
-              <p className={cn("mb-3 text-4xl font-light", TONE.strong)}>{value.rsvpAttendingCount}</p>
-            </motion.div>
-          )}
+          {((value.rsvpShowLiveCount && value.rsvpAttendingCount > 0) ||
+            (value.rsvpShowMessage && value.rsvpWishes.length > 0)) && (
+            <div style={sceneStyle("wishes")}>
+              {value.rsvpShowLiveCount && value.rsvpAttendingCount > 0 && (
+                <motion.div {...sectionReveal} className="text-center">
+                  <p className={cn("mb-2 flex items-center justify-center gap-2 text-xs", TONE.heading)}>{canvas.attendeeCount}</p>
+                  <p className={cn("mb-3 text-4xl font-light", TONE.strong)}>{value.rsvpAttendingCount}</p>
+                </motion.div>
+              )}
 
-          {value.rsvpShowMessage && value.rsvpWishes.length > 0 && (
-            <motion.div {...sectionReveal} className="px-4">
-              <p className={cn("mb-2 flex items-center justify-center gap-2 text-xs", TONE.heading)}>{canvas.wishes}</p>
-              <WishesCarousel wishes={value.rsvpWishes} />
-            </motion.div>
+              {value.rsvpShowMessage && value.rsvpWishes.length > 0 && (
+                <motion.div {...sectionReveal} className="px-4">
+                  <p className={cn("mb-2 flex items-center justify-center gap-2 text-xs", TONE.heading)}>{canvas.wishes}</p>
+                  <WishesCarousel wishes={value.rsvpWishes} />
+                </motion.div>
+              )}
+            </div>
           )}
 
           {/* Closing footer — names, short date, and the Numinds mark that
@@ -1793,6 +1820,7 @@ export function InvitationCanvas({
           {(names || value.eventDateTime) && (
             <motion.div
               {...sectionReveal}
+              style={sceneStyle("footer")}
               className="flex flex-col items-center gap-2 px-6 py-8 text-center"
             >
               {names && (
