@@ -5,11 +5,15 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Numinds.Api.Data;
 using Numinds.Api.Models;
 using Numinds.Api.Models.Dtos;
 using Numinds.Api.Models.Entities;
 using Numinds.Api.Services;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Processing;
 
 namespace Numinds.Api.Controllers;
 
@@ -19,7 +23,9 @@ public class InvitationsController(
     NumindsDbContext db,
     UserManager<ApplicationUser> userManager,
     IFileStorageService storage,
-    IConfiguration configuration) : ControllerBase
+    IConfiguration configuration,
+    IHttpClientFactory httpClientFactory,
+    IMemoryCache cache) : ControllerBase
 {
     private string FrontendBaseUrl => configuration["Frontend:BaseUrl"] ?? "http://localhost:3000";
 
@@ -308,15 +314,21 @@ public class InvitationsController(
         // thumbnail when no live background is set -- so a link preview
         // (WhatsApp/Instagram/Messenger) always has something to show rather
         // than the plain text-only bubble every guest saw before this field
-        // existed. Absolute URL already, since uploads are served straight
-        // off R2/CDN.
-        var imageUrl = invitation.Template?.BackgroundImageUrl ?? invitation.Template?.ImageUrl;
-        var imageTag = imageUrl is null
+        // existed. Pointed at ShareCoverImage below (this API's own domain),
+        // not the raw template photo directly -- most of these photos are
+        // tall phone-screen portraits, and a link preview showing one at
+        // full height reads as an oversized, mostly-empty card. Cropping to
+        // the vertical middle third server-side is what actually fixes that,
+        // not just hinting dimensions via og:image:width/height (several
+        // clients, e.g. Telegram, still render the full image regardless).
+        var hasCoverImage = invitation.Template?.BackgroundImageUrl is not null || invitation.Template?.ImageUrl is not null;
+        var coverImageUrl = System.Net.WebUtility.HtmlEncode($"{Request.Scheme}://{Request.Host}/i/{Uri.EscapeDataString(code)}/cover.jpg");
+        var imageTag = !hasCoverImage
             ? ""
             : $"""
-                <meta property="og:image" content="{System.Net.WebUtility.HtmlEncode(imageUrl)}">
+                <meta property="og:image" content="{coverImageUrl}">
                 <meta name="twitter:card" content="summary_large_image">
-                <meta name="twitter:image" content="{System.Net.WebUtility.HtmlEncode(imageUrl)}">
+                <meta name="twitter:image" content="{coverImageUrl}">
                 """;
 
         var html = $"""
@@ -336,6 +348,80 @@ public class InvitationsController(
             """;
 
         return Content(html, "text/html");
+    }
+
+    private static readonly TimeSpan CoverImageCacheTtl = TimeSpan.FromHours(6);
+
+    // GET /i/{code}/cover.jpg — the og:image/twitter:image ShareRedirect
+    // above points link previews at. Most template photos are tall
+    // phone-screen portraits (this app's own hero shots); showing one at
+    // full height in a WhatsApp/Instagram/Telegram preview card reads as an
+    // oversized, mostly-empty image. This crops the source photo down to its
+    // own vertical middle third (full width) server-side and re-encodes it,
+    // since several clients (Telegram confirmed) render the raw image at
+    // full height regardless of og:image:width/height hints -- only serving
+    // an already-cropped image actually changes what they show.
+    //
+    // Cached by source image URL (not by share code) so every invitation
+    // built on the same template's default photo reuses one cropped result
+    // instead of re-fetching/re-cropping per invitation.
+    [HttpGet("/i/{code}/cover.jpg")]
+    public async Task<IActionResult> ShareCoverImage(string code, CancellationToken cancellationToken)
+    {
+        var invitation = await db.Invitations
+            .AsNoTracking()
+            .Include(i => i.Template)
+            .FirstOrDefaultAsync(i => i.ShareCode == code, cancellationToken);
+        if (invitation is null || !IsPubliclyVisible(invitation))
+        {
+            return NotFound();
+        }
+
+        var sourceUrl = invitation.Template?.BackgroundImageUrl ?? invitation.Template?.ImageUrl;
+        if (sourceUrl is null)
+        {
+            return NotFound();
+        }
+
+        var cacheKey = $"sharecover:{sourceUrl}";
+        if (!cache.TryGetValue(cacheKey, out byte[]? croppedBytes))
+        {
+            try
+            {
+                var client = httpClientFactory.CreateClient();
+                // Cloudflare in front of uploads.zaytorainvites.com 403s a
+                // request with no User-Agent at all (confirmed directly) --
+                // HttpClient sends none by default, which would otherwise
+                // make every crop attempt fail and silently fall through to
+                // the uncropped-redirect branch below, every single time.
+                using var request = new HttpRequestMessage(HttpMethod.Get, sourceUrl);
+                request.Headers.UserAgent.ParseAdd("Mozilla/5.0 (compatible; ZaytoraShareBot/1.0)");
+                using var response = await client.SendAsync(request, cancellationToken);
+                response.EnsureSuccessStatusCode();
+                var sourceBytes = await response.Content.ReadAsByteArrayAsync(cancellationToken);
+                using var image = Image.Load(sourceBytes);
+
+                var cropHeight = Math.Max(1, image.Height / 3);
+                var cropTop = (image.Height - cropHeight) / 2;
+                image.Mutate(x => x.Crop(new Rectangle(0, cropTop, image.Width, cropHeight)));
+
+                using var output = new MemoryStream();
+                image.SaveAsJpeg(output, new JpegEncoder { Quality = 85 });
+                croppedBytes = output.ToArray();
+            }
+            catch
+            {
+                // Cropping is a nice-to-have, not the reason a share link
+                // should ever show nothing -- fall back to redirecting the
+                // crawler straight at the original, uncropped photo.
+                return Redirect(sourceUrl);
+            }
+
+            cache.Set(cacheKey, croppedBytes, CoverImageCacheTtl);
+        }
+
+        Response.Headers.CacheControl = $"public, max-age={(int)CoverImageCacheTtl.TotalSeconds}";
+        return File(croppedBytes!, "image/jpeg");
     }
 
     // GET /api/invitations/{id}

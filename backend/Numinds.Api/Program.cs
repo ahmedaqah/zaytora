@@ -142,6 +142,12 @@ if (!string.IsNullOrWhiteSpace(googleClientId) && !string.IsNullOrWhiteSpace(goo
 
 builder.Services.AddHttpClient<IEmailSender, ResendEmailSender>();
 
+// Bare IHttpClientFactory registration -- InvitationsController.ShareCoverImage
+// uses this to fetch a template's own hero photo before cropping it for the
+// share-link preview image, rather than needing a dedicated typed client for
+// one-off downloads.
+builder.Services.AddHttpClient();
+
 // Server-side complement to the frontend's Meta Pixel (see MetaPixel.tsx) --
 // reports new-account signups to Meta's Conversions API. See
 // MetaConversionsApiService for the Meta:PixelId/Meta:ConversionsApiAccessToken
