@@ -285,7 +285,10 @@ public class InvitationsController(
         Response.Headers.Remove("Content-Security-Policy");
         Response.Headers.Append("Content-Security-Policy", "script-src 'unsafe-inline'; default-src 'none'; frame-ancestors 'none'");
 
-        var invitation = await db.Invitations.AsNoTracking().FirstOrDefaultAsync(i => i.ShareCode == code, cancellationToken);
+        var invitation = await db.Invitations
+            .AsNoTracking()
+            .Include(i => i.Template)
+            .FirstOrDefaultAsync(i => i.ShareCode == code, cancellationToken);
         if (invitation is null || !IsPubliclyVisible(invitation))
         {
             return Content("<!doctype html><meta charset=\"utf-8\"><title>ZAYTORA</title>", "text/html");
@@ -300,6 +303,22 @@ public class InvitationsController(
         var encodedTitle = System.Net.WebUtility.HtmlEncode(title);
         var encodedDescription = System.Net.WebUtility.HtmlEncode(description);
 
+        // The invitation's own live hero photo (same one InvitationCanvas.tsx
+        // renders full-bleed), falling back to the template's catalog
+        // thumbnail when no live background is set -- so a link preview
+        // (WhatsApp/Instagram/Messenger) always has something to show rather
+        // than the plain text-only bubble every guest saw before this field
+        // existed. Absolute URL already, since uploads are served straight
+        // off R2/CDN.
+        var imageUrl = invitation.Template?.BackgroundImageUrl ?? invitation.Template?.ImageUrl;
+        var imageTag = imageUrl is null
+            ? ""
+            : $"""
+                <meta property="og:image" content="{System.Net.WebUtility.HtmlEncode(imageUrl)}">
+                <meta name="twitter:card" content="summary_large_image">
+                <meta name="twitter:image" content="{System.Net.WebUtility.HtmlEncode(imageUrl)}">
+                """;
+
         var html = $"""
             <!doctype html>
             <html>
@@ -309,6 +328,7 @@ public class InvitationsController(
             <meta property="og:title" content="{encodedTitle}">
             <meta property="og:description" content="{encodedDescription}">
             <meta property="og:type" content="website">
+            {imageTag}
             <script>location.replace({JsonSerializer.Serialize(destination)});</script>
             </head>
             <body></body>
