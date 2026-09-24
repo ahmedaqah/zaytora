@@ -109,7 +109,10 @@ export function Step05InvitationText({
         onChange={(invitationTextFontSize) => onChange({ invitationTextFontSize })}
       />
       {value.invitationText && (
-        <p className={cn("text-center text-sm leading-relaxed text-body-foreground", value.generalTextFont || "font-sans")}>
+        <p
+          style={{ whiteSpace: "pre-line" }}
+          className={cn("text-center text-sm leading-relaxed text-body-foreground", value.generalTextFont || "font-sans")}
+        >
           {value.invitationText}
         </p>
       )}

@@ -1389,8 +1389,13 @@ export function InvitationCanvas({
                 {...sectionReveal}
                 className={cn(sectionCardClass(undefined, transparentCards), "flex flex-col items-center gap-4 text-center")}
               >
+                {/* whiteSpace: pre-line -- plain HTML collapses the guest's
+                    own manual line breaks (Step05InvitationText's textarea)
+                    into a single space, so the paragraph only ever wrapped
+                    wherever the container happened to run out of width
+                    instead of where the guest actually broke their lines. */}
                 <p
-                  style={fontSizeStyle(1, value.invitationTextFontSize)}
+                  style={{ whiteSpace: "pre-line", ...fontSizeStyle(1, value.invitationTextFontSize) }}
                   className={cn("text-base leading-relaxed", cardTextFont || "font-sans", TONE.body)}
                 >
                   {value.invitationText}

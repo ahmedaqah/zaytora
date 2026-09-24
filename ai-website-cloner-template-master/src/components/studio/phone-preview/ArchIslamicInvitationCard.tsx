@@ -111,11 +111,12 @@ export function ArchIslamicInvitationCard({
         {invitationText && (
           <p
             className="mt-2 max-w-xs text-sm italic leading-relaxed text-[var(--tpl-text-strong)]"
-            style={
-              invitationTextFontSize && invitationTextFontSize !== 100
+            style={{
+              whiteSpace: "pre-line",
+              ...(invitationTextFontSize && invitationTextFontSize !== 100
                 ? { fontSize: `${(0.875 * invitationTextFontSize) / 100}rem` }
-                : undefined
-            }
+                : undefined),
+            }}
           >
             {invitationText}
           </p>
