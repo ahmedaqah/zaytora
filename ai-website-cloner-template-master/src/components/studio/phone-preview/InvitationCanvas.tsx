@@ -1105,7 +1105,14 @@ export function InvitationCanvas({
   // no such gap (its own transition IS the reveal), so its onOpen just
   // calls both together, unchanged from before this split.
   const ENVELOPE_TRANSITION_MS = 550;
+  // Fires on the guest's tap, same moment as handleEnvelopeOpen below (every
+  // cover calls one or the other on tap, before its own fade-out animation
+  // even starts) -- gates EnvelopeCtaCaption so the hint label disappears
+  // the instant the guest taps, instead of lingering through the cover's
+  // fade or (for EnvelopeMediaCover's video covers) the whole opening video.
+  const [envelopeTapped, setEnvelopeTapped] = useState(false);
   function handleEnvelopeOpen() {
+    setEnvelopeTapped(true);
     // The browser's own scroll-restoration (or just a scroll position left
     // over from an earlier visit to this exact URL) can leave the page
     // already scrolled partway down -- invisible while the opaque envelope
@@ -2085,10 +2092,14 @@ export function InvitationCanvas({
       {/* Admin-authored hint label (see Template.EnvelopeCtaShape), layered
           on top of whichever cover above just mounted — a single shared
           overlay instead of teaching all eight cover components their own
-          caption rendering. Guarded by the same showEnvelope/templatesLoaded
-          condition as every cover above so it never shows during the plain
-          loading spinner or once the envelope itself has been dismissed. */}
-      {showEnvelope && templatesLoaded && (
+          caption rendering. !envelopeTapped hides it the instant the guest
+          taps (matching every cover's own tap-to-open affordances, which all
+          disappear immediately rather than lingering through their own
+          fade-out or, for a video cover, the whole opening clip) — without
+          it the label stayed visible for the entire opening animation and
+          beyond, since showEnvelope/templatesLoaded alone don't reflect
+          whether the guest has actually opened the envelope yet. */}
+      {showEnvelope && templatesLoaded && !envelopeTapped && (
         <EnvelopeCtaCaption
           template={template}
           language={language === "ar" ? "ar" : "en"}
