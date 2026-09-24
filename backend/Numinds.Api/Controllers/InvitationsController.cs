@@ -322,7 +322,14 @@ public class InvitationsController(
         // not just hinting dimensions via og:image:width/height (several
         // clients, e.g. Telegram, still render the full image regardless).
         var hasCoverImage = invitation.Template?.BackgroundImageUrl is not null || invitation.Template?.ImageUrl is not null;
-        var coverImageUrl = System.Net.WebUtility.HtmlEncode($"{Request.Scheme}://{Request.Host}/i/{Uri.EscapeDataString(code)}/cover.jpg");
+        // Deliberately hardcoded to https, not Request.Scheme -- despite
+        // Program.cs's ForwardedHeaders setup (which does fix Request's
+        // client-IP for Meta CAPI), Request.Scheme still read back "http"
+        // here in production behind Cloudflare + Render's two proxy hops.
+        // There's no real deployment where this API is ever served over
+        // plain http, so forcing it is simpler and more reliable than
+        // chasing the forwarded-proto mismatch through two edges.
+        var coverImageUrl = System.Net.WebUtility.HtmlEncode($"https://{Request.Host}/i/{Uri.EscapeDataString(code)}/cover.jpg");
         var imageTag = !hasCoverImage
             ? ""
             : $"""
@@ -365,7 +372,13 @@ public class InvitationsController(
     // Cached by source image URL (not by share code) so every invitation
     // built on the same template's default photo reuses one cropped result
     // instead of re-fetching/re-cropping per invitation.
+    //
+    // Also mapped to HEAD -- MVC attribute routing only matches the exact
+    // verb(s) listed, and several link-preview crawlers HEAD a discovered
+    // og:image first to check its content-type/size before actually
+    // fetching it; a GET-only route 405s that probe.
     [HttpGet("/i/{code}/cover.jpg")]
+    [HttpHead("/i/{code}/cover.jpg")]
     public async Task<IActionResult> ShareCoverImage(string code, CancellationToken cancellationToken)
     {
         var invitation = await db.Invitations
