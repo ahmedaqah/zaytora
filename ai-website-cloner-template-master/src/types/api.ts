@@ -81,6 +81,19 @@ export interface TemplateDto {
   // burned into its pixels. Both null (most templates) renders no overlay.
   envelopeInitialsXPercent?: number | null;
   envelopeInitialsYPercent?: number | null;
+  // The guest-facing hint label on the closed envelope (e.g. "اضغط على
+  // الختم" / "Tap to open") — fully admin-authored per template, in both
+  // languages, instead of one hardcoded phrase baked into a single cover
+  // component. envelopeCtaShape picks the container: "badge" (rounded pill,
+  // filled background) or "plain" (bold text + shadow, no background). Empty
+  // shape falls back to EnvelopeMediaCover's own hardcoded pill for an image
+  // cover, or no caption at all for every other cover style — see
+  // EnvelopeCtaCaption.tsx.
+  envelopeCtaTextAr?: string | null;
+  envelopeCtaTextEn?: string | null;
+  envelopeCtaShape?: string | null;
+  envelopeCtaBgColor?: string | null;
+  envelopeCtaTextColor?: string | null;
   // Which ambient particle animation AmbientParticles.tsx renders across the
   // whole canvas: "smoke" | "petals" | "sparkle" | "snow" | "none". Null
   // defers to the resolved theme's isDark ("smoke" when dark, "sparkle"
@@ -161,6 +174,11 @@ export interface TemplateWriteRequest {
   ambientVideoUrl?: string | null;
   envelopeInitialsXPercent?: number | null;
   envelopeInitialsYPercent?: number | null;
+  envelopeCtaTextAr?: string | null;
+  envelopeCtaTextEn?: string | null;
+  envelopeCtaShape?: string | null;
+  envelopeCtaBgColor?: string | null;
+  envelopeCtaTextColor?: string | null;
   ambientEffect?: string | null;
   envelopeStyle?: string | null;
   heroFrameStyle?: string | null;

@@ -28,6 +28,13 @@ public class TemplateDto
     // on top of OpeningVideoUrl -- see Models/Entities/Template.cs.
     public double? EnvelopeInitialsXPercent { get; set; }
     public double? EnvelopeInitialsYPercent { get; set; }
+    // Admin-authored envelope hint label + container style -- see
+    // Models/Entities/Template.cs.
+    public string? EnvelopeCtaTextAr { get; set; }
+    public string? EnvelopeCtaTextEn { get; set; }
+    public string? EnvelopeCtaShape { get; set; }
+    public string? EnvelopeCtaBgColor { get; set; }
+    public string? EnvelopeCtaTextColor { get; set; }
     public string? AmbientEffect { get; set; }
     public string? EnvelopeStyle { get; set; }
     public string? HeroFrameStyle { get; set; }
@@ -87,6 +94,13 @@ public class TemplateWriteRequest
     public string? AmbientVideoUrl { get; set; }
     public double? EnvelopeInitialsXPercent { get; set; }
     public double? EnvelopeInitialsYPercent { get; set; }
+    // Admin-authored envelope hint label + container style -- see
+    // Models/Entities/Template.cs.
+    public string? EnvelopeCtaTextAr { get; set; }
+    public string? EnvelopeCtaTextEn { get; set; }
+    public string? EnvelopeCtaShape { get; set; }
+    public string? EnvelopeCtaBgColor { get; set; }
+    public string? EnvelopeCtaTextColor { get; set; }
     public string? AmbientEffect { get; set; }
     public string? EnvelopeStyle { get; set; }
     public string? HeroFrameStyle { get; set; }

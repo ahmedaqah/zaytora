@@ -41,6 +41,14 @@ const COPY = {
     envelopeInitialsHint: "لتغطية أي حروف ثابتة برسمة الظرف بحروف العروسين الحقيقية — اتركه فارغاً لعدم إظهار أي طبقة",
     envelopeInitialsX: "الموضع أفقياً %",
     envelopeInitialsY: "الموضع عمودياً %",
+    envelopeCta: "عبارة فتح الظرف (اختياري)",
+    envelopeCtaHint: "تظهر فوق الظرف كتلميح للضيف — مثل \"اضغط على الختم\". اتركها فارغة لإخفائها (أو ليبقى الشكل الافتراضي إن وُجد).",
+    envelopeCtaShape: "الشكل المحيط بالعبارة",
+    envelopeCtaShapeValues: { "": "بدون عبارة", badge: "شارة مستديرة (خلفية ملوّنة)", plain: "نص فقط بدون خلفية" } as Record<string, string>,
+    envelopeCtaTextAr: "النص بالعربية",
+    envelopeCtaTextEn: "النص بالإنجليزية",
+    envelopeCtaBgColor: "لون خلفية الشارة (اختياري)",
+    envelopeCtaTextColor: "لون النص (اختياري)",
     ambientVideoUrl: "فيديو خلفية متحرك (اختياري)",
     layout: "طريقة عرض الصورة",
     layoutHint: {
@@ -105,6 +113,14 @@ const COPY = {
     envelopeInitialsHint: "Covers any baked-in letters on the envelope artwork with the real couple's initials — leave blank to show no overlay",
     envelopeInitialsX: "Horizontal position %",
     envelopeInitialsY: "Vertical position %",
+    envelopeCta: "Envelope open hint (optional)",
+    envelopeCtaHint: "Shown over the envelope as a hint to the guest — e.g. \"Tap the seal\". Leave blank to hide it (or keep the default hint, if any).",
+    envelopeCtaShape: "Shape around the phrase",
+    envelopeCtaShapeValues: { "": "No caption", badge: "Rounded badge (filled background)", plain: "Plain text, no background" } as Record<string, string>,
+    envelopeCtaTextAr: "Arabic text",
+    envelopeCtaTextEn: "English text",
+    envelopeCtaBgColor: "Badge background color (optional)",
+    envelopeCtaTextColor: "Text color (optional)",
     ambientVideoUrl: "Ambient background video (optional)",
     layout: "Photo layout",
     layoutHint: {
@@ -222,6 +238,11 @@ function TemplateEditModalContent({
     openingVideoUrl: record.openingVideoUrl ?? "",
     envelopeInitialsXPercent: record.envelopeInitialsXPercent ?? null,
     envelopeInitialsYPercent: record.envelopeInitialsYPercent ?? null,
+    envelopeCtaTextAr: record.envelopeCtaTextAr ?? "",
+    envelopeCtaTextEn: record.envelopeCtaTextEn ?? "",
+    envelopeCtaShape: record.envelopeCtaShape ?? "",
+    envelopeCtaBgColor: record.envelopeCtaBgColor ?? "",
+    envelopeCtaTextColor: record.envelopeCtaTextColor ?? "",
     ambientVideoUrl: record.ambientVideoUrl ?? "",
     ambientEffect: record.ambientEffect ?? "",
     heroFrameStyle: record.heroFrameStyle ?? "",
@@ -381,6 +402,11 @@ function TemplateEditModalContent({
         openingVideoUrl: form.openingVideoUrl?.trim() || null,
         ambientVideoUrl: form.ambientVideoUrl?.trim() || null,
         ambientEffect: form.ambientEffect?.trim() || null,
+        envelopeCtaTextAr: form.envelopeCtaTextAr?.trim() || null,
+        envelopeCtaTextEn: form.envelopeCtaTextEn?.trim() || null,
+        envelopeCtaShape: form.envelopeCtaShape?.trim() || null,
+        envelopeCtaBgColor: form.envelopeCtaBgColor?.trim() || null,
+        envelopeCtaTextColor: form.envelopeCtaTextColor?.trim() || null,
         // Legacy hardcoded envelope styles (waxseal/crimsonSeal/oliveSeal/
         // navyGoldSeal) are no longer editable here — force-cleared on every
         // save. Not needed for openingVideoUrl either anymore: the frontend
@@ -609,6 +635,59 @@ function TemplateEditModalContent({
               </div>
             </Field>
             <p className="mt-1.5 text-xs text-muted-foreground">{t.envelopeInitialsHint}</p>
+          </div>
+
+          <div className="sm:col-span-2 rounded-xl border border-border p-3">
+            <p className="mb-2.5 text-xs font-medium text-foreground">{t.envelopeCta}</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label={t.envelopeCtaShape}>
+                <select
+                  value={form.envelopeCtaShape ?? ""}
+                  onChange={(event) => patch({ envelopeCtaShape: event.target.value })}
+                  className={inputClass}
+                >
+                  {Object.entries(t.envelopeCtaShapeValues).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <div />
+              <Field label={t.envelopeCtaTextAr}>
+                <input
+                  value={form.envelopeCtaTextAr ?? ""}
+                  onChange={(event) => patch({ envelopeCtaTextAr: event.target.value })}
+                  dir="rtl"
+                  className={inputClass}
+                />
+              </Field>
+              <Field label={t.envelopeCtaTextEn}>
+                <input
+                  value={form.envelopeCtaTextEn ?? ""}
+                  onChange={(event) => patch({ envelopeCtaTextEn: event.target.value })}
+                  dir="ltr"
+                  className={inputClass}
+                />
+              </Field>
+              <Field label={t.envelopeCtaBgColor}>
+                <input
+                  value={form.envelopeCtaBgColor ?? ""}
+                  onChange={(event) => patch({ envelopeCtaBgColor: event.target.value })}
+                  placeholder="#00000040"
+                  className={inputClass}
+                />
+              </Field>
+              <Field label={t.envelopeCtaTextColor}>
+                <input
+                  value={form.envelopeCtaTextColor ?? ""}
+                  onChange={(event) => patch({ envelopeCtaTextColor: event.target.value })}
+                  placeholder="#ffffff"
+                  className={inputClass}
+                />
+              </Field>
+            </div>
+            <p className="mt-1.5 text-xs text-muted-foreground">{t.envelopeCtaHint}</p>
           </div>
 
           <div className="sm:col-span-2">

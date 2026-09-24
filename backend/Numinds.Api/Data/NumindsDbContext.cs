@@ -64,6 +64,11 @@ public class NumindsDbContext(DbContextOptions<NumindsDbContext> options)
             entity.Property(t => t.OpeningVideoUrl).HasMaxLength(1024);
             entity.Property(t => t.AmbientVideoUrl).HasMaxLength(1024);
             entity.Property(t => t.AmbientEffect).HasMaxLength(16);
+            entity.Property(t => t.EnvelopeCtaTextAr).HasMaxLength(80);
+            entity.Property(t => t.EnvelopeCtaTextEn).HasMaxLength(80);
+            entity.Property(t => t.EnvelopeCtaShape).HasMaxLength(16);
+            entity.Property(t => t.EnvelopeCtaBgColor).HasMaxLength(32);
+            entity.Property(t => t.EnvelopeCtaTextColor).HasMaxLength(32);
             // The four scene-style switches — short fixed keywords
             // ("waxseal", "archIslamic", "scratch", "default"), same length
             // budget as AmbientEffect above.

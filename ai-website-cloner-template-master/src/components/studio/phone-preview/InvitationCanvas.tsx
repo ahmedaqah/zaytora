@@ -40,6 +40,7 @@ import { DoorFoldEnvelopeCover } from "./DoorFoldEnvelopeCover";
 import { EnvelopeCover } from "./EnvelopeCover";
 import { WaxSealEnvelopeCover } from "./WaxSealEnvelopeCover";
 import { EnvelopeMediaCover } from "./EnvelopeMediaCover";
+import { EnvelopeCtaCaption } from "./EnvelopeCtaCaption";
 import { AmbientVideoBackground } from "./AmbientVideoBackground";
 import { STANDALONE_FULLSCREEN_CLASS } from "./standaloneCoverPosition";
 import { ArchIslamicHeroFrame } from "./ArchIslamicHeroFrame";
@@ -1990,6 +1991,7 @@ export function InvitationCanvas({
           secondName={value.invitationType === "couple" ? value.secondName : null}
           initialsXPercent={template.envelopeInitialsXPercent}
           initialsYPercent={template.envelopeInitialsYPercent}
+          hideOpenHint={Boolean(template.envelopeCtaShape)}
         />
       )}
       {/* An admin-assigned library envelope (see /admin/envelopes) is legacy
@@ -2076,6 +2078,21 @@ export function InvitationCanvas({
           backgroundImageUrl={heroImageUrl}
           unoptimized={usingPreviewImage}
           onOpen={handleEnvelopeOpenAndReveal}
+          standalone={standalone}
+        />
+      )}
+
+      {/* Admin-authored hint label (see Template.EnvelopeCtaShape), layered
+          on top of whichever cover above just mounted — a single shared
+          overlay instead of teaching all eight cover components their own
+          caption rendering. Guarded by the same showEnvelope/templatesLoaded
+          condition as every cover above so it never shows during the plain
+          loading spinner or once the envelope itself has been dismissed. */}
+      {showEnvelope && templatesLoaded && (
+        <EnvelopeCtaCaption
+          template={template}
+          language={language === "ar" ? "ar" : "en"}
+          namesFont={value.envelopeNameFont}
           standalone={standalone}
         />
       )}

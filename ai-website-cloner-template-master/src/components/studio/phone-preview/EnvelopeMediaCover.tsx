@@ -45,6 +45,7 @@ export function EnvelopeMediaCover({
   secondName,
   initialsXPercent,
   initialsYPercent,
+  hideOpenHint,
 }: {
   mediaSrc: string;
   namesFont?: string | null;
@@ -70,6 +71,11 @@ export function EnvelopeMediaCover({
   secondName?: string | null;
   initialsXPercent?: number | null;
   initialsYPercent?: number | null;
+  // True once a template sets its own EnvelopeCtaShape — the shared
+  // EnvelopeCtaCaption (rendered by InvitationCanvas on top of this cover)
+  // takes over the hint label in that case, so this component's own
+  // hardcoded pill below would otherwise double up with it.
+  hideOpenHint?: boolean;
 }) {
   const mediaIsVideo = isVideoSource(mediaSrc);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -274,7 +280,7 @@ export function EnvelopeMediaCover({
             !mediaIsVideo && "bg-black/10 transition-colors active:bg-black/20"
           )}
         >
-          {mediaIsVideo ? null : (
+          {mediaIsVideo || hideOpenHint ? null : (
             <span
               className={cn(
                 "rounded-full border border-white/40 bg-black/25 px-4 py-1.5 text-[11px] font-medium tracking-[0.2em] text-white uppercase backdrop-blur-sm",

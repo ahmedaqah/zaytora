@@ -187,6 +187,29 @@ public class Template
     public double? EnvelopeInitialsXPercent { get; set; }
     public double? EnvelopeInitialsYPercent { get; set; }
 
+    // The guest-facing hint label on the closed envelope (e.g. "اضغط على
+    // الختم" / "Tap to open"), fully admin-authored per template instead of
+    // one hardcoded phrase. Two independent strings rather than one plus a
+    // translation API -- the admin types the real Arabic and English wording
+    // themselves, and InvitationCanvas picks whichever matches the guest's
+    // chosen invitation language. Both null/empty renders no caption at all,
+    // except EnvelopeMediaCover.tsx's own image-cover case, which keeps its
+    // pre-existing hardcoded pill for backward compatibility until an admin
+    // sets EnvelopeCtaShape below, which always overrides it.
+    public string? EnvelopeCtaTextAr { get; set; }
+    public string? EnvelopeCtaTextEn { get; set; }
+
+    // "badge" (rounded pill, filled background) or "plain" (bold text with a
+    // drop shadow, no background) -- the container style around
+    // EnvelopeCtaTextAr/En, rendered by EnvelopeCtaCaption.tsx over whichever
+    // envelope cover this template uses. Null/empty falls back to
+    // EnvelopeMediaCover's own hardcoded pill for an image cover, or no
+    // caption at all for every other cover style, exactly like before this
+    // existed.
+    public string? EnvelopeCtaShape { get; set; }
+    public string? EnvelopeCtaBgColor { get; set; }
+    public string? EnvelopeCtaTextColor { get; set; }
+
     // HeroFrameStyle — the hero's bounded photo frame. "archIslamic" replaces
     // the plain rounded-top arch window with a wider, multi-lobed scalloped
     // Mughal/mihrab arch, carved pillar sides, hanging lantern silhouettes,
