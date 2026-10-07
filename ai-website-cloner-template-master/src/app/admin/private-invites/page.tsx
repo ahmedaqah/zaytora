@@ -9,7 +9,16 @@ import { CheckIcon, CopyIcon, ExternalLinkIcon, EyeIcon, LockIcon } from "@/comp
 // They are unlisted: not linked from the public site, disallowed in robots.ts
 // and noindex in their own <head>. Anyone holding the link (the guests) can open
 // them, so this page is the only place they are listed and managed.
-const PRIVATE_INVITES = [
+type PrivateInvite = {
+  slug: string;
+  path: string;
+  title: { ar: string; en: string };
+  date: string;
+  time: { ar: string; en: string };
+  venue: string;
+};
+
+const PRIVATE_INVITES: readonly PrivateInvite[] = [
   {
     slug: "kamal",
     path: "/invites/kamal/",
@@ -18,7 +27,7 @@ const PRIVATE_INVITES = [
     time: { ar: "من 7 مساءً إلى 11 مساءً", en: "7 PM to 11 PM" },
     venue: "Lara düğün salonu",
   },
-] as const;
+];
 
 const COPY = {
   ar: {
