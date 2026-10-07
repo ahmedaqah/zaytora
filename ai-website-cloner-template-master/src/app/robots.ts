@@ -23,7 +23,7 @@ export default function robots(): MetadataRoute.Robots {
         allow: "/",
         // Private/authenticated areas, plus per-couple invitation pages —
         // shareable by direct link, but not meant to be publicly searchable.
-        disallow: ["/admin", "/dashboard", "/account", "/studio", "/invitationpublic", "/reset-password"],
+        disallow: ["/admin", "/dashboard", "/account", "/studio", "/invitationpublic", "/invites", "/reset-password"],
       },
     ],
     sitemap: `${BASE_URL}/sitemap.xml`,

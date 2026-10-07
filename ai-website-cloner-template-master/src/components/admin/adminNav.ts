@@ -2,6 +2,7 @@ import {
   DashboardIcon,
   HandshakeIcon,
   ImageIcon,
+  LockIcon,
   OrdersIcon,
   PercentIcon,
   SettingsIcon,
@@ -28,6 +29,12 @@ export const ADMIN_NAV = [
     href: "/admin/thank-you-suggestions",
     icon: ImageIcon,
     label: { ar: "اقتراحات الشكر", en: "Thank-You Suggestions" },
+  },
+  {
+    key: "private-invites",
+    href: "/admin/private-invites",
+    icon: LockIcon,
+    label: { ar: "دعوات خاصة", en: "Private Invites" },
   },
   { key: "settings", href: "/admin/settings", icon: SettingsIcon, label: { ar: "الإعدادات", en: "Settings" } },
 ] as const;
