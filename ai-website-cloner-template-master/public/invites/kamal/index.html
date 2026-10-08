@@ -294,7 +294,7 @@ footer{text-align:center;font-family:var(--latin);font-size:11px;letter-spacing:
 
   <section class="paper" aria-label="تأكيد الحضور">
     <h2 class="title"><svg aria-hidden="true"><use href="#swirl"/></svg>تأكيد الحضور<svg aria-hidden="true"><use href="#swirl"/></svg></h2>
-    <p class="note">يسعدنا تأكيد حضوركم لنتمكن من تجهيز كل شيء لكم.</p>
+    <p class="note">يسعدنا تأكيد حضوركم عبر واتساب لنتمكن من تجهيز كل شيء لكم.</p>
     <form id="rsvp" novalidate>
       <div>
         <label for="name">الاسم</label>
@@ -317,7 +317,7 @@ footer{text-align:center;font-family:var(--latin);font-size:11px;letter-spacing:
         <label for="msg">كلمة للعروسين (اختياري)</label>
         <textarea id="msg" rows="3"></textarea>
       </div>
-      <button class="btn gold" type="submit" style="align-self:center">إرسال</button>
+      <button class="btn gold" type="submit" style="align-self:center">تأكيد عبر واتساب</button>
       <p id="err" role="alert" style="color:#8a2b1a;text-align:center;font-size:17px" hidden>اكتب اسمك أولاً.</p>
     </form>
     <p class="thanks" id="thanks" hidden></p>
@@ -454,9 +454,22 @@ footer{text-align:center;font-family:var(--latin);font-size:11px;letter-spacing:
     var n=document.getElementById('name').value.trim(),err=document.getElementById('err');
     if(!n){err.hidden=false;document.getElementById('name').focus();return}
     err.hidden=true;
+    var yes=form.att.value==='yes';
+    var lines=['تأكيد حضور — حفل زفاف كمال وكريمته','الاسم: '+n,'الحضور: '+(yes?'سأحضر':'أعتذر عن الحضور')];
+    if(yes)lines.push('عدد الحضور: '+document.getElementById('guests').value);
+    var note=document.getElementById('msg').value.trim();
+    if(note)lines.push('كلمة للعروسين: '+note);
+    var url='https://wa.me/4748677314?text='+encodeURIComponent(lines.join('\n'));
     var th=document.getElementById('thanks');
-    th.textContent=form.att.value==='yes'?('شكراً '+n+'، سعدنا بتأكيدك وننتظرك بكل حب.'):('شكراً '+n+'، سنفتقدك ونقدّر ردّك.');
+    th.textContent='';
+    var t1=document.createElement('span');t1.style.display='block';
+    t1.textContent=yes?('شكراً '+n+'، سعدنا بتأكيدك.'):('شكراً '+n+'، سنفتقدك ونقدّر ردّك.');
+    var t2=document.createElement('span');t2.style.cssText='display:block;font-family:var(--body);font-size:19px;margin-top:6px';
+    t2.textContent='رسالتك جاهزة في واتساب، اضغط «إرسال» هناك لتصلنا.';
+    var a=document.createElement('a');a.className='btn gold';a.href=url;a.target='_blank';a.rel='noopener';a.textContent='افتح واتساب';
+    th.appendChild(t1);th.appendChild(t2);th.appendChild(a);
     form.hidden=true;th.hidden=false;
+    window.open(url,'_blank','noopener');
   });
 })();
 </script>
