@@ -346,29 +346,37 @@ footer{text-align:center;font-family:var(--latin);font-size:11px;letter-spacing:
   function showHint(){setTimeout(function(){if(window.scrollY<60)sh.classList.add('show')},900)}
   window.addEventListener('scroll',function(){if(window.scrollY>60){sh.classList.remove('show');sh.classList.add('hide')}},{passive:true});
 
+  /* Music. iPhones ignore audio.volume (it stays 1), so the mute button never relies on it:
+     it pauses/plays directly, and the icon follows the audio element's real state. Fades are
+     time-based and only a nicety. */
   function setMusicUI(on){mbtn.setAttribute('aria-pressed',on?'true':'false')}
-  function fadeTo(v,ms){
-    clearInterval(fade);var step=(v-aud.volume)/(ms/50);
+  function setVol(v){try{aud.volume=Math.max(0,Math.min(1,v))}catch(e){}}
+  function fadeIn(v,ms){
+    clearInterval(fade);var t0=Date.now();
     fade=setInterval(function(){
-      var n=aud.volume+step;
-      if((step>0&&n>=v)||(step<=0&&n<=v)){aud.volume=Math.max(0,Math.min(1,v));clearInterval(fade);if(v===0)aud.pause()}
-      else aud.volume=Math.max(0,Math.min(1,n));
+      var k=Math.min(1,(Date.now()-t0)/ms);setVol(v*k);
+      if(k>=1)clearInterval(fade);
     },50);
   }
+  aud.addEventListener('play',function(){setMusicUI(true)});
+  aud.addEventListener('pause',function(){setMusicUI(false)});
   /* The song starts from 0:00 on the tap and fades in. */
-  function unlockMusic(){
-    aud.muted=true;aud.volume=0;
-    var p=aud.play();
-    if(p&&p.catch)p.catch(function(){});
-  }
   function playMusic(){
-    aud.muted=false;aud.currentTime=0;aud.volume=0;
+    aud.muted=false;
+    try{aud.currentTime=0}catch(e){}
+    setVol(0);
     var p=aud.play();
-    if(p&&p.then){p.then(function(){setMusicUI(true);fadeTo(.5,3500)}).catch(function(){setMusicUI(false)})}
+    if(p&&p.then){p.then(function(){fadeIn(.5,3500)}).catch(function(){setMusicUI(false)})}
   }
   mbtn.addEventListener('click',function(){
-    if(aud.paused||aud.muted){aud.muted=false;aud.volume=0;aud.play().then(function(){setMusicUI(true);fadeTo(.5,800)}).catch(function(){setMusicUI(false)})}
-    else{setMusicUI(false);fadeTo(0,500)}
+    clearInterval(fade);
+    if(aud.paused){
+      aud.muted=false;setVol(0);
+      var p=aud.play();
+      if(p&&p.then){p.then(function(){fadeIn(.5,800)}).catch(function(){setMusicUI(false)})}
+    }else{
+      aud.pause();
+    }
   });
 
   function reveal(){
