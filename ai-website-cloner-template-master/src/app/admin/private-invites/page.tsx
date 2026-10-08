@@ -21,7 +21,7 @@ type PrivateInvite = {
 const PRIVATE_INVITES: readonly PrivateInvite[] = [
   {
     slug: "kamal",
-    path: "/invites/kamal/",
+    path: "/invites/kamal",
     title: { ar: "حفل زفاف كمال وكريمته", en: "Kamal's wedding" },
     date: "17/12/2026",
     time: { ar: "من 7 مساءً إلى 11 مساءً", en: "7 PM to 11 PM" },
@@ -102,7 +102,7 @@ export default function AdminPrivateInvitesPage() {
               <div className="mt-4">
                 <p className="mb-1 text-xs font-semibold text-muted-foreground">{t.link}</p>
                 <p className="break-all rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground select-all" dir="ltr">
-                  {`/invites/${inv.slug}/`}
+                  {`/invites/${inv.slug}`}
                 </p>
               </div>
 

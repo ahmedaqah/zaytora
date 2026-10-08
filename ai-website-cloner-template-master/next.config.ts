@@ -20,6 +20,12 @@ function apiImageRemotePattern() {
 }
 
 const nextConfig: NextConfig = {
+  // Hand-built private invitations live as static folders in public/invites/<slug>/.
+  // Next never serves a folder's index.html on its own, and it strips trailing
+  // slashes, so /invites/<slug> is mapped to the folder's index.html explicitly.
+  async rewrites() {
+    return [{ source: "/invites/:slug", destination: "/invites/:slug/index.html" }];
+  },
   images: {
     remotePatterns: [
       // Lets next/image render template thumbnails served by the ASP.NET Core API.
