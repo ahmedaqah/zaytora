@@ -1,0 +1,115 @@
+{
+  "meta": {
+    "title": "",
+    "description": ""
+  },
+  "theme": {
+    "paper": "#f0e3d3",
+    "gold": "#a8832f",
+    "goldBright": "#c8a24a",
+    "olive": "#3b5233",
+    "brown": "#5b4636"
+  },
+  "media": {
+    "coverType": "video",
+    "cover": "/invites/_template/media/cover.mp4",
+    "coverPoster": "/invites/_template/media/cover-poster.jpg",
+    "bg": "/invites/_template/media/bg.mp4",
+    "bgWebm": "/invites/_template/media/bg.webm",
+    "bgPoster": "/invites/_template/media/bg-poster.jpg",
+    "music": "/invites/_template/media/music.mp3",
+    "musicEnabled": true,
+    "musicVolume": 0.5
+  },
+  "hero": {
+    "bismillah": "بسم الله الرحمن الرحيم",
+    "eyebrow": "WEDDING INVITATION",
+    "name1": "ريما",
+    "name2": "زياد",
+    "connector": "&",
+    "occasion": "حفل زفاف",
+    "dateText": "",
+    "quote": "في العمر لحظات تمرّ بنا،\nولحظات تبقى تسكن القلب ..",
+    "verse": "",
+    "intro": "يسرّنا أن نشارككم فرحتنا\nوندعوكم لحضور حفل زفافنا"
+  },
+  "event": {
+    "start": "2027-05-20T19:00",
+    "end": "2027-05-20T23:00",
+    "utcOffset": "+03:00"
+  },
+  "countdown": {
+    "enabled": true,
+    "title": "يبدأ الاحتفال بعد",
+    "labels": [
+      "يوم",
+      "ساعة",
+      "دقيقة",
+      "ثانية"
+    ]
+  },
+  "schedule": {
+    "enabled": true,
+    "title": "موعد الحفل",
+    "tip": "اضغط على أي فقرة لمعرفة التفاصيل",
+    "items": [
+      {
+        "time": "7:00 م",
+        "title": "استقبال الضيوف",
+        "detail": "نرحّب بكم ونتشرّف باستقبالكم عند مدخل القاعة."
+      },
+      {
+        "time": "8:00 م",
+        "title": "دخول العروسين",
+        "detail": "زفّة العروسين وتبادل التهاني.",
+        "rose": true
+      },
+      {
+        "time": "9:00 م",
+        "title": "العشاء",
+        "detail": ""
+      },
+      {
+        "time": "10:00 م",
+        "title": "قطع الكيك والتصوير",
+        "detail": ""
+      }
+    ]
+  },
+  "location": {
+    "enabled": true,
+    "title": "الموقع",
+    "venue": "قاعة الزهرة الملكية",
+    "venueLang": "",
+    "address": "عمّان، الأردن",
+    "mapUrl": "",
+    "mapLabel": "افتح الخريطة"
+  },
+  "notes": {
+    "enabled": true,
+    "title": "تعليمات خاصة",
+    "items": [
+      {
+        "icon": "home",
+        "text": "قسم الرجال والنساء منفصلان، يرجى مراجعة المنظّمين عند الوصول."
+      },
+      {
+        "icon": "car",
+        "text": "يرجى الحضور قبل الموعد بربع ساعة لتسهيل الدخول."
+      }
+    ]
+  },
+  "rsvp": {
+    "enabled": true,
+    "title": "تأكيد الحضور",
+    "intro": "يسعدنا تأكيد حضوركم وعدد المرافقين",
+    "whatsapp": "",
+    "maxGuests": 6
+  },
+  "closing": {
+    "latin": "WITH LOVE",
+    "text": "بحضوركم تكتمل فرحتنا",
+    "sign": "ريما & زياد"
+  },
+  "footer": "ZAYTORA INVITES"
+}

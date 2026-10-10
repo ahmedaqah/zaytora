@@ -4,6 +4,7 @@ import {
   ImageIcon,
   LockIcon,
   OrdersIcon,
+  PenLineIcon,
   PercentIcon,
   SettingsIcon,
   StarIcon,
@@ -35,6 +36,12 @@ export const ADMIN_NAV = [
     href: "/admin/private-invites",
     icon: LockIcon,
     label: { ar: "دعوات خاصة", en: "Private Invites" },
+  },
+  {
+    key: "invite-builder",
+    href: "/admin/invite-builder",
+    icon: PenLineIcon,
+    label: { ar: "منشئ الدعوات", en: "Invite Builder" },
   },
   { key: "settings", href: "/admin/settings", icon: SettingsIcon, label: { ar: "الإعدادات", en: "Settings" } },
 ] as const;

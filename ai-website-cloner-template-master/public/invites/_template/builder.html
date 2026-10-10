@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>منشئ الدعوات</title>
+<meta name="robots" content="noindex,nofollow">
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Aref+Ruqaa:wght@700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/invites/_template/builder.css">
+</head>
+<body>
+<div id="app">
+  <aside id="panel">
+    <header class="top">
+      <h1>منشئ الدعوات</h1>
+      <div class="row">
+        <button type="button" id="btn-export" class="primary">تنزيل الدعوة (ZIP)</button>
+        <button type="button" id="btn-save-cfg">حفظ الإعدادات</button>
+        <label class="btn" for="file-cfg">فتح إعدادات</label><input type="file" id="file-cfg" accept=".json,application/json" hidden>
+        <button type="button" id="btn-reset" class="ghost">دعوة جديدة</button>
+      </div>
+      <p id="status" role="status"></p>
+    </header>
+    <div id="form"></div>
+  </aside>
+  <main id="stage">
+    <div class="bar">
+      <label><input type="checkbox" id="skip-cover" checked> تخطّي الغلاف أثناء التعديل</label>
+      <button type="button" id="btn-reload">معاينة كزائر (مع الغلاف)</button>
+    </div>
+    <div class="phone"><iframe id="preview" title="معاينة" src="/invites/_template?preview=1"></iframe></div>
+  </main>
+</div>
+<script src="/invites/_template/builder.js"></script>
+</body>
+</html>
