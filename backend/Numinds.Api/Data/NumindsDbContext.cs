@@ -28,6 +28,7 @@ public class NumindsDbContext(DbContextOptions<NumindsDbContext> options)
     public DbSet<Partner> Partners => Set<Partner>();
     public DbSet<Review> Reviews => Set<Review>();
     public DbSet<ThankYouSuggestion> ThankYouSuggestions => Set<ThankYouSuggestion>();
+    public DbSet<PrivateInvite> PrivateInvites => Set<PrivateInvite>();
     public DbSet<MusicSuggestion> MusicSuggestions => Set<MusicSuggestion>();
     public DbSet<SupportMessage> SupportMessages => Set<SupportMessage>();
 
@@ -336,6 +337,14 @@ public class NumindsDbContext(DbContextOptions<NumindsDbContext> options)
             entity.Property(m => m.Message).HasMaxLength(2000).IsRequired();
             // Backs the admin inbox's newest-first ordering.
             entity.HasIndex(m => m.ReceivedAt);
+        });
+
+        builder.Entity<PrivateInvite>(entity =>
+        {
+            entity.Property(i => i.Slug).HasMaxLength(60).IsRequired();
+            entity.Property(i => i.Title).HasMaxLength(200).IsRequired();
+            entity.Property(i => i.ConfigJson).HasColumnType("text").IsRequired();
+            entity.HasIndex(i => i.Slug).IsUnique();
         });
 
         builder.Entity<ThankYouSuggestion>(entity =>

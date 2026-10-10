@@ -439,6 +439,7 @@
       if (window.parent !== window) window.parent.postMessage({ type: 'zaytora-invite-ready' }, location.origin);
       return;
     }
+    if (window.__ZAYTORA_INVITE__ && window.__ZAYTORA_INVITE__.config) { render(window.__ZAYTORA_INVITE__.config, {}); return; }
     fetch(BASE + 'config.json', { cache: 'no-cache' })
       .then(function (r) { if (!r.ok) throw new Error('config ' + r.status); return r.json(); })
       .then(function (cfg) { render(cfg, {}); })

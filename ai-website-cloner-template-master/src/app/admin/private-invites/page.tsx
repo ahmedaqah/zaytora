@@ -1,17 +1,32 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/context/LanguageContext";
-import { CheckIcon, CopyIcon, ExternalLinkIcon, EyeIcon, LockIcon } from "@/components/icons";
+import {
+  CheckIcon,
+  CopyIcon,
+  ExternalLinkIcon,
+  EyeIcon,
+  LoaderIcon,
+  LockIcon,
+  PenLineIcon,
+  PlusIcon,
+  TrashIcon,
+} from "@/components/icons";
+import { deletePrivateInvite, listPrivateInvites, type PrivateInviteDto } from "@/lib/services/privateInvites.service";
 
-// Hand-built invitations served as static pages from /public/invites/<slug>/.
-// They are unlisted: not linked from the public site, disallowed in robots.ts
-// and noindex in their own <head>. Anyone holding the link (the guests) can open
-// them, so this page is the only place they are listed and managed.
+// Two kinds of private invitation are listed here, both unlisted: not linked from the
+// public site, disallowed in robots.ts and noindex in their own <head>. Anyone holding the
+// link (the guests) can open them, so this page is the only place they are listed and managed.
+//  - hand-built static pages served from /public/invites/<slug>/ (the list below), and
+//  - invitations created in the Invite Builder, saved in the database and served at
+//    /invites/p/<slug> (loaded from the API, editable and deletable here).
 type PrivateInvite = {
   slug: string;
   path: string;
+  editable?: boolean;
   title: { ar: string; en: string };
   date: string;
   time: { ar: string; en: string };
@@ -40,6 +55,13 @@ const COPY = {
     preview: "معاينة",
     hidePreview: "إخفاء المعاينة",
     note: "غير معلنة",
+    create: "إنشاء دعوة جديدة",
+    edit: "تعديل",
+    remove: "حذف",
+    confirmRemove: "حذف هذه الدعوة نهائياً؟ سيتوقف رابطها عن العمل.",
+    loading: "جاري التحميل…",
+    loadError: "تعذّر تحميل الدعوات المحفوظة.",
+    deleteError: "تعذّر حذف الدعوة.",
   },
   en: {
     subtitle: "Hand-built private invitations. Not listed on the site or in search engines; only people with the link can open them.",
@@ -51,14 +73,87 @@ const COPY = {
     preview: "Preview",
     hidePreview: "Hide preview",
     note: "Unlisted",
+    create: "Create new invitation",
+    edit: "Edit",
+    remove: "Delete",
+    confirmRemove: "Delete this invitation permanently? Its link will stop working.",
+    loading: "Loading…",
+    loadError: "Could not load the saved invitations.",
+    deleteError: "Could not delete the invitation.",
   },
 };
+
+function str(value: unknown): string {
+  return typeof value === "string" ? value : "";
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+}
+
+// "2027-05-20T19:00" -> "20/05/2027"
+function formatDate(iso: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : "";
+}
+
+function formatRange(start: string, end: string): string {
+  const s = /T(\d{2}:\d{2})/.exec(start)?.[1];
+  const e = /T(\d{2}:\d{2})/.exec(end)?.[1];
+  return s && e ? `${s} – ${e}` : (s ?? "");
+}
+
+function fromDto(dto: PrivateInviteDto): PrivateInvite {
+  const event = asRecord(dto.config.event);
+  const time = formatRange(str(event.start), str(event.end));
+  return {
+    slug: dto.slug,
+    path: `/invites/p/${dto.slug}`,
+    editable: true,
+    title: { ar: dto.title, en: dto.title },
+    date: formatDate(str(event.start)),
+    time: { ar: time, en: time },
+    venue: str(asRecord(dto.config.location).venue),
+  };
+}
 
 export default function AdminPrivateInvitesPage() {
   const { language } = useLanguage();
   const t = COPY[language];
   const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
   const [previewSlug, setPreviewSlug] = useState<string | null>(null);
+  const [saved, setSaved] = useState<PrivateInvite[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    listPrivateInvites()
+      .then((rows) => {
+        if (!cancelled) setSaved(rows.map(fromDto));
+      })
+      .catch(() => {
+        if (!cancelled) setError(t.loadError);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [t.loadError]);
+
+  async function remove(slug: string) {
+    if (!window.confirm(t.confirmRemove)) return;
+    try {
+      await deletePrivateInvite(slug);
+      setSaved((rows) => rows.filter((r) => r.slug !== slug));
+    } catch {
+      setError(t.deleteError);
+    }
+  }
+
+  const invites = [...saved, ...PRIVATE_INVITES];
 
   const fullUrl = (path: string) => `${window.location.origin}${path}`;
 
@@ -74,12 +169,28 @@ export default function AdminPrivateInvitesPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <p className="text-sm text-muted-foreground">{t.subtitle}</p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-muted-foreground">{t.subtitle}</p>
+        <Link
+          href="/admin/invite-builder"
+          className="inline-flex items-center gap-2 rounded-xl bg-[#C8A24A] px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90"
+        >
+          <PlusIcon className="size-4" />
+          {t.create}
+        </Link>
+      </div>
 
-      {PRIVATE_INVITES.length === 0 && <p className="text-sm text-muted-foreground">{t.empty}</p>}
+      {loading && (
+        <p className="flex items-center gap-2 text-sm text-muted-foreground">
+          <LoaderIcon className="size-4 animate-spin" />
+          {t.loading}
+        </p>
+      )}
+      {error && <p className="text-sm text-destructive">{error}</p>}
+      {!loading && invites.length === 0 && <p className="text-sm text-muted-foreground">{t.empty}</p>}
 
       <ul className="space-y-4">
-        {PRIVATE_INVITES.map((inv) => {
+        {invites.map((inv) => {
           const showing = previewSlug === inv.slug;
           return (
             <li key={inv.slug} className="rounded-2xl border border-border bg-card p-5">
@@ -102,7 +213,7 @@ export default function AdminPrivateInvitesPage() {
               <div className="mt-4">
                 <p className="mb-1 text-xs font-semibold text-muted-foreground">{t.link}</p>
                 <p className="break-all rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground select-all" dir="ltr">
-                  {`/invites/${inv.slug}`}
+                  {inv.path}
                 </p>
               </div>
 
@@ -135,6 +246,25 @@ export default function AdminPrivateInvitesPage() {
                   <EyeIcon className="size-4" />
                   {showing ? t.hidePreview : t.preview}
                 </button>
+                {inv.editable && (
+                  <>
+                    <Link
+                      href={`/admin/invite-builder?edit=${encodeURIComponent(inv.slug)}`}
+                      className="inline-flex items-center gap-2 rounded-xl border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:border-[#C8A24A]"
+                    >
+                      <PenLineIcon className="size-4" />
+                      {t.edit}
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => remove(inv.slug)}
+                      className="inline-flex items-center gap-2 rounded-xl border border-border px-4 py-2 text-sm font-medium text-destructive transition-colors hover:border-destructive"
+                    >
+                      <TrashIcon className="size-4" />
+                      {t.remove}
+                    </button>
+                  </>
+                )}
               </div>
 
               {showing && (

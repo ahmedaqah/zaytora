@@ -6,7 +6,8 @@
   var SITE = 'https://www.zaytorainvites.com';
   var DRAFT = 'zaytora-invite-draft-v1';
   var $ = function (id) { return document.getElementById(id); };
-  var state = { slug: '', cfg: null, sample: null };
+  var state = { slug: '', cfg: null, sample: null, editing: '' };
+  var host = false, pending = {}, reqId = 0;
   var files = {}, urls = {}; // zip path -> Blob / blob: URL
 
   var ICONS = [['info', 'معلومة'], ['camera-off', 'ممنوع التصوير'], ['home', 'الأقسام / المكان'], ['car', 'مواقف / وصول'], ['gift', 'هدايا'], ['dress', 'الزي'], ['heart', 'قلب']];
@@ -164,10 +165,10 @@
 
     /* 1 basics */
     var slug = el('input', { type: 'text', dir: 'ltr', placeholder: 'ahmed-and-sara', maxlength: 40 });
-    slug.value = state.slug;
+    slug.value = state.slug; if (state.editing) slug.readOnly = true;
     slug.addEventListener('input', function () { state.slug = slug.value.trim().toLowerCase(); saveDraft(); });
     F.appendChild(section('1) الرابط والعنوان', [
-      wrap('اسم الرابط (إنجليزي صغير وأرقام وشرطة فقط)', slug, 'الرابط النهائي: ' + SITE + '/invites/ثم الاسم'),
+      wrap('اسم الرابط (إنجليزي صغير وأرقام وشرطة فقط)', slug, 'الرابط النهائي: ' + SITE + (host ? '/invites/p/' : '/invites/') + 'ثم الاسم' + (state.editing ? ' (لا يمكن تغيير الرابط أثناء تعديل دعوة محفوظة)' : '')),
       text('عنوان الصفحة / معاينة الرابط', 'meta.title', 'يظهر في تبويب المتصفح وعند مشاركة الرابط'),
       text('وصف قصير لمعاينة الرابط', 'meta.description', 'اتركه فارغاً ليُبنى تلقائياً من التاريخ والقاعة')
     ], true));
@@ -309,7 +310,7 @@
     if (c.hero.dateText) return c.hero.dateText;
     var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(c.event.start || ''); return m ? m[3] + ' · ' + m[2] + ' · ' + m[1] : '';
   }
-  function loadImg(src) { return new Promise(function (res) { var i = new Image(); i.onload = function () { res(i); }; i.onerror = function () { res(null); }; i.src = src; }); }
+  function loadImg(src) { return new Promise(function (res) { var i = new Image(); i.crossOrigin = 'anonymous'; i.onload = function () { res(i); }; i.onerror = function () { res(null); }; i.src = src; }); }
   function makeOg(c, bgSrc) {
     return Promise.all([loadImg(bgSrc), (document.fonts && document.fonts.load ? Promise.all([document.fonts.load('700 80px Amiri'), document.fonts.load('400 40px Amiri')]).catch(function () { }) : Promise.resolve())]).then(function (r) {
       var W = 1200, H = 630, cv = document.createElement('canvas'); cv.width = W; cv.height = H; var x = cv.getContext('2d'), img = r[0];
@@ -346,16 +347,21 @@
       'ملاحظات:\n- لا تحذف المجلد public/invites/_template فجميع الدعوات تعتمد عليه في التصميم.\n- لتعديل الدعوة لاحقاً عدّل ملف config.json أو افتحه في المنشئ (فتح إعدادات) ثم أعد التصدير.\n' +
       '- إن غيّرت الصورة بعد مشاركة الرابط، قد تحتاج واتساب وقتاً لتحديث المعاينة.\n';
   }
-  function exportZip() {
+  function precheck() {
     var slug = state.slug;
-    if (!/^[a-z0-9][a-z0-9-]{1,39}$/.test(slug)) { status('اسم الرابط غير صالح: استخدم حروفاً إنجليزية صغيرة وأرقاماً وشرطة (حرفان على الأقل).', true); $('form').querySelector('details').open = true; return; }
+    if (!/^[a-z0-9][a-z0-9-]{1,39}$/.test(slug)) { status('اسم الرابط غير صالح: استخدم حروفاً إنجليزية صغيرة وأرقاماً وشرطة (حرفان على الأقل).', true); $('form').querySelector('details').open = true; return null; }
     var c = clone(state.cfg), warns = [], m = c.media;
     if (/^\/invites\/_template\/media\/cover/.test(m.cover || '') && m.coverType === 'video') warns.push('غلاف الدعوة هو الفيديو التجريبي (يحمل أحرف R & Z). ارفع غلافاً خاصاً بالعميل أو اختر «بطاقة بسيطة».');
     if (!String(c.rsvp.whatsapp || '').replace(/\D/g, '') && c.rsvp.enabled) warns.push('لم تُدخل رقم واتساب: لن تصلك ردود الحضور.');
     if (!c.hero.name1) warns.push('الاسم الأول فارغ.');
     if (!c.event.start) warns.push('لم تحدد تاريخ الحفل.');
     if (c.hero.name1 === 'ريما' || c.hero.name1 === 'زياد') warns.push('ما زالت الأسماء التجريبية (ريما وزياد).');
-    if (warns.length && !confirm('تنبيهات قبل التنزيل:\n\n• ' + warns.join('\n• ') + '\n\nهل تريد المتابعة؟')) return;
+    if (warns.length && !confirm('تنبيهات قبل المتابعة:\n\n• ' + warns.join('\n• ') + '\n\nهل تريد المتابعة؟')) return null;
+    return c;
+  }
+  function exportZip() {
+    var c = precheck(); if (!c) return;
+    var slug = state.slug, m = c.media;
     status('جاري تجهيز الملفات…');
     var entries = [], jobs = [], bundled = {};
     ['cover', 'coverPoster', 'bg', 'bgWebm', 'bgPoster', 'music'].forEach(function (k) {
@@ -365,7 +371,7 @@
         jobs.push(fetch(v).then(function (r) { if (!r.ok) throw new Error(v); return r.blob(); }).then(blobBytes).then(function (b) { if (!bundled[rel]) { bundled[rel] = 1; entries.push({ name: slug + '/' + rel, data: b }); } m[k] = rel; }));
       } else if (files[v]) {
         jobs.push(blobBytes(files[v]).then(function (b) { if (!bundled[v]) { bundled[v] = 1; entries.push({ name: slug + '/' + v, data: b }); } }));
-      } else m[k] = '';
+      } else if (!/^https?:\/\//i.test(v)) m[k] = '';
     });
     Promise.all(jobs).then(function () {
       var bgSrc = urls[state.cfg.media.bgPoster] || state.cfg.media.bgPoster || urls[state.cfg.media.coverPoster] || state.cfg.media.coverPoster;
@@ -382,6 +388,40 @@
       });
     }).catch(function (e) { status('فشل التصدير: ' + (e && e.message || e), true); });
   }
+
+  /* ---------- save straight into the site (when hosted by the admin page) ---------- */
+  function saveToSite() {
+    var c = precheck(); if (!c) return;
+    status('جاري الحفظ ورفع الملفات… قد يستغرق دقيقة');
+    var up = {}, m = c.media;
+    ['cover', 'coverPoster', 'bg', 'bgWebm', 'bgPoster', 'music'].forEach(function (k) {
+      var v = m[k]; if (!v) return;
+      if (files[v]) up[v] = files[v]; else if (/^media\//.test(v)) m[k] = '';
+    });
+    var bgSrc = urls[state.cfg.media.bgPoster] || state.cfg.media.bgPoster || urls[state.cfg.media.coverPoster] || state.cfg.media.coverPoster;
+    makeOg(c, bgSrc).then(function (og) {
+      up['og-image.jpg'] = og; c.ogImage = 'og-image.jpg';
+      var id = ++reqId; pending[id] = true;
+      window.parent.postMessage({ type: 'zaytora-builder-save', requestId: id, slug: state.slug, title: c.meta.title || ((c.hero.occasion ? c.hero.occasion + ' ' : '') + names(c)).trim(), config: c, files: up }, location.origin);
+    }).catch(function (e) { status('فشل التجهيز: ' + (e && e.message || e), true); });
+  }
+  $('btn-save-site').addEventListener('click', saveToSite);
+  window.addEventListener('message', function (e) {
+    if (e.origin !== location.origin || !e.data) return;
+    var d = e.data;
+    if (d.type === 'zaytora-builder-host') {
+      host = true; $('btn-save-site').hidden = false; $('btn-export').classList.remove('primary'); if (state.cfg) buildForm();
+    } else if (d.type === 'zaytora-builder-load' && d.config) {
+      Object.keys(files).forEach(function (k) { URL.revokeObjectURL(urls[k]); }); files = {}; urls = {};
+      state.editing = d.slug || ''; applyCfg(d.slug || '', d.config); status('تم فتح الدعوة للتعديل.');
+    } else if (d.type === 'zaytora-builder-saved' && pending[d.requestId]) {
+      delete pending[d.requestId];
+      if (d.ok) {
+        Object.keys(files).forEach(function (k) { URL.revokeObjectURL(urls[k]); }); files = {}; urls = {};
+        state.editing = d.slug; applyCfg(d.slug, d.config); status('تم حفظ الدعوة ✓ — الرابط: ' + SITE + '/invites/p/' + d.slug);
+      } else status('تعذّر الحفظ: ' + (d.error || 'خطأ غير معروف'), true);
+    }
+  });
 
   /* ---------- config save / open / reset ---------- */
   function saveCfg() {
@@ -411,5 +451,6 @@
     var draft = null; try { draft = JSON.parse(localStorage.getItem(DRAFT) || 'null'); } catch (e) { /* ignore */ }
     if (draft && draft.cfg) { state.slug = draft.slug || ''; state.cfg = sanitize(deepMerge(clone(sample), draft.cfg)); } else { state.cfg = clone(sample); }
     buildForm(); pushPreview();
+    if (window.parent !== window) window.parent.postMessage({ type: 'zaytora-builder-hello' }, location.origin);
   }).catch(function () { status('تعذّر تحميل النموذج.', true); });
 })();
