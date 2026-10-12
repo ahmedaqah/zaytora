@@ -43,7 +43,8 @@ function page(status: number, body: string): Response {
     status,
     headers: {
       "Content-Type": "text/html; charset=utf-8",
-      "X-Robots-Tag": "noindex, nofollow",
+      // No X-Robots-Tag header on purpose: the <meta name="robots"> in the page already keeps it out of search,
+      // and /invites/kamal (whose WhatsApp preview works) is served without that header.
       "Cache-Control": status === 200 ? "public, s-maxage=120, stale-while-revalidate=86400" : "no-store",
     },
   });
