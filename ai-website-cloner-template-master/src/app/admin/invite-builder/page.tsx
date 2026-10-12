@@ -93,6 +93,9 @@ export default function AdminInviteBuilderPage() {
         if (typeof config.ogImage === "string" && uploaded[config.ogImage]) config.ogImage = uploaded[config.ogImage];
 
         const saved = await savePrivateInvite(msg.slug, { title: msg.title, config });
+        // Warm the public page now, while the API is awake, so the first WhatsApp preview crawl is served
+        // from cache instead of waiting on a cold backend. Best effort: failures are ignored.
+        void fetch(`/invites/p/${encodeURIComponent(saved.slug)}?warm=${Date.now()}`, { cache: "no-store" }).catch(() => {});
         reply({ type: "zaytora-builder-saved", requestId: msg.requestId, ok: true, slug: saved.slug, config: saved.config });
         setTimeout(() => router.push("/admin/private-invites"), 1200);
       } catch (error) {

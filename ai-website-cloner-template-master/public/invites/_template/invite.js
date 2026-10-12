@@ -308,6 +308,47 @@
       });
     }
 
+    /* gentle auto-scroll: starts once the cover is open and stops for good as soon as the guest
+       scrolls by hand (wheel, touch, drag, keys) or the page moves by anything other than us */
+    var autoOn = false;
+    function startAutoScroll() {
+      if (autoOn || PREVIEW || ctx.opts.skipCover) return;
+      if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      autoOn = true;
+      var SPEED = 38; /* px per second */
+      var pos = window.scrollY, last = 0, raf = 0, startT = 0;
+      var stopEvents = [['wheel', window], ['touchstart', window], ['touchmove', window], ['mousedown', window], ['keydown', window]];
+      function stop() {
+        if (!autoOn) return;
+        autoOn = false;
+        if (raf) cancelAnimationFrame(raf);
+        stopEvents.forEach(function (p) { p[1].removeEventListener(p[0], onInput, true); });
+        window.removeEventListener('scroll', onScroll);
+      }
+      function onInput(e) {
+        if (e.type === 'keydown' && [32, 33, 34, 35, 36, 38, 40].indexOf(e.keyCode) < 0) return;
+        stop();
+      }
+      function onScroll() {
+        /* a jump we did not make (scrollbar drag, anchor, momentum fling) means the guest took over */
+        if (Math.abs(window.scrollY - pos) > 3) stop();
+      }
+      function frame(t) {
+        if (!autoOn) return;
+        if (!last) last = t;
+        var dt = Math.min(64, t - last); last = t;
+        var max = document.documentElement.scrollHeight - window.innerHeight;
+        if (pos >= max - 1) { stop(); return; }
+        pos = Math.min(max, pos + SPEED * dt / 1000);
+        window.scrollTo(0, pos);
+        raf = requestAnimationFrame(frame);
+      }
+      stopEvents.forEach(function (p) { p[1].addEventListener(p[0], onInput, { capture: true, passive: true }); });
+      window.addEventListener('scroll', onScroll, { passive: true });
+      live.unbind.push(stop);
+      live.timers.push(setTimeout(function () { pos = window.scrollY; if (autoOn) raf = requestAnimationFrame(frame); }, 1800));
+    }
+
     function reveal() {
       if (cover) {
         if (cover.classList.contains('gone')) return;
@@ -318,6 +359,7 @@
       if (bg && bg.play) { var bp = bg.play(); if (bp && bp.catch) bp.catch(function () { /* ignore */ }); }
       if (mbtn) mbtn.hidden = false;
       showHint();
+      startAutoScroll();
     }
     if (cover) {
       on(cover, 'click', function () {

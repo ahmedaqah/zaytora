@@ -44,7 +44,7 @@ function page(status: number, body: string): Response {
     headers: {
       "Content-Type": "text/html; charset=utf-8",
       "X-Robots-Tag": "noindex, nofollow",
-      "Cache-Control": status === 200 ? "public, s-maxage=30, stale-while-revalidate=300" : "no-store",
+      "Cache-Control": status === 200 ? "public, s-maxage=120, stale-while-revalidate=86400" : "no-store",
     },
   });
 }
@@ -60,20 +60,31 @@ export async function GET(_request: Request, context: { params: Promise<{ slug: 
   const { slug } = await context.params;
   if (!SLUG.test(slug) || !API_BASE_URL) return notFound();
 
-  let config: Config;
-  try {
-    const res = await fetch(`${API_BASE_URL}/private-invites/${slug}`, {
-      headers: { Accept: "application/json" },
-      next: { revalidate: 30 },
-      signal: AbortSignal.timeout(25_000),
-    });
-    if (res.status === 404) return notFound();
-    if (!res.ok) return page(502, "<!doctype html><meta charset=utf-8><p>تعذّر تحميل الدعوة، حاول مجدداً بعد قليل.</p>");
-    const data = (await res.json()) as { config?: unknown };
-    config = obj(data.config);
-  } catch {
-    return page(502, "<!doctype html><meta charset=utf-8><p>تعذّر تحميل الدعوة، حاول مجدداً بعد قليل.</p>");
+  // The API (Render) can be asleep: its first answer may take far longer than a link-preview crawler
+  // is willing to wait. The response is cached (data cache + CDN, with stale-while-revalidate), so once
+  // the invitation has been opened or primed after saving, crawlers get it instantly. Two attempts here
+  // cover a backend that is just waking up for a human visitor.
+  let loaded: Config | null = null;
+  for (const timeoutMs of [10_000, 15_000]) {
+    try {
+      const res = await fetch(`${API_BASE_URL}/private-invites/${slug}`, {
+        headers: { Accept: "application/json" },
+        next: { revalidate: 120 },
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+      if (res.status === 404) return notFound();
+      if (!res.ok) continue;
+      const data = (await res.json()) as { config?: unknown };
+      loaded = obj(data.config);
+      break;
+    } catch {
+      // timed out or network error: try again
+    }
   }
+  if (!loaded) {
+    return page(503, "<!doctype html><meta charset=utf-8><p>تعذّر تحميل الدعوة، حاول مجدداً بعد قليل.</p>");
+  }
+  const config: Config = loaded;
 
   const hero = obj(config.hero);
   const meta = obj(config.meta);

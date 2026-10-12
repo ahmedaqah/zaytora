@@ -311,20 +311,26 @@
     var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(c.event.start || ''); return m ? m[3] + ' · ' + m[2] + ' · ' + m[1] : '';
   }
   function loadImg(src) { return new Promise(function (res) { var i = new Image(); i.crossOrigin = 'anonymous'; i.onload = function () { res(i); }; i.onerror = function () { res(null); }; i.src = src; }); }
-  function makeOg(c, bgSrc) {
-    return Promise.all([loadImg(bgSrc), (document.fonts && document.fonts.load ? Promise.all([document.fonts.load('700 80px Amiri'), document.fonts.load('400 40px Amiri')]).catch(function () { }) : Promise.resolve())]).then(function (r) {
+  /* Link-preview image: the middle band of the cover (full width, 1200x630) with the title at the bottom,
+     the same look as the hand-built /invites/kamal preview. Falls back to the page background, then plain paper. */
+  function makeOg(c, coverSrc) {
+    return Promise.all([loadImg(coverSrc), (document.fonts && document.fonts.load ? Promise.all([document.fonts.load('700 80px Amiri')]).catch(function () { }) : Promise.resolve())]).then(function (r) {
       var W = 1200, H = 630, cv = document.createElement('canvas'); cv.width = W; cv.height = H; var x = cv.getContext('2d'), img = r[0];
       x.fillStyle = c.theme.paper; x.fillRect(0, 0, W, H);
-      if (img) { var s = Math.max(W / img.width, H / img.height), w = img.width * s, h = img.height * s; x.drawImage(img, (W - w) / 2, (H - h) / 2, w, h); x.fillStyle = 'rgba(30,24,16,.35)'; x.fillRect(0, 0, W, H); }
-      x.fillStyle = c.theme.paper; x.globalAlpha = 0.95; x.fillRect(150, 70, 900, 490); x.globalAlpha = 1;
-      x.strokeStyle = c.theme.gold; x.lineWidth = 3; x.strokeRect(168, 88, 864, 454);
-      x.direction = 'rtl'; x.textAlign = 'center'; x.textBaseline = 'middle';
-      x.fillStyle = c.theme.gold; x.font = '400 40px Amiri, serif'; x.fillText(c.hero.occasion || '', W / 2, 160);
-      x.fillStyle = c.theme.olive; var nm = names(c), fs = 110; x.font = '700 ' + fs + 'px Amiri, serif';
-      while (x.measureText(nm).width > 760 && fs > 50) { fs -= 6; x.font = '700 ' + fs + 'px Amiri, serif'; }
-      x.fillText(nm, W / 2, 300);
-      x.fillStyle = c.theme.gold; x.font = '700 46px Amiri, serif'; x.fillText(dateLabel(c), W / 2, 430);
-      x.fillStyle = c.theme.brown; x.font = '400 34px Amiri, serif'; x.fillText(c.location.venue || '', W / 2, 490);
+      if (img) {
+        /* cover-fit by width, then show the vertical middle of it (a landscape cover simply fills the frame) */
+        var s = Math.max(W / img.width, H / img.height), w = img.width * s, h = img.height * s;
+        x.drawImage(img, (W - w) / 2, (H - h) / 2, w, h);
+      }
+      var title = c.meta.title || ((c.hero.occasion ? c.hero.occasion + ' ' : '') + names(c)).trim();
+      if (title) {
+        var g = x.createLinearGradient(0, H - 190, 0, H); g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(0.45, c.theme.paper); g.addColorStop(1, c.theme.paper);
+        x.fillStyle = g; x.fillRect(0, H - 190, W, 190);
+        x.direction = 'rtl'; x.textAlign = 'center'; x.textBaseline = 'middle';
+        x.fillStyle = c.theme.olive; var fs = 72; x.font = '700 ' + fs + 'px Amiri, serif';
+        while (x.measureText(title).width > W - 160 && fs > 36) { fs -= 4; x.font = '700 ' + fs + 'px Amiri, serif'; }
+        x.fillText(title, W / 2, H - 62);
+      }
       return new Promise(function (res) { cv.toBlob(res, 'image/jpeg', 0.86); });
     });
   }
@@ -374,7 +380,7 @@
       } else if (!/^https?:\/\//i.test(v)) m[k] = '';
     });
     Promise.all(jobs).then(function () {
-      var bgSrc = urls[state.cfg.media.bgPoster] || state.cfg.media.bgPoster || urls[state.cfg.media.coverPoster] || state.cfg.media.coverPoster;
+      var bgSrc = urls[state.cfg.media.coverPoster] || state.cfg.media.coverPoster || urls[state.cfg.media.bgPoster] || state.cfg.media.bgPoster;
       return makeOg(c, bgSrc);
     }).then(function (og) {
       return blobBytes(og).then(function (ob) {
@@ -398,7 +404,7 @@
       var v = m[k]; if (!v) return;
       if (files[v]) up[v] = files[v]; else if (/^media\//.test(v)) m[k] = '';
     });
-    var bgSrc = urls[state.cfg.media.bgPoster] || state.cfg.media.bgPoster || urls[state.cfg.media.coverPoster] || state.cfg.media.coverPoster;
+    var bgSrc = urls[state.cfg.media.coverPoster] || state.cfg.media.coverPoster || urls[state.cfg.media.bgPoster] || state.cfg.media.bgPoster;
     makeOg(c, bgSrc).then(function (og) {
       up['og-image.jpg'] = og; c.ogImage = 'og-image.jpg';
       var id = ++reqId; pending[id] = true;
