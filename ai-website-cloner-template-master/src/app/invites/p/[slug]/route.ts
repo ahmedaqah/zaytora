@@ -56,7 +56,7 @@ function notFound(): Response {
   );
 }
 
-export async function GET(_request: Request, context: { params: Promise<{ slug: string }> }): Promise<Response> {
+export async function GET(request: Request, context: { params: Promise<{ slug: string }> }): Promise<Response> {
   const { slug } = await context.params;
   if (!SLUG.test(slug) || !API_BASE_URL) return notFound();
 
@@ -93,7 +93,10 @@ export async function GET(_request: Request, context: { params: Promise<{ slug: 
   const title = str(meta.title) || `${str(hero.occasion)} ${names}`.trim() || "دعوة";
   const description =
     str(meta.description) || [dateLabel(config), str(obj(config.location).venue)].filter(Boolean).join(" · ") || title;
-  const url = `${SITE_ORIGIN}/invites/p/${slug}`;
+  // og:url keeps the query string (e.g. ?v=2): WhatsApp/Facebook treat og:url as the canonical link and reuse
+  // whatever they cached for it, so a stripped URL would pull a stale or failed preview back in.
+  const search = new URL(request.url).search;
+  const url = `${SITE_ORIGIN}/invites/p/${slug}${search}`;
   const image = absoluteUrl(str(config.ogImage)) || absoluteUrl(str(media.bgPoster)) || absoluteUrl(str(media.coverPoster));
 
   // </script> and U+2028/9 inside inlined JSON would break the page.
