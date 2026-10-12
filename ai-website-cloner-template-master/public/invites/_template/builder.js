@@ -256,6 +256,7 @@
       el('p', { class: 'warn', text: 'الملفات المرفوعة هنا تُدمج في ملف ZIP عند التنزيل. حافظ على الأحجام صغيرة (فيديو الغلاف أقل من 5 MB، الموسيقى أقل من 5 MB).' }),
       wrap('شكل الغلاف', coverType),
       media('فيديو الغلاف', 'cover', 'video/mp4,video/webm', 'يفضّل MP4 (H.264) عمودي بدون صوت، 4–8 ثوانٍ. تُؤخذ صورة الغلاف من أول لقطة تلقائياً.', function (f, show) {
+        clearMedia('coverPoster'); /* a failed frame grab must never leave the previous cover's image behind */
         putFile('cover', 'media/cover.' + (ext(f.name) || 'mp4'), f);
         framePoster(f, function (b) { if (b) putFile('coverPoster', 'media/cover-poster.jpg', b); else status('تعذّر استخراج صورة من الفيديو، سيعمل الغلاف بدونها.', true); show(); schedule(); });
         state.cfg.media.coverType = 'video'; coverType.value = 'video'; show(); schedule();

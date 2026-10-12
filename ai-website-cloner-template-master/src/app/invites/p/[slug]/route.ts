@@ -45,7 +45,7 @@ function page(status: number, body: string): Response {
       "Content-Type": "text/html; charset=utf-8",
       // No X-Robots-Tag header on purpose: the <meta name="robots"> in the page already keeps it out of search,
       // and /invites/kamal (whose WhatsApp preview works) is served without that header.
-      "Cache-Control": status === 200 ? "public, s-maxage=120, stale-while-revalidate=86400" : "no-store",
+      "Cache-Control": status === 200 ? "public, max-age=0, s-maxage=30" : "no-store",
     },
   });
 }
@@ -61,16 +61,15 @@ export async function GET(request: Request, context: { params: Promise<{ slug: s
   const { slug } = await context.params;
   if (!SLUG.test(slug) || !API_BASE_URL) return notFound();
 
-  // The API (Render) can be asleep: its first answer may take far longer than a link-preview crawler
-  // is willing to wait. The response is cached (data cache + CDN, with stale-while-revalidate), so once
-  // the invitation has been opened or primed after saving, crawlers get it instantly. Two attempts here
-  // cover a backend that is just waking up for a human visitor.
+  // Always read the invitation fresh: after an edit, a link preview must show the new cover and text, and a
+  // stale cached copy (data cache or CDN) would hand WhatsApp the old tags. The API is awake right after a save
+  // (the builder also opens this page then); if it was asleep, two attempts cover a visitor's wait.
   let loaded: Config | null = null;
   for (const timeoutMs of [10_000, 15_000]) {
     try {
       const res = await fetch(`${API_BASE_URL}/private-invites/${slug}`, {
         headers: { Accept: "application/json" },
-        next: { revalidate: 120 },
+        cache: "no-store",
         signal: AbortSignal.timeout(timeoutMs),
       });
       if (res.status === 404) return notFound();
