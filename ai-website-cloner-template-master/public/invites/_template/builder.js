@@ -444,6 +444,7 @@
   $('btn-reset').addEventListener('click', function () {
     if (!confirm('بدء دعوة جديدة؟ ستُمسح التعديلات الحالية.')) return;
     Object.keys(files).forEach(function (k) { URL.revokeObjectURL(urls[k]); }); files = {}; urls = {};
+    state.editing = ''; /* a new invitation has no locked link, even after editing or saving another one */
     applyCfg('', clone(state.sample)); status('');
   });
   $('file-cfg').addEventListener('change', function (e) {

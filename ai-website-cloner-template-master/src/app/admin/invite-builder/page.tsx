@@ -1,9 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "@/context/LanguageContext";
-import { ExternalLinkIcon } from "@/components/icons";
 import { ApiError } from "@/lib/api/client";
 import {
   getPrivateInvite,
@@ -23,14 +22,16 @@ const COPY = {
   ar: {
     subtitle:
       "أنشئ دعوة جديدة بنفس تصميم القالب: عدّل الأسماء والتاريخ والقاعة والنصوص والصور والموسيقى والألوان وشاهد النتيجة مباشرة، ثم احفظها لتظهر في «دعوات خاصة».",
-    open: "فتح في صفحة كاملة",
+    fullscreen: "ملء الشاشة",
+    exitFullscreen: "إغلاق ملء الشاشة",
     frame: "منشئ الدعوات",
     uploadFailed: "فشل رفع الملف",
   },
   en: {
     subtitle:
       "Create a new invitation with the template design: edit names, date, venue, texts, images, music and colours with a live preview, then save it to appear under Private Invites.",
-    open: "Open full page",
+    fullscreen: "Full screen",
+    exitFullscreen: "Exit full screen",
     frame: "Invite builder",
     uploadFailed: "File upload failed",
   },
@@ -67,6 +68,7 @@ export default function AdminInviteBuilderPage() {
   const t = COPY[language];
   const router = useRouter();
   const frameRef = useRef<HTMLIFrameElement>(null);
+  const [full, setFull] = useState(false);
 
   const reply = useCallback((message: Record<string, unknown>) => {
     frameRef.current?.contentWindow?.postMessage(message, window.location.origin);
@@ -131,26 +133,49 @@ export default function AdminInviteBuilderPage() {
     return () => window.removeEventListener("message", onMessage);
   }, [reply, save]);
 
+  useEffect(() => {
+    if (!full) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setFull(false);
+    };
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [full]);
+
+  // Full screen stays inside this page (the iframe is never remounted, so nothing typed is lost): a separate
+  // tab would have no admin session to save with, because only this page can upload and save the invitation.
   return (
-    <div className="mx-auto max-w-6xl space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className={full ? "fixed inset-0 z-[1000] bg-background" : "mx-auto max-w-6xl space-y-4"}>
+      <div className={full ? "hidden" : "flex flex-wrap items-center justify-between gap-3"}>
         <p className="text-sm text-muted-foreground">{t.subtitle}</p>
-        <a
-          href={BUILDER_PATH}
-          target="_blank"
-          rel="noopener noreferrer"
+        <button
+          type="button"
+          onClick={() => setFull(true)}
           className="inline-flex items-center gap-2 rounded-xl border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:border-[#C8A24A]"
         >
-          <ExternalLinkIcon className="size-4" />
-          {t.open}
-        </a>
+          {t.fullscreen}
+        </button>
       </div>
       <iframe
         ref={frameRef}
         src={BUILDER_PATH}
         title={t.frame}
-        className="h-[85vh] w-full rounded-2xl border border-border bg-card"
+        className={full ? "h-full w-full bg-card" : "h-[85vh] w-full rounded-2xl border border-border bg-card"}
       />
+      {full && (
+        <button
+          type="button"
+          onClick={() => setFull(false)}
+          className="fixed bottom-4 start-4 z-[1001] rounded-xl border border-border bg-card px-4 py-2 text-sm font-medium text-foreground shadow-lg transition-colors hover:border-[#C8A24A]"
+        >
+          {t.exitFullscreen}
+        </button>
+      )}
     </div>
   );
 }
