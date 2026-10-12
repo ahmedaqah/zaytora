@@ -10,6 +10,10 @@
     "olive": "#3b5233",
     "brown": "#5b4636"
   },
+  "style": {
+    "nameScale": 1,
+    "textScale": 1
+  },
   "media": {
     "coverType": "video",
     "cover": "/invites/_template/media/cover.mp4",
@@ -104,7 +108,8 @@
     "title": "تأكيد الحضور",
     "intro": "يسعدنا تأكيد حضوركم وعدد المرافقين",
     "whatsapp": "",
-    "maxGuests": 6
+    "maxGuests": 6,
+    "showGuests": true
   },
   "closing": {
     "latin": "WITH LOVE",

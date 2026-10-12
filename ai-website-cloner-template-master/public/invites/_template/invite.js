@@ -14,6 +14,7 @@
   var DEF = {
     meta: { title: '', description: '' },
     theme: { paper: '#f0e3d3', gold: '#a8832f', goldBright: '#c8a24a', olive: '#3b5233', brown: '#5b4636' },
+    style: { nameScale: 1, textScale: 1 },
     media: {
       coverType: 'video', cover: '', coverPoster: '', bg: '', bgWebm: '', bgPoster: '',
       music: '', musicEnabled: true, musicVolume: 0.5
@@ -29,7 +30,7 @@
     location: { enabled: true, title: 'الموقع', venue: '', venueLang: '', address: '', mapUrl: '', mapLabel: 'افتح الخريطة' },
     notes: { enabled: true, title: 'تعليمات خاصة', items: [] },
     rsvp: {
-      enabled: true, title: 'تأكيد الحضور', intro: '', whatsapp: '', maxGuests: 6,
+      enabled: true, title: 'تأكيد الحضور', intro: '', whatsapp: '', maxGuests: 6, showGuests: true,
       nameLabel: 'الاسم', attendLabel: 'هل ستحضر؟', yesLabel: 'يشرفني الحضور', noLabel: 'أعتذر عن الحضور',
       guestsLabel: 'عدد الحضور', noteLabel: 'كلمة لأصحاب الدعوة (اختياري)', button: 'تأكيد عبر واتساب',
       nameError: 'اكتب اسمك أولاً.', thanksYes: 'شكراً {name}، سعدنا بتأكيدك.',
@@ -126,12 +127,22 @@
     if (br) r.setProperty('--brown', t.brown);
   }
 
+  /* font size: 1 = the designed size; names and texts scale separately (CSS reads --ns / --ts) */
+  function applyScale(st) {
+    var r = document.documentElement.style;
+    function k(v, lo, hi) { v = parseFloat(v); return isFinite(v) ? Math.max(lo, Math.min(hi, v)) : 1; }
+    st = st || {};
+    r.setProperty('--ns', String(k(st.nameScale, 0.6, 1.6)));
+    r.setProperty('--ts', String(k(st.textScale, 0.7, 1.5)));
+  }
+
   function render(raw, opts) {
     opts = opts || {};
     teardown();
     var c = merge(DEF, raw || {});
     var H = c.hero, R = c.rsvp, M = c.media;
     applyTheme(c.theme);
+    applyScale(c.style);
     var start = parseStart(c.event);
     var dateText = H.dateText || (start ? start.d + ' · ' + start.mo + ' · ' + start.y : '');
     var names = H.name1 + (H.name2 ? ' ' + H.connector + ' ' + H.name2 : '');
@@ -241,7 +252,7 @@
         '<div><span class="lbl" id="att-l">' + esc(R.attendLabel) + '</span><div class="choice" role="radiogroup" aria-labelledby="att-l">' +
         '<input type="radio" name="att" id="yes" value="yes" checked><label for="yes">' + esc(R.yesLabel) + '</label>' +
         '<input type="radio" name="att" id="no" value="no"><label for="no">' + esc(R.noLabel) + '</label></div></div>' +
-        '<div id="guestsWrap"><label for="guests">' + esc(R.guestsLabel) + '</label><select id="guests" name="guests">' + opt + '</select></div>' +
+        (R.showGuests !== false ? '<div id="guestsWrap"><label for="guests">' + esc(R.guestsLabel) + '</label><select id="guests" name="guests">' + opt + '</select></div>' : '') +
         '<div><label for="msg">' + esc(R.noteLabel) + '</label><textarea id="msg" rows="3"></textarea></div>' +
         '<button class="btn gold" type="submit" style="align-self:center">' + esc(R.button) + '</button>' +
         '<p id="err" role="alert" style="color:#8a2b1a;text-align:center;font-size:17px" hidden>' + esc(R.nameError) + '</p></form>' +
@@ -438,7 +449,7 @@
     var form = $('rsvp');
     if (form) {
       var R = c.rsvp, gw = $('guestsWrap');
-      on(form, 'change', function () { gw.hidden = form.att.value === 'no'; });
+      on(form, 'change', function () { if (gw) gw.hidden = form.att.value === 'no'; });
       on(form, 'submit', function (e) {
         e.preventDefault();
         var n = $('name').value.trim(), err = $('err');
@@ -446,7 +457,7 @@
         err.hidden = true;
         var yes = form.att.value === 'yes';
         var lines = [fmt(R.messageHeader, { occasion: c.hero.occasion, names: ctx.names }).trim(), R.msgName + ': ' + n, R.msgAttend + ': ' + (yes ? R.msgYes : R.msgNo)];
-        if (yes) lines.push(R.msgGuests + ': ' + $('guests').value);
+        if (yes && $('guests')) lines.push(R.msgGuests + ': ' + $('guests').value);
         var note = $('msg').value.trim();
         if (note) lines.push(R.msgNote + ': ' + note);
         var digits = String(R.whatsapp || '').replace(/\D/g, '');

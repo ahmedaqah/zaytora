@@ -78,6 +78,22 @@
   function color(label, path) { return wrap(label, bind(el('input', { type: 'color' }), path)); }
   function check(label, path) { return el('label', { class: 'chk' }, [bind(el('input', { type: 'checkbox' }), path, 'check'), el('span', { text: label })]); }
   function num(label, path, min, max, step) { return wrap(label, bind(el('input', { type: 'number', min: min, max: max, step: step || 1 }), path, 'num')); }
+  /* font-size control: "−" / slider / "+" and the current size in percent (100% = the designed size) */
+  function scale(label, path, min, max, step) {
+    var cur = parseFloat(get(state.cfg, path)); if (!isFinite(cur)) cur = 1;
+    var out = el('output', { class: 'pct' }), rng = el('input', { type: 'range', min: min, max: max, step: step });
+    var minus = el('button', { type: 'button', class: 'sm', text: '−', 'aria-label': 'تصغير' }), plus = el('button', { type: 'button', class: 'sm', text: '+', 'aria-label': 'تكبير' });
+    function apply(v, push) {
+      v = Math.round(Math.max(min, Math.min(max, v)) * 100) / 100;
+      rng.value = v; out.textContent = Math.round(v * 100) + '%';
+      if (push) { set(state.cfg, path, v); schedule(); }
+    }
+    apply(cur, false);
+    rng.addEventListener('input', function () { apply(parseFloat(rng.value), true); });
+    minus.addEventListener('click', function () { apply(parseFloat(rng.value) - step, true); });
+    plus.addEventListener('click', function () { apply(parseFloat(rng.value) + step, true); });
+    return el('div', { class: 'f' }, [el('span', { text: label }), el('div', { class: 'scalebox' }, [minus, rng, plus, out])]);
+  }
   function section(title, kids, open) {
     var d = el('details', open ? { open: '' } : {}, [el('summary', { text: title }), el('div', { class: 'sec' }, kids)]);
     return d;
@@ -233,6 +249,7 @@
     F.appendChild(section('7) تأكيد الحضور', [
       check('إظهار نموذج تأكيد الحضور', 'rsvp.enabled'),
       text('رقم واتساب لاستقبال الردود', 'rsvp.whatsapp', 'بالصيغة الدولية مع الرمز، مثال: +962791234567. بدونه لن يصلك الرد!', { dir: 'ltr', inputmode: 'tel' }),
+      check('إظهار خانة عدد الحضور (أزل العلامة لحذفها من النموذج)', 'rsvp.showGuests'),
       num('أكبر عدد حضور في القائمة', 'rsvp.maxGuests', 1, 30),
       text('العنوان', 'rsvp.title'), area('نص تمهيدي', 'rsvp.intro', '', 2),
       text('تسمية الاسم', 'rsvp.nameLabel'), text('خيار الحضور', 'rsvp.yesLabel'), text('خيار الاعتذار', 'rsvp.noLabel'), text('نص الزر', 'rsvp.button')
@@ -244,7 +261,10 @@
     ]));
 
     /* 9 theme */
-    F.appendChild(section('9) الألوان', [
+    F.appendChild(section('9) الألوان وحجم الخط', [
+      scale('حجم خط الأسماء', 'style.nameScale', 0.6, 1.6, 0.05),
+      scale('حجم خط النصوص', 'style.textScale', 0.7, 1.5, 0.05),
+      el('p', { class: 'hint', text: '100% هو الحجم الافتراضي. تغيير حجم الأسماء لا يؤثر على النصوص، والعكس صحيح.' }),
       el('div', { class: 'g2' }, [color('لون الورق', 'theme.paper'), color('لون الذهب (الخطوط)', 'theme.gold'), color('ذهبي فاتح', 'theme.goldBright'), color('لون الأزرار والأسماء', 'theme.olive'), color('لون النص', 'theme.brown')]),
       el('p', { class: 'hint', text: 'ستُطبّق الألوان على الأوراق والأزرار والنصوص. أوراق الزهور (الصور) تبقى بألوانها الأصلية.' })
     ]));
