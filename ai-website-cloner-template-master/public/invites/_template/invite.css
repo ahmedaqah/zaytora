@@ -132,9 +132,9 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px soli
 .closing-space{height:190px}
 footer{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding-block:6px 4px}
 footer .foot-note{font-family:var(--latin);font-size:11px;letter-spacing:.3em;color:var(--gold);text-shadow:0 1px 2px rgba(255,255,255,.7)}
-footer .credit{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:6px 24px;font-family:var(--latin);font-weight:600;font-size:15px;letter-spacing:.22em;line-height:1.2;color:var(--olive);text-decoration:none;direction:ltr;background:rgba(var(--pp),.94);border:1px solid rgba(var(--gb),.85);border-radius:26px;box-shadow:0 4px 12px rgba(60,40,10,.2);transition:transform .25s ease,filter .25s}
-footer .credit:hover{transform:translateY(-1px);filter:brightness(1.05)}
-footer .credit:focus-visible{outline:3px solid var(--gold-bright);outline-offset:3px}
+.credit{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:6px 24px;font-family:var(--latin);font-weight:600;font-size:15px;letter-spacing:.22em;line-height:1.2;color:var(--olive);text-decoration:none;direction:ltr;background:rgba(var(--pp),.94);border:1px solid rgba(var(--gb),.85);border-radius:26px;box-shadow:0 4px 12px rgba(60,40,10,.2);transition:transform .25s ease,filter .25s}
+.credit:hover{transform:translateY(-1px);filter:brightness(1.05)}
+.credit:focus-visible{outline:3px solid var(--gold-bright);outline-offset:3px}
 
 
 /* scroll-down hint */
@@ -205,3 +205,8 @@ footer .credit:focus-visible{outline:3px solid var(--gold-bright);outline-offset
 
 /* load / error state */
 #inv-error{max-width:420px;margin:120px auto;padding:24px;text-align:center;font-family:var(--body);font-size:20px;color:var(--brown)}
+
+/* invitation call-to-action shown after the guest answers the RSVP */
+.cta{display:flex;flex-direction:column;align-items:center;gap:8px;margin-top:4px;width:100%;padding-top:14px;border-top:1px solid rgba(200,162,74,.55)}
+.cta[hidden]{display:none}
+.cta p{font-family:var(--script);font-size:calc(20px*var(--ts,1));color:var(--olive);line-height:1.6}

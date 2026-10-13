@@ -19,7 +19,7 @@
       coverType: 'video', cover: '', coverPoster: '', bg: '', bgWebm: '', bgPoster: '',
       music: '', musicEnabled: true, musicVolume: 0.5
     },
-    ui: { coverHint: 'اضغط لفتح الدعوة', scrollHint: 'اسحب للأسفل', musicLabel: 'تشغيل أو إيقاف الموسيقى' },
+    ui: { coverHint: 'اضغط لفتح الدعوة', scrollHint: 'اسحب للأسفل', musicLabel: 'تشغيل أو إيقاف الموسيقى', ctaText: 'أعجبتك الدعوة؟ اصنع دعوتك الرقمية' },
     hero: {
       bismillah: '', eyebrow: '', name1: '', name2: '', connector: '&', occasion: '',
       dateText: '', quote: '', verse: '', intro: ''
@@ -256,7 +256,8 @@
         '<div><label for="msg">' + esc(R.noteLabel) + '</label><textarea id="msg" rows="3"></textarea></div>' +
         '<button class="btn gold" type="submit" style="align-self:center">' + esc(R.button) + '</button>' +
         '<p id="err" role="alert" style="color:#8a2b1a;text-align:center;font-size:17px" hidden>' + esc(R.nameError) + '</p></form>' +
-        '<p class="thanks" id="thanks" hidden></p></section>';
+        '<p class="thanks" id="thanks" hidden></p>' +
+        '<div class="cta" id="cta" hidden><p>' + esc(c.ui.ctaText) + '</p><a class="credit" href="https://www.zaytorainvites.com/" target="_blank" rel="noopener">MADE BY ZAYTORA</a></div></section>';
     }
 
     /* closing */
@@ -476,6 +477,7 @@
           var a = document.createElement('a'); a.className = 'btn gold'; a.href = url; a.target = '_blank'; a.rel = 'noopener'; a.textContent = R.openWhatsapp; th.appendChild(a);
         }
         form.hidden = true; th.hidden = false;
+        if ($('cta')) $('cta').hidden = false; /* the call-to-action appears under the thank-you, for yes and no alike */
         if (url && !ctx.opts.noAutoMusic) window.open(url, '_blank', 'noopener');
       });
     }
