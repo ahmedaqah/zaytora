@@ -91,6 +91,10 @@ public class Invitation
     // Step 7 — Event Program (JSON array of { time, title })
     public bool ShowEventProgram { get; set; }
     public string ProgramItemsJson { get; set; } = "[]";
+    // Font class (same catalog as every other studio font picker) and percentage scale (100 = default)
+    // the guest picked for the program section; null renders exactly as before this existed.
+    public string? ProgramFont { get; set; }
+    public int? ProgramFontSize { get; set; }
 
     // Step 8 — Event Rules / Notes
     public bool ShowEventRules { get; set; }

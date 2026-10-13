@@ -52,6 +52,8 @@ public class UpdateInvitationRequest
 
     public bool? ShowEventProgram { get; set; }
     public List<ProgramItemDto>? ProgramItems { get; set; }
+    public string? ProgramFont { get; set; }
+    public int? ProgramFontSize { get; set; }
 
     public bool? ShowEventRules { get; set; }
     public string? EventRulesText { get; set; }

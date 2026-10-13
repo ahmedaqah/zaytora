@@ -3,6 +3,8 @@
 import { ToggleField } from "@/components/studio/fields/ToggleField";
 import { ListEditor } from "@/components/studio/fields/ListEditor";
 import { HintBox } from "@/components/studio/fields/HintBox";
+import { FontSelect } from "@/components/studio/fields/FontSelect";
+import { FontSizeStepper } from "@/components/studio/fields/FontSizeStepper";
 import { useLanguage } from "@/context/LanguageContext";
 import type { InvitationDetail, ProgramItem } from "@/types/studio";
 
@@ -14,6 +16,7 @@ const COPY = {
     addItem: "إضافة بند",
     emptyItems: "لم تتم إضافة بنود بعد",
     itemTitlePlaceholder: "عنوان البند",
+    programFont: "نوع خط برنامج الحفل",
   },
   en: {
     hint: "Example: Guest arrival 6:00 PM ← Dinner 7:30 PM ← Wedding ceremony 9:00 PM",
@@ -22,6 +25,7 @@ const COPY = {
     addItem: "Add item",
     emptyItems: "No items added yet",
     itemTitlePlaceholder: "Item title",
+    programFont: "Program font",
   },
 };
 
@@ -84,6 +88,20 @@ export function Step07Program({
             </div>
           )}
         />
+      )}
+
+      {value.showEventProgram && (
+        <>
+          <FontSelect
+            label={t.programFont}
+            value={value.programFont ?? ""}
+            onChange={(programFont) => onChange({ programFont })}
+          />
+          <FontSizeStepper
+            value={value.programFontSize}
+            onChange={(programFontSize) => onChange({ programFontSize })}
+          />
+        </>
       )}
     </div>
   );

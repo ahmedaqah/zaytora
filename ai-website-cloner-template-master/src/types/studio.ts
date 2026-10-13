@@ -78,6 +78,10 @@ export interface InvitationDetail {
 
   showEventProgram: boolean;
   programItems: ProgramItem[];
+  // Font class (same catalog as the other studio font pickers) and percentage scale (100 = default) for the
+  // whole program section; unset renders exactly as before.
+  programFont?: string | null;
+  programFontSize?: number | null;
 
   showEventRules: boolean;
   eventRulesText?: string | null;

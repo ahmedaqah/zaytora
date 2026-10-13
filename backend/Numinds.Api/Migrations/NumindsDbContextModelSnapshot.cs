@@ -572,6 +572,12 @@ namespace Numinds.Api.Migrations
                     b.Property<string>("PersonalMessageTitle")
                         .HasColumnType("text");
 
+                    b.Property<string>("ProgramFont")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("ProgramFontSize")
+                        .HasColumnType("integer");
+
                     b.Property<string>("ProgramItemsJson")
                         .IsRequired()
                         .HasColumnType("text");

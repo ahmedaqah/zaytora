@@ -604,6 +604,8 @@ public class InvitationsController(
 
         if (request.ShowEventProgram is not null) invitation.ShowEventProgram = request.ShowEventProgram.Value;
         if (request.ProgramItems is not null) invitation.ProgramItemsJson = JsonSerializer.Serialize(request.ProgramItems);
+        if (request.ProgramFont is not null) invitation.ProgramFont = request.ProgramFont;
+        if (request.ProgramFontSize is not null) invitation.ProgramFontSize = request.ProgramFontSize;
 
         if (request.ShowEventRules is not null) invitation.ShowEventRules = request.ShowEventRules.Value;
         if (request.EventRulesText is not null) invitation.EventRulesText = request.EventRulesText;
@@ -1216,6 +1218,8 @@ public class InvitationsController(
 
         ShowEventProgram = invitation.ShowEventProgram,
         ProgramItems = Deserialize<ProgramItemDto>(invitation.ProgramItemsJson),
+        ProgramFont = invitation.ProgramFont,
+        ProgramFontSize = invitation.ProgramFontSize,
 
         ShowEventRules = invitation.ShowEventRules,
         EventRulesText = invitation.EventRulesText,

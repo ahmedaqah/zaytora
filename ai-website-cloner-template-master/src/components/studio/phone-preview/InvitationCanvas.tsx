@@ -1659,8 +1659,8 @@ export function InvitationCanvas({
               a time as the guest scrolls, instead of the whole list
               appearing together the moment the card comes into view. */}
           {value.showEventProgram && value.programItems.length > 0 && (
-            <motion.div {...sectionReveal} style={sceneStyle("program")} className={sectionCardClass("p-4", transparentCards)}>
-              <p className={cn("mb-8 flex items-center gap-1.5 text-[11px] font-semibold", TONE.heading)}>
+            <motion.div {...sectionReveal} style={sceneStyle("program")} className={cn(sectionCardClass("p-4", transparentCards), value.programFont)}>
+              <p style={fontSizeStyle(0.6875, value.programFontSize)} className={cn("mb-8 flex items-center gap-1.5 text-[11px] font-semibold", TONE.heading)}>
                 <ClipboardListIcon className="size-3.5 text-[var(--tpl-accent)]" />
                 {canvas.program}
               </p>
@@ -1711,6 +1711,7 @@ export function InvitationCanvas({
                         )}
                       </div>
                       <div
+                        style={fontSizeStyle(0.6875, value.programFontSize)}
                         className={cn(
                           "flex flex-1 items-center justify-between text-[11px]",
                           isLast ? "pb-0" : "pb-4"
