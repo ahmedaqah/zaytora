@@ -265,7 +265,11 @@
       (CL.latin ? '<p class="latin" style="margin-top:6px">' + esc(CL.latin) + '</p>' : '') +
       (CL.text ? '<p class="quote" style="font-size:30px">' + esc(CL.text) + '</p>' : '') +
       (CL.sign ? '<p class="sign">' + esc(CL.sign) + '</p>' : '') + '<div class="closing-space"></div></section>';
-    if (c.footer) h += '<footer>' + esc(c.footer) + '</footer>';
+    /* "MADE BY ZAYTORA" always closes the page and links to the site's home page. It does not depend on the stored
+       footer text, so every invitation (saved earlier or later) gets it. A custom footer line, if any, sits above it;
+       the old default text "ZAYTORA INVITES" is not repeated. */
+    var note = c.footer && !/zaytora/i.test(c.footer) ? '<p class="foot-note">' + esc(c.footer) + '</p>' : '';
+    h += '<footer>' + note + '<a class="credit" href="https://www.zaytorainvites.com/" target="_blank" rel="noopener">MADE BY ZAYTORA</a></footer>';
     h += '</main>';
 
     var root = document.getElementById('inv-root');

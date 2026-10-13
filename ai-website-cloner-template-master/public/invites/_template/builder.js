@@ -257,7 +257,7 @@
 
     /* 8 closing */
     F.appendChild(section('8) الختام', [
-      text('سطر لاتيني', 'closing.latin'), text('عبارة الختام', 'closing.text'), text('التوقيع (الأسماء)', 'closing.sign'), text('نص أسفل الصفحة', 'footer', 'فارغ = لا شيء')
+      text('سطر لاتيني', 'closing.latin'), text('عبارة الختام', 'closing.text'), text('التوقيع (الأسماء)', 'closing.sign'), text('نص أسفل الصفحة', 'footer', 'اختياري. شعار «MADE BY ZAYTORA» يظهر دائماً تحته.')
     ]));
 
     /* 9 theme */
