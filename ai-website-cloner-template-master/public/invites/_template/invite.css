@@ -322,3 +322,9 @@ main.royal{max-width:520px;padding-block:0 28px;gap:0;overflow-x:clip}
 .rs-gold .r-cin{padding-inline:17cqw}
 
 .r-x{font-family:var(--f-t);font-size:calc(4.6cqw*var(--sf,1));line-height:1.6;color:var(--r-text);text-wrap:balance;overflow-wrap:anywhere}
+
+/* shared-grid family block (rows align across both columns) */
+.r-fam{display:grid;grid-template-columns:1fr 1fr;column-gap:3cqw;row-gap:1.4cqw;align-items:start}
+.r-c{display:flex;flex-direction:column;align-items:center;min-width:0}
+.r-mid{grid-column:1/-1;display:flex;justify-content:center;padding-block:1.5cqw}
+.r-m{font-family:var(--f-m);font-size:calc(5.4cqw*var(--sm,1));line-height:1.7;color:var(--r-text);text-align:center;max-width:34ch;text-wrap:balance}

@@ -43,12 +43,12 @@
     footer: '',
     layout: { mode: 'classic' },
     royal: {
-      bismillah: 'بسم الله الرحمن الرحيم', invite: '',
+      bismillah: 'بسم الله الرحمن الرحيم', invite: '', middle: '',
       right: { title: 'السيد', father: '', rel: 'نجله', extra: '', name: '' },
       left: { title: 'السيد', father: '', rel: 'ابنته', extra: '', name: '' },
       showDate: true,
-      fonts: { bismillah: 'katibeh', invite: 'amiri', titles: 'katibeh', father: 'katibeh', names: 'katibeh' },
-      scales: { bismillah: 1, invite: 1, family: 1, names: 1 },
+      fonts: { bismillah: 'katibeh', invite: 'amiri', middle: 'katibeh', titles: 'katibeh', father: 'katibeh', names: 'katibeh' },
+      scales: { bismillah: 1, invite: 1, middle: 1, family: 1, names: 1 },
       colors: { text: '#4a3b30', names: '#2a1d15' },
       anim: { type: 'rise', duration: 1.8, gap: 0.55, delay: 0.5 },
       paperOpacity: 1, paperStyle: 'columns', customFonts: [],
@@ -209,26 +209,32 @@
     var types = ['rise', 'fade', 'drop', 'zoom', 'blur', 'slide'];
     var ty = types.indexOf(A.type) >= 0 ? A.type : 'rise';
     function ff(k) { var v = F[k]; if (/^cf:[\w-]+$/.test(v || '')) return "'ZF_" + v.slice(3) + "','Katibeh','Amiri',serif"; return FONTS[v] || FONTS.katibeh; }
-    var vars = '--f-b:' + ff('bismillah') + ';--f-i:' + ff('invite') + ';--f-t:' + ff('titles') + ';--f-f:' + ff('father') + ';--f-n:' + ff('names') +
-      ';--sb:' + num(SC.bismillah, 1, 0.5, 1.8) + ';--si:' + num(SC.invite, 1, 0.5, 1.8) + ';--sf:' + num(SC.family, 1, 0.5, 1.8) + ';--sn:' + num(SC.names, 1, 0.5, 1.8) +
+    var vars = '--f-b:' + ff('bismillah') + ';--f-i:' + ff('invite') + ';--f-m:' + ff('middle') + ';--f-t:' + ff('titles') + ';--f-f:' + ff('father') + ';--f-n:' + ff('names') +
+      ';--sb:' + num(SC.bismillah, 1, 0.5, 1.8) + ';--si:' + num(SC.invite, 1, 0.5, 1.8) + ';--sm:' + num(SC.middle, 1, 0.5, 1.8) + ';--sf:' + num(SC.family, 1, 0.5, 1.8) + ';--sn:' + num(SC.names, 1, 0.5, 1.8) +
       ';--r-text:' + (hex2rgb(CO.text) ? CO.text : '#4a3b30') + ';--r-names:' + (hex2rgb(CO.names) ? CO.names : '#2a1d15') +
       fxVars(R.fx) + ';--ad:' + num(A.duration, 1.8, 0.3, 6) + 's;--rg:' + num(A.gap, 0.55, 0, 3) + 's;--rd:' + num(A.delay, 0.5, 0, 6) + 's';
     var i = 0;
     function el(cls, inner, tag) { var n = i++; return '<' + (tag || 'p') + ' class="r-el ' + cls + '" style="--i:' + n + '">' + inner + '</' + (tag || 'p') + '>'; }
-    function col(side, cls, fallback) {
-      var d = R[side] || {}, n = i++;
-      return '<div class="r-el r-col ' + cls + '" style="--i:' + n + '">' +
-        (d.title ? '<p class="r-t">' + wings(d.title) + '</p>' : '') +
-        (d.father ? '<p class="r-f">' + nl(d.father) + '</p>' : '') +
-        '<svg class="r-orn" aria-hidden="true"><use href="#rorn"/></svg>' +
-        (d.rel ? '<p class="r-t r-rel">' + wings(d.rel) + '</p>' : '') +
-        (d.extra ? '<p class="r-x">' + nl(d.extra) + '</p>' : '') +
-        '<p class="r-n">' + esc(d.name || fallback) + '</p></div>';
+    /* the two family columns share one grid: every row (title, father, ornament, [middle text], relation, extra, name)
+       lines up across both columns, and the middle text pushes everything under it down together */
+    function fam() {
+      var D = [R.right || {}, R.left || {}], cls = ['rc-r', 'rc-l'], fb = [H.name1, H.name2], idx = [i++, i++];
+      function row(fn, extra) {
+        return D.map(function (d, k) { return '<div class="r-el r-c ' + cls[k] + (extra || '') + '" style="--i:' + idx[k] + '">' + fn(d, k) + '</div>'; }).join('');
+      }
+      var g = row(function (d) { return d.title ? '<p class="r-t">' + wings(d.title) + '</p>' : ''; });
+      g += row(function (d) { return d.father ? '<p class="r-f">' + nl(d.father) + '</p>' : ''; });
+      g += row(function () { return '<svg class="r-orn" aria-hidden="true"><use href="#rorn"/></svg>'; });
+      if (R.middle) g += '<div class="r-el r-mid" style="--i:' + (i++) + '"><p class="r-m">' + nl(R.middle) + '</p></div>';
+      g += row(function (d) { return d.rel ? '<p class="r-t r-rel">' + wings(d.rel) + '</p>' : ''; });
+      if (D[0].extra || D[1].extra) g += row(function (d) { return d.extra ? '<p class="r-x">' + nl(d.extra) + '</p>' : ''; });
+      g += row(function (d, k) { return '<p class="r-n">' + esc(d.name || fb[k]) + '</p>'; });
+      return '<div class="r-fam">' + g + '</div>';
     }
     var h = '<section class="r-scene an-' + ty + '" id="rscene" style="' + vars + '">' + stickersHtml(c.stickers, 'scene') + '<div class="r-sc">';
     if (R.bismillah) h += el('r-bis', nl(R.bismillah));
     if (R.invite) h += el('r-inv', nl(R.invite));
-    h += '<div class="r-fam">' + col('right', 'rc-r', H.name1) + col('left', 'rc-l', H.name2) + '</div>';
+    h += fam();
     if (R.showDate !== false && dateText) h += el('r-date', esc(dateText));
     return h + '</div></section>';
   }

@@ -144,13 +144,15 @@
       "invite": "amiri",
       "titles": "katibeh",
       "father": "katibeh",
-      "names": "katibeh"
+      "names": "katibeh",
+      "middle": "katibeh"
     },
     "scales": {
       "bismillah": 1,
       "invite": 1,
       "family": 1,
-      "names": 1
+      "names": 1,
+      "middle": 1
     },
     "colors": {
       "text": "#4a3b30",
@@ -172,7 +174,8 @@
       "shadowColor": "#000000",
       "shadowSize": 6,
       "shadowOpacity": 0.35
-    }
+    },
+    "middle": ""
   },
   "stickers": []
 }

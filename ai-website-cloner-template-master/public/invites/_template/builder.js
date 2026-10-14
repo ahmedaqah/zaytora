@@ -339,14 +339,15 @@
     var wrapEl = el('div', { id: 'royal-panels' }, [
       section('الوضع الملكي — الواجهة الافتتاحية', [
         area('الجملة العليا (البسملة أو أي عبارة)', 'royal.bismillah', '', 2), area('نص الدعوة تحتها', 'royal.invite', '', 2),
+        area('نص في الوسط قبل «الصلة» (اختياري، يدفع الصلة والأسماء للأسفل في العمودين معاً)', 'royal.middle', '', 2),
         fam('right', 'العمود الأيمن (العريس عادةً)'), fam('left', 'العمود الأيسر (العروس عادةً)'),
         check('إظهار التاريخ أسفل الأسماء', 'royal.showDate')
       ], true),
       section('الوضع الملكي — الخطوط والألوان', [
-        fontSel('خط الجملة العليا', 'royal.fonts.bismillah'), fontSel('خط نص الدعوة', 'royal.fonts.invite'),
+        fontSel('خط الجملة العليا', 'royal.fonts.bismillah'), fontSel('خط نص الدعوة', 'royal.fonts.invite'), fontSel('خط النص الأوسط', 'royal.fonts.middle'),
         fontSel('خط الألقاب (السيد / نجله)', 'royal.fonts.titles'), fontSel('خط أسماء الآباء', 'royal.fonts.father'), fontSel('خط أسماء العروسين', 'royal.fonts.names'),
         fontPanel(),
-        scale('حجم الجملة العليا', 'royal.scales.bismillah', 0.5, 1.8, 0.05), scale('حجم نص الدعوة', 'royal.scales.invite', 0.5, 1.8, 0.05),
+        scale('حجم الجملة العليا', 'royal.scales.bismillah', 0.5, 1.8, 0.05), scale('حجم نص الدعوة', 'royal.scales.invite', 0.5, 1.8, 0.05), scale('حجم النص الأوسط', 'royal.scales.middle', 0.5, 1.8, 0.05),
         scale('حجم الألقاب وأسماء الآباء', 'royal.scales.family', 0.5, 1.8, 0.05), scale('حجم أسماء العروسين', 'royal.scales.names', 0.5, 1.8, 0.05),
         el('div', { class: 'g2' }, [color('لون النصوص', 'royal.colors.text'), color('لون أسماء العروسين (أغمق)', 'royal.colors.names')])
       ]),
