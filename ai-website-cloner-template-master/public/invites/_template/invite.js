@@ -44,8 +44,8 @@
     layout: { mode: 'classic' },
     royal: {
       bismillah: 'بسم الله الرحمن الرحيم', invite: '',
-      right: { title: 'السيد', father: '', rel: 'نجله', name: '' },
-      left: { title: 'السيد', father: '', rel: 'ابنته', name: '' },
+      right: { title: 'السيد', father: '', rel: 'نجله', extra: '', name: '' },
+      left: { title: 'السيد', father: '', rel: 'ابنته', extra: '', name: '' },
       showDate: true,
       fonts: { bismillah: 'katibeh', invite: 'amiri', titles: 'katibeh', father: 'katibeh', names: 'katibeh' },
       scales: { bismillah: 1, invite: 1, family: 1, names: 1 },
@@ -222,6 +222,7 @@
         (d.father ? '<p class="r-f">' + nl(d.father) + '</p>' : '') +
         '<svg class="r-orn" aria-hidden="true"><use href="#rorn"/></svg>' +
         (d.rel ? '<p class="r-t r-rel">' + wings(d.rel) + '</p>' : '') +
+        (d.extra ? '<p class="r-x">' + nl(d.extra) + '</p>' : '') +
         '<p class="r-n">' + esc(d.name || fallback) + '</p></div>';
     }
     var h = '<section class="r-scene an-' + ty + '" id="rscene" style="' + vars + '">' + stickersHtml(c.stickers, 'scene') + '<div class="r-sc">';

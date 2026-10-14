@@ -128,13 +128,15 @@
       "title": "السيد",
       "father": "أيمن خالد",
       "rel": "نجله",
-      "name": ""
+      "name": "",
+      "extra": ""
     },
     "left": {
       "title": "السيد",
       "father": "فائق صبحي",
       "rel": "ابنته",
-      "name": ""
+      "name": "",
+      "extra": ""
     },
     "showDate": true,
     "fonts": {

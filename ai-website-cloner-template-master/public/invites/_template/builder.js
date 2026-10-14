@@ -331,7 +331,8 @@
     var fam = function (side, label) {
       return el('div', { class: 'item' }, [el('div', { class: 'h' }, [el('b', { text: label })]),
         el('div', { class: 'g2' }, [text('اللقب', 'royal.' + side + '.title'), text('اسم الأب / العائلة', 'royal.' + side + '.father')]),
-        el('div', { class: 'g2' }, [text('الصلة (نجله / ابنته…)', 'royal.' + side + '.rel'), text('الاسم الكبير', 'royal.' + side + '.name', 'فارغ = الاسم الأول/الثاني من القسم 2')])]);
+        el('div', { class: 'g2' }, [text('الصلة (نجله / ابنته…)', 'royal.' + side + '.rel'), text('الاسم الكبير', 'royal.' + side + '.name', 'فارغ = الاسم الأول/الثاني من القسم 2')]),
+        area('نص إضافي تحت الصلة وفوق الاسم (اختياري)', 'royal.' + side + '.extra', '', 2)]);
     };
     var replay = el('button', { type: 'button', text: '▶ إعادة تشغيل الحركة في المعاينة' });
     replay.addEventListener('click', function () { $('skip-cover').checked = true; pushPreview(true); });

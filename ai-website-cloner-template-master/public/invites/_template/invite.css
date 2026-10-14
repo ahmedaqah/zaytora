@@ -320,3 +320,5 @@ main.royal{max-width:520px;padding-block:0 28px;gap:0;overflow-x:clip}
 .r-card .title{font-size:calc(clamp(21px,6.2cqw,30px)*var(--ts,1));gap:6px}
 .r-card .title svg{width:7cqw}
 .rs-gold .r-cin{padding-inline:17cqw}
+
+.r-x{font-family:var(--f-t);font-size:calc(4.6cqw*var(--sf,1));line-height:1.6;color:var(--r-text);text-wrap:balance;overflow-wrap:anywhere}
