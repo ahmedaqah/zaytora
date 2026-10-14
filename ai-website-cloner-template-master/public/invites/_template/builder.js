@@ -9,6 +9,7 @@
   var state = { slug: '', cfg: null, sample: null, editing: '' };
   var host = false, pending = {}, reqId = 0;
   var files = {}, urls = {}; // zip path -> Blob / blob: URL
+  var drawStickers = null;
 
   var ICONS = [['info', 'معلومة'], ['camera-off', 'ممنوع التصوير'], ['home', 'الأقسام / المكان'], ['car', 'مواقف / وصول'], ['gift', 'هدايا'], ['dress', 'الزي'], ['heart', 'قلب']];
 
@@ -31,18 +32,25 @@
   function previewCfg() {
     var c = clone(state.cfg);
     Object.keys(c.media).forEach(function (k) { var v = c.media[k]; if (typeof v === 'string' && urls[v]) c.media[k] = urls[v]; });
+    (c.stickers || []).forEach(function (s) { if (s && urls[s.src]) s.src = urls[s.src]; });
     return c;
   }
-  function pushPreview() {
+  function pushPreview(replay) {
     if (!ready) return;
-    ifr.contentWindow.postMessage({ type: 'zaytora-invite-config', config: previewCfg(), skipCover: $('skip-cover').checked }, location.origin);
+    ifr.contentWindow.postMessage({ type: 'zaytora-invite-config', config: previewCfg(), skipCover: $('skip-cover').checked, replay: replay === true }, location.origin);
   }
   function schedule() { clearTimeout(pt); pt = setTimeout(pushPreview, 250); saveDraft(); }
   window.addEventListener('message', function (e) {
-    if (e.origin !== location.origin || !e.data || e.data.type !== 'zaytora-invite-ready') return;
+    if (e.origin !== location.origin || !e.data) return;
+    if (e.data.type === 'zaytora-sticker-move') { /* a sticker was dragged inside the preview */
+      var st = state.cfg && (state.cfg.stickers || [])[e.data.index];
+      if (st) { st.x = e.data.x; st.y = e.data.y; saveDraft(); if (drawStickers) drawStickers(); }
+      return;
+    }
+    if (e.data.type !== 'zaytora-invite-ready') return;
     ready = true; pushPreview();
   });
-  $('skip-cover').addEventListener('change', pushPreview);
+  $('skip-cover').addEventListener('change', function () { pushPreview(); });
   $('btn-reload').addEventListener('click', function () { $('skip-cover').checked = false; pushPreview(); });
 
   /* ---------- draft ---------- */
@@ -50,7 +58,8 @@
   function sanitize(cfg) {
     // uploaded files do not survive a reload: drop media that pointed at them
     var m = cfg.media || {};
-    ['cover', 'coverPoster', 'bg', 'bgWebm', 'bgPoster', 'music'].forEach(function (k) { if (typeof m[k] === 'string' && /^media\//.test(m[k]) && !files[m[k]]) m[k] = ''; });
+    ['cover', 'coverPoster', 'bg', 'bgWebm', 'bgPoster', 'music', 'customFont'].forEach(function (k) { if (typeof m[k] === 'string' && /^media\//.test(m[k]) && !files[m[k]]) m[k] = ''; });
+    cfg.stickers = (Array.isArray(cfg.stickers) ? cfg.stickers : []).filter(function (s) { return s && s.src && !(/^media\//.test(s.src) && !files[s.src]); });
     return cfg;
   }
   function deepMerge(a, b) {
@@ -174,10 +183,117 @@
     setTimeout(function () { fin(null); }, 8000);
   }
 
+
+  /* ---------- royal layout panels ---------- */
+  var FONT_OPTS = [['katibeh', 'كتيبة (الأقرب لخط الثلث)'], ['aref', 'عارف رقعة'], ['amiri', 'أميري (نسخ)'], ['lateef', 'لطيف'], ['scheherazade', 'شهرزاد'], ['mirza', 'ميرزا'], ['reem', 'ريم كوفي'], ['cinzel', 'Cinzel (لاتيني)'], ['custom', 'الخط المرفوع (مثلاً خط الثلث)']];
+  var FONT_MIME = { ttf: 'font/ttf', otf: 'font/otf', woff2: 'font/woff2', woff: 'font/woff' };
+  function sel(label, path, opts) {
+    var s = el('select', {}, opts.map(function (o) { return el('option', { value: o[0], text: o[1] }); }));
+    s.value = get(state.cfg, path) || opts[0][0];
+    s.addEventListener('input', function () { set(state.cfg, path, s.value); schedule(); });
+    return wrap(label, s);
+  }
+  function slider(label, obj, key, min, max, step, unit, cb) {
+    var out = el('output', { class: 'pct' }), r = el('input', { type: 'range', min: min, max: max, step: step });
+    function show() { out.textContent = r.value + unit; }
+    r.value = obj[key]; show();
+    r.addEventListener('input', function () { obj[key] = parseFloat(r.value); show(); cb(); });
+    return el('div', { class: 'f' }, [el('span', { text: label }), el('div', { class: 'scalebox' }, [r, out])]);
+  }
+  function stickerPanel() {
+    var box = el('div', { class: 'sec', style: 'padding:0' });
+    function draw() {
+      box.innerHTML = '';
+      var list = state.cfg.stickers;
+      list.forEach(function (s, i) {
+        var thumb = s.kind === 'video' ? el('b', { text: 'فيديو' }) : el('img', { src: urls[s.src] || s.src, alt: '', style: 'height:42px;max-width:90px;object-fit:contain;background:#ddd' });
+        var h = el('div', { class: 'h' }, [el('span', { class: 'row' }, [thumb, el('b', { text: ' ملصق ' + (i + 1) })])]);
+        var ctl = el('div', { class: 'row' });
+        var del = el('button', { type: 'button', class: 'sm del', text: 'حذف' });
+        del.addEventListener('click', function () {
+          if (files[s.src]) { URL.revokeObjectURL(urls[s.src]); delete files[s.src]; delete urls[s.src]; }
+          list.splice(i, 1); draw(); schedule();
+        });
+        ctl.appendChild(del); h.appendChild(ctl);
+        var anchor = el('select', {}, [el('option', { value: 'scene', text: 'على الواجهة الافتتاحية' }), el('option', { value: 'page', text: 'على الورقة (بقية الدعوة)' })]); anchor.value = s.anchor || 'scene';
+        anchor.addEventListener('input', function () { s.anchor = anchor.value; schedule(); });
+        var layer = el('select', {}, [el('option', { value: 'front', text: 'أمام النصوص' }), el('option', { value: 'back', text: 'خلف النصوص' })]); layer.value = s.layer || 'front';
+        layer.addEventListener('input', function () { s.layer = layer.value; schedule(); });
+        var fl = el('input', { type: 'checkbox' }); fl.checked = !!s.float; fl.addEventListener('input', function () { s.float = fl.checked; schedule(); });
+        var cb = function () { schedule(); };
+        box.appendChild(el('div', { class: 'item' }, [h, wrap('مكان الملصق', anchor), wrap('الطبقة', layer),
+          slider('أفقياً (يمين ↔ يسار الصفحة)', s, 'x', 0, 100, 0.5, '%', cb), slider('عمودياً (أعلى ↔ أسفل)', s, 'y', 0, 100, 0.5, '%', cb),
+          slider('الحجم', s, 'w', 5, 150, 1, '', cb), slider('التدوير', s, 'rot', -180, 180, 1, '°', cb), slider('الشفافية', s, 'op', 0.1, 1, 0.05, '', cb),
+          el('label', { class: 'chk' }, [fl, el('span', { text: 'حركة طفو هادئة' })])]));
+      });
+      var inp = el('input', { type: 'file', accept: 'image/png,image/webp,image/gif,image/jpeg,video/mp4,video/webm' });
+      inp.addEventListener('change', function () {
+        var f = inp.files[0]; if (!f) return; inp.value = '';
+        if (f.size > 20 * 1024 * 1024) { status('الملف كبير جداً (' + Math.round(f.size / 1048576) + ' MB). استخدم أقل من 20 MB.', true); return; }
+        var name = 'media/sticker-' + Date.now().toString(36) + Math.floor(Math.random() * 1e4) + '.' + (ext(f.name) || 'png');
+        files[name] = f; urls[name] = URL.createObjectURL(f);
+        list.push({ src: name, kind: /^video\//.test(f.type) ? 'video' : 'image', anchor: 'scene', x: 50, y: 12, w: 30, rot: 0, op: 1, layer: 'front', float: false });
+        draw(); schedule();
+      });
+      box.appendChild(el('div', { class: 'media' }, [el('b', { text: 'إضافة ملصق / صورة مفرغة / GIF / فيديو' }),
+        el('p', { class: 'hint', text: 'PNG أو WebP بخلفية شفافة، أو GIF، أو فيديو MP4/WebM قصير. بعد الإضافة اسحب الملصق بالماوس أو الإصبع داخل المعاينة لتحريكه، أو استخدم المنزلقات.' }), inp]));
+    }
+    drawStickers = draw; draw();
+    return box;
+  }
+  function royalPanels() {
+    var R = state.cfg.royal;
+    var fam = function (side, label) {
+      return el('div', { class: 'item' }, [el('div', { class: 'h' }, [el('b', { text: label })]),
+        el('div', { class: 'g2' }, [text('اللقب', 'royal.' + side + '.title'), text('اسم الأب / العائلة', 'royal.' + side + '.father')]),
+        el('div', { class: 'g2' }, [text('الصلة (نجله / ابنته…)', 'royal.' + side + '.rel'), text('الاسم الكبير', 'royal.' + side + '.name', 'فارغ = الاسم الأول/الثاني من القسم 2')])]);
+    };
+    var replay = el('button', { type: 'button', text: '▶ إعادة تشغيل الحركة في المعاينة' });
+    replay.addEventListener('click', function () { $('skip-cover').checked = true; pushPreview(true); });
+    var wrapEl = el('div', { id: 'royal-panels' }, [
+      section('الوضع الملكي — الواجهة الافتتاحية', [
+        area('الجملة العليا (البسملة أو أي عبارة)', 'royal.bismillah', '', 2), area('نص الدعوة تحتها', 'royal.invite', '', 2),
+        fam('right', 'العمود الأيمن (العريس عادةً)'), fam('left', 'العمود الأيسر (العروس عادةً)'),
+        check('إظهار التاريخ أسفل الأسماء', 'royal.showDate')
+      ], true),
+      section('الوضع الملكي — الخطوط والألوان', [
+        sel('خط الجملة العليا', 'royal.fonts.bismillah', FONT_OPTS), sel('خط نص الدعوة', 'royal.fonts.invite', FONT_OPTS),
+        sel('خط الألقاب (السيد / نجله)', 'royal.fonts.titles', FONT_OPTS), sel('خط أسماء الآباء', 'royal.fonts.father', FONT_OPTS), sel('خط أسماء العروسين', 'royal.fonts.names', FONT_OPTS),
+        media('خط مرفوع (مثل خط الثلث)', 'customFont', '.ttf,.otf,.woff2,.woff', 'ارفع ملف الخط إن كان لديك خط ثلث بترخيص مناسب، ثم اخترْ «الخط المرفوع» في القوائم أعلاه. الخطوط الجاهزة هنا لا تتضمن ثلثاً حقيقياً، وكتيبة هي الأقرب.', function (f, show) {
+          var e = ext(f.name); if (!FONT_MIME[e]) { status('نوع الخط غير مدعوم. استخدم TTF أو OTF أو WOFF2.', true); return; }
+          putFile('customFont', 'media/font.' + e, new Blob([f], { type: FONT_MIME[e] })); show(); schedule();
+        }),
+        scale('حجم الجملة العليا', 'royal.scales.bismillah', 0.5, 1.8, 0.05), scale('حجم نص الدعوة', 'royal.scales.invite', 0.5, 1.8, 0.05),
+        scale('حجم الألقاب وأسماء الآباء', 'royal.scales.family', 0.5, 1.8, 0.05), scale('حجم أسماء العروسين', 'royal.scales.names', 0.5, 1.8, 0.05),
+        el('div', { class: 'g2' }, [color('لون النصوص', 'royal.colors.text'), color('لون أسماء العروسين (أغمق)', 'royal.colors.names')])
+      ]),
+      section('الوضع الملكي — حركة الظهور', [
+        sel('نوع الحركة', 'royal.anim.type', [['rise', 'صعود هادئ'], ['fade', 'ظهور تدريجي'], ['drop', 'نزول هادئ'], ['zoom', 'تقريب ناعم'], ['blur', 'من الضبابية إلى الوضوح'], ['slide', 'انزلاق الأعمدة من الجانبين']]),
+        num('مدة ظهور كل عنصر (ثانية)', 'royal.anim.duration', 0.3, 6, 0.1), num('الفاصل بين العناصر (ثانية)', 'royal.anim.gap', 0, 3, 0.05), num('التأخير بعد فتح الغلاف (ثانية)', 'royal.anim.delay', 0, 6, 0.1),
+        replay, el('p', { class: 'hint', text: 'تبدأ الحركة عند فتح الغلاف. زر الإعادة يعرضها في المعاينة دون الحاجة لفتح الغلاف.' })
+      ]),
+      section('الوضع الملكي — الورقة', [
+        scale('درجة وضوح الورقة (100% معتمة، أقل = أشفّ)', 'royal.paperOpacity', 0.1, 1, 0.05),
+        el('p', { class: 'hint', text: 'الأعمدة والورود تبقى واضحة دائماً، والورقة وحدها تصبح شفافة فتظهر الخلفية من خلالها.' })
+      ]),
+      section('الوضع الملكي — الملصقات والصور والفيديو', [stickerPanel()])
+    ]);
+    wrapEl.hidden = state.cfg.layout.mode !== 'royal';
+    return wrapEl;
+  }
+
   /* ---------- build the form ---------- */
   function buildForm() {
     var F = $('form'); F.innerHTML = '';
     var cfg = state.cfg;
+
+    /* layout mode: keeps the current look or switches to the royal one */
+    var panels = royalPanels();
+    var modeSel = el('select', {}, [el('option', { value: 'classic', text: 'الوضع الحالي (الأوراق الممزقة)' }), el('option', { value: 'royal', text: 'الوضع الجديد (ملكي: أعمدة وورود)' })]);
+    modeSel.value = cfg.layout.mode === 'royal' ? 'royal' : 'classic';
+    modeSel.addEventListener('input', function () { state.cfg.layout.mode = modeSel.value; panels.hidden = modeSel.value !== 'royal'; schedule(); });
+    F.appendChild(el('div', { class: 'modebox' }, [wrap('شكل الدعوة', modeSel, 'الدعوات المحفوظة سابقاً تبقى كما هي ما لم تغيّر هذا الخيار وتعيد حفظها.')]));
+    F.appendChild(panels);
 
     /* 1 basics */
     var slug = el('input', { type: 'text', dir: 'ltr', placeholder: 'ahmed-and-sara', maxlength: 40 });
@@ -365,7 +481,7 @@
       '<meta property="og:image" content="' + img + '">\n<meta property="og:image:width" content="1200">\n<meta property="og:image:height" content="630">\n<meta property="og:url" content="' + url + '">\n' +
       '<meta name="twitter:card" content="summary_large_image">\n<meta name="twitter:image" content="' + img + '">\n' +
       '<style>html{color-scheme:light}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>\n' +
-      '<link rel="preconnect" href="https://fonts.googleapis.com">\n<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Aref+Ruqaa:wght@400;700&family=Cinzel:wght@400;600&display=swap" rel="stylesheet">\n' +
+      '<link rel="preconnect" href="https://fonts.googleapis.com">\n<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Aref+Ruqaa:wght@400;700&family=Cinzel:wght@400;600&family=Katibeh&family=Lateef:wght@400;700&family=Reem+Kufi:wght@400;700&family=Mirza:wght@400;700&family=Scheherazade+New:wght@400;700&display=swap" rel="stylesheet">\n' +
       '<link rel="stylesheet" href="/invites/_template/invite.css">\n</head>\n<body>\n<noscript>يتطلب عرض الدعوة تفعيل JavaScript.</noscript>\n<script src="/invites/_template/invite.js"></script>\n</body>\n</html>\n';
   }
   function readme(slug) {
@@ -391,7 +507,12 @@
     var slug = state.slug, m = c.media;
     status('جاري تجهيز الملفات…');
     var entries = [], jobs = [], bundled = {};
-    ['cover', 'coverPoster', 'bg', 'bgWebm', 'bgPoster', 'music'].forEach(function (k) {
+    c.stickers = (c.stickers || []).filter(function (s) {
+      if (!s || !s.src) return false;
+      if (files[s.src]) { var nm = s.src; jobs.push(blobBytes(files[nm]).then(function (b) { if (!bundled[nm]) { bundled[nm] = 1; entries.push({ name: slug + '/' + nm, data: b }); } })); return true; }
+      return !/^media\//.test(s.src);
+    });
+    ['cover', 'coverPoster', 'bg', 'bgWebm', 'bgPoster', 'music', 'customFont'].forEach(function (k) {
       var v = m[k]; if (typeof v !== 'string' || !v) return;
       if (/^\/invites\/_template\/media\//.test(v)) {
         var rel = 'media/' + v.split('/').pop();
@@ -421,7 +542,12 @@
     var c = precheck(); if (!c) return;
     status('جاري الحفظ ورفع الملفات… قد يستغرق دقيقة');
     var up = {}, m = c.media;
-    ['cover', 'coverPoster', 'bg', 'bgWebm', 'bgPoster', 'music'].forEach(function (k) {
+    c.stickers = (c.stickers || []).filter(function (s) {
+      if (!s || !s.src) return false;
+      if (files[s.src]) { up[s.src] = files[s.src]; return true; }
+      return !/^media\//.test(s.src);
+    });
+    ['cover', 'coverPoster', 'bg', 'bgWebm', 'bgPoster', 'music', 'customFont'].forEach(function (k) {
       var v = m[k]; if (!v) return;
       if (files[v]) up[v] = files[v]; else if (/^media\//.test(v)) m[k] = '';
     });

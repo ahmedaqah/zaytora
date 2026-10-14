@@ -61,7 +61,7 @@ function isSaveMessage(value: unknown): value is SaveMessage {
   );
 }
 
-const MEDIA_KEYS = ["cover", "coverPoster", "bg", "bgWebm", "bgPoster", "music"] as const;
+const MEDIA_KEYS = ["cover", "coverPoster", "bg", "bgWebm", "bgPoster", "music", "customFont"] as const;
 
 export default function AdminInviteBuilderPage() {
   const { language } = useLanguage();
@@ -92,6 +92,12 @@ export default function AdminInviteBuilderPage() {
           if (typeof value === "string" && uploaded[value]) media[key] = uploaded[value];
         }
         config.media = media;
+        if (Array.isArray(config.stickers)) {
+          config.stickers = config.stickers.map((item) => {
+            if (!isRecord(item) || typeof item.src !== "string" || !uploaded[item.src]) return item;
+            return { ...item, src: uploaded[item.src] };
+          });
+        }
         if (typeof config.ogImage === "string" && uploaded[config.ogImage]) config.ogImage = uploaded[config.ogImage];
 
         const saved = await savePrivateInvite(msg.slug, { title: msg.title, config });

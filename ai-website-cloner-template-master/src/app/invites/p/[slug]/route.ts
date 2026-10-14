@@ -161,7 +161,7 @@ ${image ? `<meta property="og:image" content="${esc(image)}">\n<meta property="o
 <meta name="twitter:card" content="summary_large_image">
 <style>html{color-scheme:light}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Aref+Ruqaa:wght@400;700&family=Cinzel:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Aref+Ruqaa:wght@400;700&family=Cinzel:wght@400;600&family=Katibeh&family=Lateef:wght@400;700&family=Reem+Kufi:wght@400;700&family=Mirza:wght@400;700&family=Scheherazade+New:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/invites/_template/invite.css">
 </head>
 <body>

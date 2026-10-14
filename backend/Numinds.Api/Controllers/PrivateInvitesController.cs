@@ -29,6 +29,11 @@ public partial class PrivateInvitesController(NumindsDbContext db, IFileStorageS
         ["image/png"] = ".png",
         ["image/jpeg"] = ".jpg",
         ["image/webp"] = ".webp",
+        ["image/gif"] = ".gif",
+        ["font/woff2"] = ".woff2",
+        ["font/woff"] = ".woff",
+        ["font/ttf"] = ".ttf",
+        ["font/otf"] = ".otf",
         ["video/mp4"] = ".mp4",
         ["video/webm"] = ".webm",
         ["audio/mpeg"] = ".mp3",
@@ -149,7 +154,7 @@ public partial class PrivateInvitesController(NumindsDbContext db, IFileStorageS
         }
         if (!AllowedMediaContentTypes.TryGetValue(file.ContentType.ToLowerInvariant(), out var extension))
         {
-            return BadRequest(new { message = "Unsupported file type. Use JPG/PNG/WebP, MP4/WebM, MP3/M4A or HTML." });
+            return BadRequest(new { message = "Unsupported file type. Use JPG/PNG/WebP/GIF, MP4/WebM, MP3/M4A, WOFF2/TTF/OTF fonts or HTML." });
         }
 
         var url = await storage.UploadAsync(file, MediaFolder, extension, $"{Request.Scheme}://{Request.Host}", cancellationToken);
@@ -190,6 +195,16 @@ public partial class PrivateInvitesController(NumindsDbContext db, IFileStorageS
             if (doc.RootElement.TryGetProperty("ogImage", out var og))
             {
                 AddIfUploaded(urls, og);
+            }
+            if (doc.RootElement.TryGetProperty("stickers", out var stickers) && stickers.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var sticker in stickers.EnumerateArray())
+                {
+                    if (sticker.ValueKind == JsonValueKind.Object && sticker.TryGetProperty("src", out var src))
+                    {
+                        AddIfUploaded(urls, src);
+                    }
+                }
             }
         }
         catch (JsonException)

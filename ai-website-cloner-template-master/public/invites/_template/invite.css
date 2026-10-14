@@ -210,3 +210,79 @@ footer .foot-note{font-family:var(--latin);font-size:11px;letter-spacing:.3em;co
 .cta{display:flex;flex-direction:column;align-items:center;gap:8px;margin-top:4px;width:100%;padding-top:14px;border-top:1px solid rgba(200,162,74,.55)}
 .cta[hidden]{display:none}
 .cta p{font-family:var(--script);font-size:calc(20px*var(--ts,1));color:var(--olive);line-height:1.6}
+
+/* ====================================================================
+   ROYAL layout (config layout.mode = "royal"): an opening scene on the page background, then one continuous
+   marble-column / rose / parchment sheet that carries every detail section. Classic invitations never get
+   the .royal classes, so nothing above changes for them.
+   ==================================================================== */
+body.royal{padding-inline:0}
+main.royal{max-width:520px;padding-block:0 28px;gap:0;overflow-x:clip}
+
+/* opening scene */
+.r-scene{container-type:inline-size;position:relative;min-height:100svh;display:flex;align-items:center;justify-content:center;padding:7svh 18px 8svh;color:var(--r-text,#4a3b30)}
+.r-sc{position:relative;z-index:2;width:100%;display:flex;flex-direction:column;align-items:center;text-align:center;gap:4.2cqw}
+.r-bis{font-family:var(--f-b);font-size:calc(9.5cqw*var(--sb,1));line-height:1.5;color:var(--r-text);margin:0}
+.r-inv{font-family:var(--f-i);font-size:calc(5.4cqw*var(--si,1));line-height:1.8;color:var(--r-text);max-width:30ch}
+.r-fam{display:grid;grid-template-columns:1fr 1fr;gap:3cqw;width:100%;margin-top:2cqw}
+.r-col{display:flex;flex-direction:column;align-items:center;gap:1.4cqw;min-width:0}
+.r-t{font-family:var(--f-t);font-size:calc(4.6cqw*var(--sf,1));color:var(--r-text);line-height:1.5}
+.r-w{display:inline-flex;align-items:center;gap:1.6cqw;justify-content:center}
+.r-w svg{width:9cqw;height:2.2cqw;flex:none;color:var(--r-text);opacity:.8}
+.r-w svg:last-child{transform:scaleX(-1)}
+.r-f{font-family:var(--f-f);font-size:calc(6cqw*var(--sf,1));line-height:1.45;color:var(--r-text);text-wrap:balance;overflow-wrap:anywhere}
+.r-orn{width:26cqw;height:3cqw;color:var(--r-text);opacity:.85;margin-block:1cqw}
+.r-n{font-family:var(--f-n);font-size:calc(11.5cqw*var(--sn,1));line-height:1.35;color:var(--r-names);font-weight:400;text-wrap:balance;overflow-wrap:anywhere;margin-top:.5cqw}
+.r-date{font-family:var(--latin);font-size:4.4cqw;letter-spacing:.3em;color:var(--r-text);direction:ltr;margin-top:2cqw}
+
+/* gentle entrance of the scene items, started when the cover opens (class .go). Each item: delay + index * gap */
+.r-scene .r-el{animation-name:var(--k,rfade);animation-duration:var(--ad,1.8s);animation-timing-function:cubic-bezier(.22,.7,.2,1);animation-fill-mode:both;
+  animation-delay:calc(var(--rd,.5s) + var(--i,0)*var(--rg,.55s));animation-play-state:paused}
+.r-scene.go .r-el{animation-play-state:running}
+.r-scene.still .r-el{animation:none}
+.an-rise .r-el{--k:rrise}.an-fade .r-el{--k:rfade}.an-drop .r-el{--k:rdrop}.an-zoom .r-el{--k:rzoom}.an-blur .r-el{--k:rblur}
+.an-slide .r-el{--k:rrise}.an-slide .rc-r{--k:rslr}.an-slide .rc-l{--k:rsll}
+@keyframes rfade{from{opacity:0}to{opacity:1}}
+@keyframes rrise{from{opacity:0;transform:translateY(5cqw)}to{opacity:1;transform:none}}
+@keyframes rdrop{from{opacity:0;transform:translateY(-5cqw)}to{opacity:1;transform:none}}
+@keyframes rzoom{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}
+@keyframes rblur{from{opacity:0;filter:blur(12px)}to{opacity:1;filter:none}}
+@keyframes rslr{from{opacity:0;transform:translateX(12cqw)}to{opacity:1;transform:none}}
+@keyframes rsll{from{opacity:0;transform:translateX(-12cqw)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.r-scene .r-el{animation:none!important}}
+
+/* the continuous sheet: paper layer (adjustable opacity) under the marble/rose frame layer, content on top */
+.r-sheet{container-type:inline-size;position:relative;width:100%}
+.r-in{position:relative;z-index:2;min-height:134.4cqw;padding:28cqw 15cqw 26cqw;display:flex;flex-direction:column;gap:6cqw}
+.rl{position:absolute;inset:0;pointer-events:none}
+.rl i{position:absolute;left:0;width:100%;background-repeat:no-repeat;background-size:100% 100%}
+.rl .t{top:0;height:90.82cqw}
+.rl .b{bottom:0;height:43.55cqw}
+.rl .m{top:calc(90.82cqw - 1px);bottom:calc(43.55cqw - 1px);background-size:100% 31.25cqw;background-repeat:repeat-y}
+.rl-p{z-index:0;opacity:var(--rpo,1);filter:drop-shadow(0 6px 12px rgba(40,25,10,.28))}
+.rl-f{z-index:1}
+.rl-p .t{background-image:url(/invites/_template/img/royal-top-paper.webp)}
+.rl-p .m{background-image:url(/invites/_template/img/royal-mid-paper.webp)}
+.rl-p .b{background-image:url(/invites/_template/img/royal-bot-paper.webp)}
+.rl-f .t{background-image:url(/invites/_template/img/royal-top-frame.webp)}
+.rl-f .m{background-image:url(/invites/_template/img/royal-mid-frame.webp)}
+.rl-f .b{background-image:url(/invites/_template/img/royal-bot-frame.webp)}
+
+/* detail sections on the sheet (same inner markup as the classic paper cards, no card of their own) */
+.rsec{position:relative;display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;width:100%}
+.rsec+.rsec{padding-top:2cqw}
+.rsec .closing-space{height:6px}
+.rsec .card,.rsec .rule-item{background:rgba(255,250,242,.38)}
+.anim .rsec:not(.in) .rv{opacity:0;transform:translateY(26px)}
+.anim .rsec:not(.in) .tl li.rv{transform:translateX(-26px)}
+.anim .rsec:not(.in) .tl::before{opacity:0}
+.rsec .sign{font-size:calc(clamp(34px,10cqw,46px)*var(--ns,1))}
+
+/* stickers: images, GIFs, transparent PNGs, videos. Position is a percentage of the scene or the sheet; size in cqw */
+.stk{position:absolute;transform:translate(-50%,-50%) rotate(var(--rot,0deg));pointer-events:none;line-height:0}
+.stk img,.stk video{display:block;width:100%;height:auto;object-fit:contain;background:transparent;-webkit-user-drag:none;user-select:none}
+.stk.flo{animation:stkfloat 6s ease-in-out infinite alternate}
+@keyframes stkfloat{from{translate:0 -1.2cqw}to{translate:0 1.2cqw}}
+@media (prefers-reduced-motion:reduce){.stk.flo{animation:none}}
+.pv .stk{pointer-events:auto;cursor:grab;touch-action:none;outline:1px dashed rgba(168,131,47,.7);outline-offset:2px}
+.pv .stk:active{cursor:grabbing}
