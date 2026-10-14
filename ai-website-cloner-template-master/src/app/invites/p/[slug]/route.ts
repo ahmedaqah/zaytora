@@ -1,4 +1,5 @@
 import { API_BASE_URL } from "@/lib/api/config";
+import { applyCustomOverrides, CUSTOM_INVITE_KIND } from "@/lib/customInvite";
 
 // Public page of an invitation saved from /admin/invite-builder. The content comes from the
 // API and is inlined into the HTML so the shared renderer (public/invites/_template/invite.js)
@@ -57,6 +58,45 @@ function notFound(): Response {
   );
 }
 
+// Finished, self-contained invitation pages imported from /admin/private-invites (config.kind ===
+// "custom-html", see src/lib/customInvite.ts). The page's HTML lives in storage; it is fetched here and
+// served under this URL with the current music swapped in, so a music change takes effect without
+// re-uploading the page, and with og:url / og:image pointing at this URL for link previews.
+async function serveCustomInvite(slug: string, config: Config, request: Request): Promise<Response> {
+  const media = obj(config.media);
+  const pageUrl = str(media.page);
+  if (!/^https:\/\//i.test(pageUrl)) return notFound();
+
+  let html: string | null = null;
+  for (const timeoutMs of [15_000, 25_000]) {
+    try {
+      const res = await fetch(pageUrl, { cache: "no-store", signal: AbortSignal.timeout(timeoutMs) });
+      if (res.ok) {
+        html = await res.text();
+        break;
+      }
+    } catch {
+      // timed out or network error: try again
+    }
+  }
+  if (html === null) {
+    return page(503, "<!doctype html><meta charset=utf-8><p>تعذّر تحميل الدعوة، حاول مجدداً بعد قليل.</p>");
+  }
+
+  const music = str(media.music);
+  const meta = obj(config.meta);
+  return page(
+    200,
+    applyCustomOverrides(html, {
+      url: `${SITE_ORIGIN}/invites/p/${slug}${new URL(request.url).search}`,
+      ogImage: absoluteUrl(str(config.ogImage)),
+      music: /^https:\/\//i.test(music) ? music : "",
+      title: str(meta.title),
+      description: str(meta.description),
+    })
+  );
+}
+
 export async function GET(request: Request, context: { params: Promise<{ slug: string }> }): Promise<Response> {
   const { slug } = await context.params;
   if (!SLUG.test(slug) || !API_BASE_URL) return notFound();
@@ -85,6 +125,7 @@ export async function GET(request: Request, context: { params: Promise<{ slug: s
     return page(503, "<!doctype html><meta charset=utf-8><p>تعذّر تحميل الدعوة، حاول مجدداً بعد قليل.</p>");
   }
   const config: Config = loaded;
+  if (str(config.kind) === CUSTOM_INVITE_KIND) return serveCustomInvite(slug, config, request);
 
   const hero = obj(config.hero);
   const meta = obj(config.meta);

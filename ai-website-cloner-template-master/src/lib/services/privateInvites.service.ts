@@ -34,7 +34,13 @@ export function deletePrivateInvite(slug: string) {
   return apiClient.delete<void>(`/private-invites/${encodeURIComponent(slug)}`, { timeoutMs: 30_000 });
 }
 
-// Admin — uploads one image/video/audio file and returns its public URL. Raw multipart
+// Admin — deletes one previously uploaded media file (e.g. the old music after it was replaced).
+// Best effort on the server: a URL that is not in the invitations' storage folder is rejected.
+export function deletePrivateInviteMedia(url: string) {
+  return apiClient.delete<void>(`/private-invites/media?url=${encodeURIComponent(url)}`, { timeoutMs: 30_000 });
+}
+
+// Admin — uploads one image/video/audio file (or an imported invitation's HTML page) and returns its public URL. Raw multipart
 // fetch (apiClient always JSON-encodes), same pattern as uploadThankYouSuggestionImage.
 export async function uploadPrivateInviteMedia(file: File): Promise<{ url: string }> {
   const formData = new FormData();

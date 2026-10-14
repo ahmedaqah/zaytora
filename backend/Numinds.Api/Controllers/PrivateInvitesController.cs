@@ -37,6 +37,9 @@ public partial class PrivateInvitesController(NumindsDbContext db, IFileStorageS
         ["audio/aac"] = ".aac",
         ["audio/ogg"] = ".ogg",
         ["audio/wav"] = ".wav",
+        // The page of an imported finished invitation (config.kind == "custom-html"). Admin-only upload;
+        // the Next.js route fetches it server-side and serves it under /invites/p/<slug>.
+        ["text/html"] = ".html",
     };
 
     [GeneratedRegex("^[a-z0-9][a-z0-9-]{1,39}$")]
@@ -71,7 +74,7 @@ public partial class PrivateInvitesController(NumindsDbContext db, IFileStorageS
         [FromBody] PrivateInviteWriteRequest request,
         CancellationToken cancellationToken)
     {
-        if (!SlugPattern().IsMatch(slug))
+        if (!SlugPattern().IsMatch(slug) || slug == "media")
         {
             return BadRequest(new { message = "Slug must be 2-40 characters: lowercase English letters, digits and hyphens." });
         }
@@ -146,11 +149,27 @@ public partial class PrivateInvitesController(NumindsDbContext db, IFileStorageS
         }
         if (!AllowedMediaContentTypes.TryGetValue(file.ContentType.ToLowerInvariant(), out var extension))
         {
-            return BadRequest(new { message = "Unsupported file type. Use JPG/PNG/WebP, MP4/WebM or MP3/M4A." });
+            return BadRequest(new { message = "Unsupported file type. Use JPG/PNG/WebP, MP4/WebM, MP3/M4A or HTML." });
         }
 
         var url = await storage.UploadAsync(file, MediaFolder, extension, $"{Request.Scheme}://{Request.Host}", cancellationToken);
         return Ok(new PrivateInviteMediaUploadResponse { Url = url });
+    }
+
+    // Deletes one file previously uploaded through POST media (for example the old music after it was
+    // replaced). Only URLs inside this controller's own folder are accepted, and DeleteAsync itself
+    // ignores anything that is not an R2-hosted file.
+    [HttpDelete("media")]
+    [Authorize(Roles = Roles.Admin)]
+    public async Task<IActionResult> DeleteMedia([FromQuery] string url, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(url) || !url.Contains($"/{MediaFolder}/", StringComparison.Ordinal))
+        {
+            return BadRequest(new { message = "Not an invitation media URL." });
+        }
+
+        await storage.DeleteAsync(url, cancellationToken);
+        return NoContent();
     }
 
     // Only files this controller uploaded (their URL contains /private-invites/) are ever
