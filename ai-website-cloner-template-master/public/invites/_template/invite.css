@@ -256,17 +256,40 @@ main.royal{max-width:520px;padding-block:0 28px;gap:0;overflow-x:clip}
 .r-in{position:relative;z-index:2;min-height:134.4cqw;padding:28cqw 15cqw 26cqw;display:flex;flex-direction:column;gap:6cqw}
 .rl{position:absolute;inset:0;pointer-events:none}
 .rl i{position:absolute;left:0;width:100%;background-repeat:no-repeat;background-size:100% 100%}
-.rl .t{top:0;height:90.82cqw}
-.rl .b{bottom:0;height:43.55cqw}
-.rl .m{top:calc(90.82cqw - 1px);bottom:calc(43.55cqw - 1px);background-size:100% 31.25cqw;background-repeat:repeat-y}
+.rl .t{top:0;height:var(--t)}
+.rl .b{bottom:0;height:var(--b)}
+.rl .m{top:calc(var(--t) - 1px);bottom:calc(var(--b) - 1px);background-size:100% var(--mt);background-repeat:repeat-y}
 .rl-p{z-index:0;opacity:var(--rpo,1);filter:drop-shadow(0 6px 12px rgba(40,25,10,.28))}
 .rl-f{z-index:1}
-.rl-p .t{background-image:url(/invites/_template/img/royal-top-paper.webp)}
-.rl-p .m{background-image:url(/invites/_template/img/royal-mid-paper.webp)}
-.rl-p .b{background-image:url(/invites/_template/img/royal-bot-paper.webp)}
-.rl-f .t{background-image:url(/invites/_template/img/royal-top-frame.webp)}
-.rl-f .m{background-image:url(/invites/_template/img/royal-mid-frame.webp)}
-.rl-f .b{background-image:url(/invites/_template/img/royal-bot-frame.webp)}
+/* paper designs: image set + slice heights (in cqw of the card width) */
+.rs-columns{--t:90.82cqw;--b:43.55cqw;--mt:31.25cqw}
+.rs-rose{--t:41.02cqw;--b:45.51cqw;--mt:31.25cqw}
+.rs-gold{--t:55.51cqw;--b:54.12cqw;--mt:13.88cqw}
+.rs-columns .rl-p .t{background-image:url(/invites/_template/img/royal-top-paper.webp)}
+.rs-columns .rl-p .m{background-image:url(/invites/_template/img/royal-mid-paper.webp)}
+.rs-columns .rl-p .b{background-image:url(/invites/_template/img/royal-bot-paper.webp)}
+.rs-columns .rl-f .t{background-image:url(/invites/_template/img/royal-top-frame.webp)}
+.rs-columns .rl-f .m{background-image:url(/invites/_template/img/royal-mid-frame.webp)}
+.rs-columns .rl-f .b{background-image:url(/invites/_template/img/royal-bot-frame.webp)}
+.rs-rose .rl-p .t{background-image:url(/invites/_template/img/rose-top-paper.webp)}
+.rs-rose .rl-p .m{background-image:url(/invites/_template/img/rose-mid-paper.webp)}
+.rs-rose .rl-p .b{background-image:url(/invites/_template/img/rose-bot-paper.webp)}
+.rs-rose .rl-f .t{background-image:url(/invites/_template/img/rose-top-frame.webp)}
+.rs-rose .rl-f .m{background-image:url(/invites/_template/img/rose-mid-frame.webp)}
+.rs-rose .rl-f .b{background-image:url(/invites/_template/img/rose-bot-frame.webp)}
+.rs-gold .rl-p .t{background-image:url(/invites/_template/img/gold-top-paper.webp)}
+.rs-gold .rl-p .m{background-image:url(/invites/_template/img/gold-mid-paper.webp)}
+.rs-gold .rl-p .b{background-image:url(/invites/_template/img/gold-bot-paper.webp)}
+.rs-gold .rl-f .t{background-image:url(/invites/_template/img/gold-top-frame.webp)}
+.rs-gold .rl-f .m{background-image:url(/invites/_template/img/gold-mid-frame.webp)}
+.rs-gold .rl-f .b{background-image:url(/invites/_template/img/gold-bot-frame.webp)}
+
+/* card styles: every section is its own sheet */
+.r-cards{container-type:inline-size;position:relative;width:100%;display:flex;flex-direction:column;gap:5cqw}
+.r-card{container-type:inline-size;position:relative;width:100%}
+.r-cin{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.rs-rose .r-cin{min-height:calc(var(--t) + var(--b));padding:23cqw 18cqw}
+.rs-gold .r-cin{min-height:calc(var(--t) + var(--b));padding:22cqw 19cqw}
 
 /* detail sections on the sheet (same inner markup as the classic paper cards, no card of their own) */
 .rsec{position:relative;display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;width:100%}
@@ -286,3 +309,14 @@ main.royal{max-width:520px;padding-block:0 28px;gap:0;overflow-x:clip}
 @media (prefers-reduced-motion:reduce){.stk.flo{animation:none}}
 .pv .stk{pointer-events:auto;cursor:grab;touch-action:none;outline:1px dashed rgba(168,131,47,.7);outline-offset:2px}
 .pv .stk:active{cursor:grabbing}
+
+/* outline + shadow of the opening scene texts (set from the builder: royal.fx) */
+.r-sc{text-shadow:var(--fx-sh,none);-webkit-text-stroke:var(--fx-w,0px) var(--fx-c,#fff);paint-order:stroke fill}
+.r-sc .r-orn,.r-sc .r-w svg{filter:drop-shadow(0 0 0 transparent)}
+
+/* narrower writing area inside the card frames: scale the big type with the card */
+.r-card .cell b{font-size:clamp(22px,7.4cqw,38px)}
+.r-card .cell span{font-size:calc(clamp(12px,3.6cqw,16px)*var(--ts,1))}
+.r-card .title{font-size:calc(clamp(21px,6.2cqw,30px)*var(--ts,1));gap:6px}
+.r-card .title svg{width:7cqw}
+.rs-gold .r-cin{padding-inline:17cqw}

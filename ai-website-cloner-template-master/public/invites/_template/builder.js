@@ -33,6 +33,7 @@
     var c = clone(state.cfg);
     Object.keys(c.media).forEach(function (k) { var v = c.media[k]; if (typeof v === 'string' && urls[v]) c.media[k] = urls[v]; });
     (c.stickers || []).forEach(function (s) { if (s && urls[s.src]) s.src = urls[s.src]; });
+    ((c.royal && c.royal.customFonts) || []).forEach(function (f) { if (f && urls[f.src]) f.src = urls[f.src]; });
     return c;
   }
   function pushPreview(replay) {
@@ -59,6 +60,7 @@
     // uploaded files do not survive a reload: drop media that pointed at them
     var m = cfg.media || {};
     ['cover', 'coverPoster', 'bg', 'bgWebm', 'bgPoster', 'music', 'customFont'].forEach(function (k) { if (typeof m[k] === 'string' && /^media\//.test(m[k]) && !files[m[k]]) m[k] = ''; });
+    if (cfg.royal) cfg.royal.customFonts = (Array.isArray(cfg.royal.customFonts) ? cfg.royal.customFonts : []).filter(function (f) { return f && f.id && f.src && !(/^media\//.test(f.src) && !files[f.src]); });
     cfg.stickers = (Array.isArray(cfg.stickers) ? cfg.stickers : []).filter(function (s) { return s && s.src && !(/^media\//.test(s.src) && !files[s.src]); });
     return cfg;
   }
@@ -185,7 +187,90 @@
 
 
   /* ---------- royal layout panels ---------- */
-  var FONT_OPTS = [['katibeh', 'كتيبة (الأقرب لخط الثلث)'], ['aref', 'عارف رقعة'], ['amiri', 'أميري (نسخ)'], ['lateef', 'لطيف'], ['scheherazade', 'شهرزاد'], ['mirza', 'ميرزا'], ['reem', 'ريم كوفي'], ['cinzel', 'Cinzel (لاتيني)'], ['custom', 'الخط المرفوع (مثلاً خط الثلث)']];
+  var FONT_OPTS = [['katibeh', 'كتيبة (الأقرب لخط الثلث)'], ['aref', 'عارف رقعة'], ['amiri', 'أميري (نسخ)'], ['lateef', 'لطيف'], ['scheherazade', 'شهرزاد'], ['mirza', 'ميرزا'], ['reem', 'ريم كوفي'], ['cinzel', 'Cinzel (لاتيني)']];
+  var fontSels = [];
+  function fontOptions() {
+    var mine = ((state.cfg.royal && state.cfg.royal.customFonts) || []).map(function (f) { return ['cf:' + f.id, (f.name || 'خط مرفوع') + ' (مرفوع)']; });
+    return FONT_OPTS.concat(mine);
+  }
+  function fillFontSel(s, path) {
+    var cur = get(state.cfg, path) || 'katibeh', opts = fontOptions();
+    s.innerHTML = ''; opts.forEach(function (o) { s.appendChild(el('option', { value: o[0], text: o[1] })); });
+    if (!opts.some(function (o) { return o[0] === cur; }) && cur !== 'custom') { cur = 'katibeh'; set(state.cfg, path, cur); }
+    if (cur === 'custom') s.appendChild(el('option', { value: 'custom', text: 'الخط المرفوع القديم' }));
+    s.value = cur;
+  }
+  function fontSel(label, path) {
+    var s = el('select', {}); fillFontSel(s, path); fontSels.push([s, path]);
+    s.addEventListener('input', function () { set(state.cfg, path, s.value); schedule(); });
+    return wrap(label, s);
+  }
+  function refreshFontSelects() { fontSels.forEach(function (p) { fillFontSel(p[0], p[1]); }); }
+  /* fonts you upload are kept in this browser (IndexedDB), so they can be reused in any new invitation */
+  function libDb() {
+    return new Promise(function (res, rej) {
+      if (!window.indexedDB) { rej(new Error('no idb')); return; }
+      var r = indexedDB.open('zaytora-fonts', 1);
+      r.onupgradeneeded = function () { r.result.createObjectStore('fonts', { keyPath: 'id' }); };
+      r.onsuccess = function () { res(r.result); }; r.onerror = function () { rej(r.error); };
+    });
+  }
+  function libOp(mode, fn) {
+    return libDb().then(function (db) { return new Promise(function (res, rej) { var tx = db.transaction('fonts', mode), q = fn(tx.objectStore('fonts')); tx.oncomplete = function () { res(q && q.result); }; tx.onerror = function () { rej(tx.error); }; }); });
+  }
+  function addFontToInvite(blob, name, e) {
+    var id = 'f' + Date.now().toString(36) + Math.floor(Math.random() * 1000), src = 'media/font-' + id + '.' + e, b = new Blob([blob], { type: FONT_MIME[e] });
+    files[src] = b; urls[src] = URL.createObjectURL(b);
+    state.cfg.royal.customFonts.push({ id: id, name: name, src: src });
+  }
+  function fontPanel() {
+    var box = el('div', { class: 'sec', style: 'padding:0' }), lib = [];
+    function draw() {
+      box.innerHTML = '';
+      var list = state.cfg.royal.customFonts;
+      box.appendChild(el('b', { text: 'الخطوط المضافة لهذه الدعوة' }));
+      if (!list.length) box.appendChild(el('p', { class: 'hint', text: 'لا توجد خطوط مرفوعة بعد.' }));
+      list.forEach(function (f, i) {
+        var nm = el('input', { type: 'text' }); nm.value = f.name || '';
+        nm.addEventListener('input', function () { f.name = nm.value; refreshFontSelects(); schedule(); });
+        var del = el('button', { type: 'button', class: 'sm del', text: 'إزالة' });
+        del.addEventListener('click', function () {
+          if (files[f.src]) { URL.revokeObjectURL(urls[f.src]); delete files[f.src]; delete urls[f.src]; }
+          list.splice(i, 1); refreshFontSelects(); draw(); schedule();
+        });
+        box.appendChild(el('div', { class: 'item' }, [el('div', { class: 'h' }, [wrap('اسم الخط', nm), el('div', { class: 'row' }, [del])])]));
+      });
+      var inp = el('input', { type: 'file', accept: '.ttf,.otf,.woff2,.woff' });
+      inp.addEventListener('change', function () {
+        var f = inp.files[0]; if (!f) return; inp.value = '';
+        var e = ext(f.name); if (!FONT_MIME[e]) { status('نوع الخط غير مدعوم. استخدم TTF أو OTF أو WOFF2.', true); return; }
+        if (f.size > 8 * 1024 * 1024) { status('ملف الخط كبير (أكثر من 8 MB).', true); return; }
+        var name = f.name.replace(/\.[^.]+$/, '');
+        addFontToInvite(f, name, e);
+        libOp('readwrite', function (st) { return st.put({ id: 'l' + Date.now().toString(36) + Math.floor(Math.random() * 1000), name: name, ext: e, blob: new Blob([f], { type: FONT_MIME[e] }) }); })
+          .then(loadLib).catch(function () { status('أُضيف الخط للدعوة، لكن تعذّر حفظه في مكتبة المتصفح.', true); });
+        refreshFontSelects(); draw(); schedule();
+      });
+      box.appendChild(el('div', { class: 'media' }, [el('b', { text: 'إضافة خط جديد' }),
+        el('p', { class: 'hint', text: 'ارفع TTF أو OTF أو WOFF2 (مثل خط الثلث) بترخيص يسمح باستخدامه. يمكنك رفع أكثر من خط، ويُحفظ كل خط في «مكتبتي» لتستخدمه في أي دعوة لاحقة من هذا المتصفح. ثم اخترْه من قوائم الخطوط أعلاه.' }), inp]));
+      if (lib.length) {
+        box.appendChild(el('b', { text: 'مكتبتي (محفوظة في هذا المتصفح)' }));
+        lib.forEach(function (r) {
+          var use = el('button', { type: 'button', class: 'sm', text: 'إضافة لهذه الدعوة' });
+          use.addEventListener('click', function () {
+            if (list.some(function (f) { return f.name === r.name; }) && !confirm('هذا الخط مضاف بالفعل. إضافته مرة أخرى؟')) return;
+            addFontToInvite(r.blob, r.name, r.ext); refreshFontSelects(); draw(); schedule();
+          });
+          var rm = el('button', { type: 'button', class: 'sm del', text: 'حذف من المكتبة' });
+          rm.addEventListener('click', function () { libOp('readwrite', function (st) { return st.delete(r.id); }).then(loadLib); });
+          box.appendChild(el('div', { class: 'item' }, [el('div', { class: 'h' }, [el('b', { text: r.name }), el('div', { class: 'row' }, [use, rm])])]));
+        });
+      }
+    }
+    function loadLib() { return libOp('readonly', function (st) { return st.getAll(); }).then(function (all) { lib = all || []; draw(); }).catch(function () { draw(); }); }
+    draw(); loadLib();
+    return box;
+  }
   var FONT_MIME = { ttf: 'font/ttf', otf: 'font/otf', woff2: 'font/woff2', woff: 'font/woff' };
   function sel(label, path, opts) {
     var s = el('select', {}, opts.map(function (o) { return el('option', { value: o[0], text: o[1] }); }));
@@ -242,7 +327,7 @@
     return box;
   }
   function royalPanels() {
-    var R = state.cfg.royal;
+    var R = state.cfg.royal; fontSels = [];
     var fam = function (side, label) {
       return el('div', { class: 'item' }, [el('div', { class: 'h' }, [el('b', { text: label })]),
         el('div', { class: 'g2' }, [text('اللقب', 'royal.' + side + '.title'), text('اسم الأب / العائلة', 'royal.' + side + '.father')]),
@@ -257,12 +342,9 @@
         check('إظهار التاريخ أسفل الأسماء', 'royal.showDate')
       ], true),
       section('الوضع الملكي — الخطوط والألوان', [
-        sel('خط الجملة العليا', 'royal.fonts.bismillah', FONT_OPTS), sel('خط نص الدعوة', 'royal.fonts.invite', FONT_OPTS),
-        sel('خط الألقاب (السيد / نجله)', 'royal.fonts.titles', FONT_OPTS), sel('خط أسماء الآباء', 'royal.fonts.father', FONT_OPTS), sel('خط أسماء العروسين', 'royal.fonts.names', FONT_OPTS),
-        media('خط مرفوع (مثل خط الثلث)', 'customFont', '.ttf,.otf,.woff2,.woff', 'ارفع ملف الخط إن كان لديك خط ثلث بترخيص مناسب، ثم اخترْ «الخط المرفوع» في القوائم أعلاه. الخطوط الجاهزة هنا لا تتضمن ثلثاً حقيقياً، وكتيبة هي الأقرب.', function (f, show) {
-          var e = ext(f.name); if (!FONT_MIME[e]) { status('نوع الخط غير مدعوم. استخدم TTF أو OTF أو WOFF2.', true); return; }
-          putFile('customFont', 'media/font.' + e, new Blob([f], { type: FONT_MIME[e] })); show(); schedule();
-        }),
+        fontSel('خط الجملة العليا', 'royal.fonts.bismillah'), fontSel('خط نص الدعوة', 'royal.fonts.invite'),
+        fontSel('خط الألقاب (السيد / نجله)', 'royal.fonts.titles'), fontSel('خط أسماء الآباء', 'royal.fonts.father'), fontSel('خط أسماء العروسين', 'royal.fonts.names'),
+        fontPanel(),
         scale('حجم الجملة العليا', 'royal.scales.bismillah', 0.5, 1.8, 0.05), scale('حجم نص الدعوة', 'royal.scales.invite', 0.5, 1.8, 0.05),
         scale('حجم الألقاب وأسماء الآباء', 'royal.scales.family', 0.5, 1.8, 0.05), scale('حجم أسماء العروسين', 'royal.scales.names', 0.5, 1.8, 0.05),
         el('div', { class: 'g2' }, [color('لون النصوص', 'royal.colors.text'), color('لون أسماء العروسين (أغمق)', 'royal.colors.names')])
@@ -272,7 +354,16 @@
         num('مدة ظهور كل عنصر (ثانية)', 'royal.anim.duration', 0.3, 6, 0.1), num('الفاصل بين العناصر (ثانية)', 'royal.anim.gap', 0, 3, 0.05), num('التأخير بعد فتح الغلاف (ثانية)', 'royal.anim.delay', 0, 6, 0.1),
         replay, el('p', { class: 'hint', text: 'تبدأ الحركة عند فتح الغلاف. زر الإعادة يعرضها في المعاينة دون الحاجة لفتح الغلاف.' })
       ]),
+      section('الوضع الملكي — حدود وظلال نصوص البطاقة الأولى', [
+        el('div', { class: 'g2' }, [color('لون الحد (outline)', 'royal.fx.strokeColor'), color('لون الظل', 'royal.fx.shadowColor')]),
+        slider('سمك الحد (0 = بدون)', R.fx, 'strokeW', 0, 10, 0.5, 'px', function () { schedule(); }),
+        sel('نوع الظل', 'royal.fx.shadowType', [['none', 'بدون ظل'], ['soft', 'ظل ناعم'], ['glow', 'توهّج'], ['hard', 'ظل صلب'], ['double', 'ظل مزدوج'], ['long', 'ظل طويل']]),
+        slider('حجم الظل', R.fx, 'shadowSize', 0, 30, 1, 'px', function () { schedule(); }),
+        slider('شدة لون الظل', R.fx, 'shadowOpacity', 0.05, 1, 0.05, '', function () { schedule(); }),
+        el('p', { class: 'hint', text: 'يُطبَّق على كل نصوص البطاقة الأولى (البسملة والأسماء والتاريخ). مفيد لإبراز النص فوق الخلفيات المزدحمة.' })
+      ]),
       section('الوضع الملكي — الورقة', [
+        sel('تصميم الورق', 'royal.paperStyle', [['columns', 'أعمدة ووُرود — ورقة واحدة متصلة'], ['rose', 'إطار الورود الحمراء — كل قسم في ورقة لوحده'], ['gold', 'إطار الورود الذهبي — كل قسم في ورقة لوحده (أطول)']]),
         scale('درجة وضوح الورقة (100% معتمة، أقل = أشفّ)', 'royal.paperOpacity', 0.1, 1, 0.05),
         el('p', { class: 'hint', text: 'الأعمدة والورود تبقى واضحة دائماً، والورقة وحدها تصبح شفافة فتظهر الخلفية من خلالها.' })
       ]),
@@ -512,6 +603,11 @@
       if (files[s.src]) { var nm = s.src; jobs.push(blobBytes(files[nm]).then(function (b) { if (!bundled[nm]) { bundled[nm] = 1; entries.push({ name: slug + '/' + nm, data: b }); } })); return true; }
       return !/^media\//.test(s.src);
     });
+    if (c.royal) c.royal.customFonts = (c.royal.customFonts || []).filter(function (f) {
+      if (!f || !f.src) return false;
+      if (files[f.src]) { var nm = f.src; jobs.push(blobBytes(files[nm]).then(function (b) { if (!bundled[nm]) { bundled[nm] = 1; entries.push({ name: slug + '/' + nm, data: b }); } })); return true; }
+      return !/^media\//.test(f.src);
+    });
     ['cover', 'coverPoster', 'bg', 'bgWebm', 'bgPoster', 'music', 'customFont'].forEach(function (k) {
       var v = m[k]; if (typeof v !== 'string' || !v) return;
       if (/^\/invites\/_template\/media\//.test(v)) {
@@ -546,6 +642,11 @@
       if (!s || !s.src) return false;
       if (files[s.src]) { up[s.src] = files[s.src]; return true; }
       return !/^media\//.test(s.src);
+    });
+    if (c.royal) c.royal.customFonts = (c.royal.customFonts || []).filter(function (f) {
+      if (!f || !f.src) return false;
+      if (files[f.src]) { up[f.src] = files[f.src]; return true; }
+      return !/^media\//.test(f.src);
     });
     ['cover', 'coverPoster', 'bg', 'bgWebm', 'bgPoster', 'music', 'customFont'].forEach(function (k) {
       var v = m[k]; if (!v) return;

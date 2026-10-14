@@ -92,6 +92,15 @@ export default function AdminInviteBuilderPage() {
           if (typeof value === "string" && uploaded[value]) media[key] = uploaded[value];
         }
         config.media = media;
+        if (isRecord(config.royal) && Array.isArray(config.royal.customFonts)) {
+          config.royal = {
+            ...config.royal,
+            customFonts: config.royal.customFonts.map((item) => {
+              if (!isRecord(item) || typeof item.src !== "string" || !uploaded[item.src]) return item;
+              return { ...item, src: uploaded[item.src] };
+            }),
+          };
+        }
         if (Array.isArray(config.stickers)) {
           config.stickers = config.stickers.map((item) => {
             if (!isRecord(item) || typeof item.src !== "string" || !uploaded[item.src]) return item;

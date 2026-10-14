@@ -196,6 +196,17 @@ public partial class PrivateInvitesController(NumindsDbContext db, IFileStorageS
             {
                 AddIfUploaded(urls, og);
             }
+            if (doc.RootElement.TryGetProperty("royal", out var royal) && royal.ValueKind == JsonValueKind.Object
+                && royal.TryGetProperty("customFonts", out var fonts) && fonts.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var font in fonts.EnumerateArray())
+                {
+                    if (font.ValueKind == JsonValueKind.Object && font.TryGetProperty("src", out var fontSrc))
+                    {
+                        AddIfUploaded(urls, fontSrc);
+                    }
+                }
+            }
             if (doc.RootElement.TryGetProperty("stickers", out var stickers) && stickers.ValueKind == JsonValueKind.Array)
             {
                 foreach (var sticker in stickers.EnumerateArray())

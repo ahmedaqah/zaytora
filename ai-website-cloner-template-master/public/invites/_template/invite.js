@@ -51,7 +51,8 @@
       scales: { bismillah: 1, invite: 1, family: 1, names: 1 },
       colors: { text: '#4a3b30', names: '#2a1d15' },
       anim: { type: 'rise', duration: 1.8, gap: 0.55, delay: 0.5 },
-      paperOpacity: 1
+      paperOpacity: 1, paperStyle: 'columns', customFonts: [],
+      fx: { strokeW: 0, strokeColor: '#ffffff', shadowType: 'none', shadowColor: '#000000', shadowSize: 6, shadowOpacity: 0.35 }
     },
     stickers: []
   };
@@ -179,19 +180,39 @@
       return '<div class="stk' + (s.float ? ' flo' : '') + '" data-i="' + i + '" style="' + st + '">' + inner + '</div>';
     }).join('');
   }
-  function fontCss(M) {
-    var u = resolve(M.customFont);
-    return u ? '<style>@font-face{font-family:"ZInvCustom";src:url("' + u.replace(/["\\\n]/g, '') + '");font-display:swap}</style>' : '';
+  function fontCss(M, list) {
+    function face(fam, src) {
+      var u = resolve(src); if (!u) return '';
+      return '@font-face{font-family:"' + fam + '";src:url("' + u.replace(/["\\\n]/g, '') + '");font-display:swap}';
+    }
+    var css = face('ZInvCustom', M.customFont);
+    (Array.isArray(list) ? list : []).forEach(function (f) { if (f && /^[\w-]+$/.test(f.id || '')) css += face('ZF_' + f.id, f.src); });
+    return css ? '<style>' + css + '</style>' : '';
+  }
+  /* outline + shadow for the opening scene's texts */
+  function fxVars(fx) {
+    fx = fx || {};
+    var w = num(fx.strokeW, 0, 0, 10), S = num(fx.shadowSize, 6, 0, 30), ty = fx.shadowType || 'none';
+    var rgb = hex2rgb(fx.shadowColor) || [0, 0, 0], col = 'rgba(' + rgb.join(',') + ',' + num(fx.shadowOpacity, 0.35, 0, 1) + ')';
+    var sh = 'none';
+    if (S > 0) {
+      if (ty === 'soft') sh = '0 ' + (S * 0.3) + 'px ' + S + 'px ' + col;
+      else if (ty === 'glow') sh = '0 0 ' + S + 'px ' + col + ',0 0 ' + (S * 2) + 'px ' + col;
+      else if (ty === 'hard') sh = (S * 0.3) + 'px ' + (S * 0.3) + 'px 0 ' + col;
+      else if (ty === 'double') sh = (S * 0.25) + 'px ' + (S * 0.25) + 'px 0 ' + col + ',' + (S * 0.6) + 'px ' + (S * 0.6) + 'px ' + (S * 0.4) + 'px ' + col;
+      else if (ty === 'long') { var a = []; for (var i = 1; i <= Math.round(S); i++) a.push(i * 0.5 + 'px ' + i * 0.5 + 'px 0 ' + col); sh = a.join(','); }
+    }
+    return ';--fx-sh:' + sh + ';--fx-w:' + w + 'px;--fx-c:' + (hex2rgb(fx.strokeColor) ? fx.strokeColor : '#ffffff');
   }
   function sceneHtml(c, dateText, names) {
     var R = c.royal, H = c.hero, F = R.fonts || {}, SC = R.scales || {}, CO = R.colors || {}, A = R.anim || {};
     var types = ['rise', 'fade', 'drop', 'zoom', 'blur', 'slide'];
     var ty = types.indexOf(A.type) >= 0 ? A.type : 'rise';
-    function ff(k) { return FONTS[F[k]] || FONTS.katibeh; }
+    function ff(k) { var v = F[k]; if (/^cf:[\w-]+$/.test(v || '')) return "'ZF_" + v.slice(3) + "','Katibeh','Amiri',serif"; return FONTS[v] || FONTS.katibeh; }
     var vars = '--f-b:' + ff('bismillah') + ';--f-i:' + ff('invite') + ';--f-t:' + ff('titles') + ';--f-f:' + ff('father') + ';--f-n:' + ff('names') +
       ';--sb:' + num(SC.bismillah, 1, 0.5, 1.8) + ';--si:' + num(SC.invite, 1, 0.5, 1.8) + ';--sf:' + num(SC.family, 1, 0.5, 1.8) + ';--sn:' + num(SC.names, 1, 0.5, 1.8) +
       ';--r-text:' + (hex2rgb(CO.text) ? CO.text : '#4a3b30') + ';--r-names:' + (hex2rgb(CO.names) ? CO.names : '#2a1d15') +
-      ';--ad:' + num(A.duration, 1.8, 0.3, 6) + 's;--rg:' + num(A.gap, 0.55, 0, 3) + 's;--rd:' + num(A.delay, 0.5, 0, 6) + 's';
+      fxVars(R.fx) + ';--ad:' + num(A.duration, 1.8, 0.3, 6) + 's;--rg:' + num(A.gap, 0.55, 0, 3) + 's;--rd:' + num(A.delay, 0.5, 0, 6) + 's';
     var i = 0;
     function el(cls, inner, tag) { var n = i++; return '<' + (tag || 'p') + ' class="r-el ' + cls + '" style="--i:' + n + '">' + inner + '</' + (tag || 'p') + '>'; }
     function col(side, cls, fallback) {
@@ -210,10 +231,17 @@
     if (R.showDate !== false && dateText) h += el('r-date', esc(dateText));
     return h + '</div></section>';
   }
+  function layers() { return ['rl-p', 'rl-f'].map(function (cls) { return '<div class="rl ' + cls + '" aria-hidden="true"><i class="t"></i><i class="m"></i><i class="b"></i></div>'; }).join(''); }
+  function paperStyle(R) { return ['columns', 'rose', 'gold'].indexOf(R.paperStyle) >= 0 ? R.paperStyle : 'columns'; }
   function sheetOpen(c) {
-    var R = c.royal;
-    function layer(cls, k) { return '<div class="rl ' + cls + '" aria-hidden="true"><i class="t"></i><i class="m"></i><i class="b"></i></div>'; }
-    return '<div class="r-sheet" style="--rpo:' + num(R.paperOpacity, 1, 0.1, 1) + '">' + layer('rl-p') + layer('rl-f') + stickersHtml(c.stickers, 'page') + '<div class="r-in">';
+    var R = c.royal, st = paperStyle(R), v = '--rpo:' + num(R.paperOpacity, 1, 0.1, 1);
+    /* "columns" = one long continuous sheet; "rose" / "gold" = every section on its own card */
+    if (st === 'columns') return '<div class="r-sheet rs-columns" style="' + v + '">' + layers() + stickersHtml(c.stickers, 'page') + '<div class="r-in">';
+    return '<div class="r-cards rs-' + st + '" style="' + v + '">' + stickersHtml(c.stickers, 'page');
+  }
+  function sheetClose(c) { return paperStyle(c.royal) === 'columns' ? '</div></div>' : '</div>'; }
+  function cardify(html) {
+    return html.replace(/<section class="rsec"[\s\S]*?<\/section>/g, function (m) { return '<div class="r-card">' + layers() + '<div class="r-cin">' + m + '</div></div>'; });
   }
 
   function render(raw, opts) {
@@ -252,7 +280,7 @@
       h += '<div id="bg" aria-hidden="true"></div>';
     }
     h += '<div id="veil"></div>';
-    if (royal) h += fontCss(M);
+    if (royal) h += fontCss(M, c.royal.customFonts);
 
     if (!opts.skipCover) {
       h += '<button id="cover" type="button" class="' + (useVideo ? '' : 'simple') + '" aria-label="' + esc(c.ui.coverHint) + '">';
@@ -277,7 +305,8 @@
     h += '<div id="scrollhint" aria-hidden="true"><span class="mouse"></span><span class="chev"><i></i><i></i></span><span class="tx">' + esc(c.ui.scrollHint) + '</span></div>';
 
     h += '<main' + (royal ? ' class="royal"' : '') + '>';
-    if (royal) h += sceneHtml(c, dateText, names) + sheetOpen(c);
+    var secAt = 0;
+    if (royal) { h += sceneHtml(c, dateText, names) + sheetOpen(c); secAt = h.length; }
     SEC = royal ? 'rsec' : 'paper';
     /* hero (classic mode) */
     if (!royal) {
@@ -357,7 +386,7 @@
       (CL.latin ? '<p class="latin" style="margin-top:6px">' + esc(CL.latin) + '</p>' : '') +
       (CL.text ? '<p class="quote" style="font-size:30px">' + esc(CL.text) + '</p>' : '') +
       (CL.sign ? '<p class="sign">' + esc(CL.sign) + '</p>' : '') + '<div class="closing-space"></div></section>';
-    if (royal) h += '</div></div>';
+    if (royal) { if (paperStyle(c.royal) !== 'columns') h = h.slice(0, secAt) + cardify(h.slice(secAt)); h += sheetClose(c); }
     /* "MADE BY ZAYTORA" always closes the page and links to the site's home page. It does not depend on the stored
        footer text, so every invitation (saved earlier or later) gets it. A custom footer line, if any, sits above it;
        the old default text "ZAYTORA INVITES" is not repeated. */

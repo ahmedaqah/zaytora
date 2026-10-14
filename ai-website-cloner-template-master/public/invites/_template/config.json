@@ -160,7 +160,17 @@
       "gap": 0.55,
       "delay": 0.5
     },
-    "paperOpacity": 1
+    "paperOpacity": 1,
+    "paperStyle": "columns",
+    "customFonts": [],
+    "fx": {
+      "strokeW": 0,
+      "strokeColor": "#ffffff",
+      "shadowType": "none",
+      "shadowColor": "#000000",
+      "shadowSize": 6,
+      "shadowOpacity": 0.35
+    }
   },
   "stickers": []
 }
