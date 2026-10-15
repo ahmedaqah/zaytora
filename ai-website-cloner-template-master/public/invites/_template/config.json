@@ -88,7 +88,8 @@
     "venueLang": "",
     "address": "عمّان، الأردن",
     "mapUrl": "",
-    "mapLabel": "افتح الخريطة"
+    "mapLabel": "افتح الخريطة",
+    "venueEn": ""
   },
   "notes": {
     "enabled": true,
@@ -115,7 +116,17 @@
   "closing": {
     "latin": "WITH LOVE",
     "text": "بحضوركم تكتمل فرحتنا",
-    "sign": "ريما & زياد"
+    "sign": "ريما & زياد",
+    "card": {
+      "enabled": false,
+      "frame": "",
+      "letter": "",
+      "name1": "",
+      "name2": "",
+      "amp": "&",
+      "date": "",
+      "color": "#a8832f"
+    }
   },
   "footer": "",
   "layout": {
@@ -175,7 +186,54 @@
       "shadowSize": 6,
       "shadowOpacity": 0.35
     },
-    "middle": ""
+    "middle": "",
+    "customPaper": {
+      "top": "",
+      "mid": "",
+      "bot": "",
+      "t": 48.8,
+      "b": 46.5,
+      "mt": 54.7,
+      "padX": 18,
+      "padY": 17
+    },
+    "veil": {
+      "on": false,
+      "color": "#120608",
+      "top": 0.42,
+      "mid": 0.22,
+      "bot": 0.38
+    },
+    "deco": {
+      "enabled": false,
+      "mono": {
+        "on": true,
+        "kind": "letter",
+        "letter": "",
+        "font": "katibeh",
+        "color": "#a8832f",
+        "size": 1,
+        "src": ""
+      },
+      "orn": {
+        "on": true,
+        "under": true,
+        "src": ""
+      },
+      "swan": {
+        "on": true,
+        "w": 38,
+        "src": ""
+      },
+      "secs": {
+        "countdown": true,
+        "schedule": true,
+        "location": true,
+        "notes": true,
+        "rsvp": true,
+        "closing": true
+      }
+    }
   },
   "stickers": []
 }

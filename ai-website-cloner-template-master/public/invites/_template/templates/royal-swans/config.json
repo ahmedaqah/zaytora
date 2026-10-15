@@ -1,0 +1,257 @@
+{
+  "meta": {
+    "title": "",
+    "description": ""
+  },
+  "theme": {
+    "paper": "#f0e3d3",
+    "gold": "#a8832f",
+    "goldBright": "#c8a24a",
+    "olive": "#7b1a22",
+    "brown": "#5b4636"
+  },
+  "style": {
+    "nameScale": 1,
+    "textScale": 1
+  },
+  "media": {
+    "coverType": "video",
+    "cover": "/invites/_template/templates/royal-swans/cover.mp4",
+    "coverPoster": "/invites/_template/templates/royal-swans/cover-poster.jpg",
+    "bg": "/invites/_template/templates/royal-swans/bg.mp4",
+    "bgWebm": "",
+    "bgPoster": "/invites/_template/templates/royal-swans/bg-poster.jpg",
+    "music": "/invites/_template/templates/royal-swans/music.mp3",
+    "musicEnabled": true,
+    "musicVolume": 0.5,
+    "customFont": ""
+  },
+  "hero": {
+    "bismillah": "بسم الله الرحمن الرحيم",
+    "eyebrow": "",
+    "name1": "أحمد",
+    "name2": "سارة",
+    "connector": "&",
+    "occasion": "حفل زفاف",
+    "dateText": "الخميس 20 مايو 2027",
+    "quote": "",
+    "verse": "",
+    "intro": ""
+  },
+  "event": {
+    "start": "2027-05-20T19:00",
+    "end": "2027-05-20T23:30",
+    "utcOffset": "+03:00"
+  },
+  "countdown": {
+    "enabled": true,
+    "title": "يبدأ الاحتفال بعد",
+    "labels": [
+      "يوم",
+      "ساعة",
+      "دقيقة",
+      "ثانية"
+    ]
+  },
+  "schedule": {
+    "enabled": true,
+    "title": "برنامج الحفل",
+    "tip": "اضغط على الفقرات التي بجانبها سهم لمعرفة تفاصيلها",
+    "items": [
+      {
+        "time": "4:00 م",
+        "title": "زفة العريس",
+        "detail": "أمام منزل العريس",
+        "rose": true
+      },
+      {
+        "time": "5:00 م",
+        "title": "زفة طلعة العروس",
+        "detail": "أمام منزل والد العروس",
+        "rose": true
+      },
+      {
+        "time": "7:30 م",
+        "title": "حضور المدعوين",
+        "detail": "",
+        "rose": true
+      },
+      {
+        "time": "8:00 م",
+        "title": "دخول العروسين",
+        "detail": "",
+        "rose": true
+      },
+      {
+        "time": "8:15 م",
+        "title": "حضور الفرقة",
+        "detail": "عند قاعة الرجال",
+        "rose": true
+      },
+      {
+        "time": "10:00 م",
+        "title": "الحفل العائلي",
+        "detail": "",
+        "rose": true
+      },
+      {
+        "time": "11:30 م",
+        "title": "التسليم على العروسين",
+        "detail": "",
+        "rose": true
+      }
+    ]
+  },
+  "location": {
+    "enabled": true,
+    "title": "الموقع",
+    "venue": "اسم القاعة",
+    "venueLang": "",
+    "venueEn": "(Hall Name)",
+    "address": "عمّان، الأردن",
+    "mapUrl": "",
+    "mapLabel": "افتح الخريطة"
+  },
+  "notes": {
+    "enabled": true,
+    "title": "تعليمات خاصة",
+    "items": [
+      {
+        "icon": "heart",
+        "text": "نعتذر وبشدة من المدعوين عن اصطحاب الأطفال، بناءً على تعليمات إدارة القاعة. ونرجو عدم الإحراج، شاكرين حسن تفهّمكم، مع كامل الاحترام والتقدير."
+      }
+    ]
+  },
+  "rsvp": {
+    "enabled": true,
+    "title": "تأكيد الحضور",
+    "intro": "يرجى تأكيد حضوركم قبل موعد الحفل لنتمكن من تجهيز كل شيء لكم.",
+    "whatsapp": "",
+    "maxGuests": 6,
+    "showGuests": true,
+    "noteLabel": "كلمة للعروسين (اختياري)"
+  },
+  "closing": {
+    "latin": "WE HOPE TO SEE YOU THERE",
+    "text": "نتشرف برؤيتكم",
+    "sign": "أحمد & سارة",
+    "card": {
+      "enabled": true,
+      "frame": "",
+      "letter": "",
+      "name1": "Ahmad",
+      "name2": "Sara",
+      "amp": "&",
+      "date": "20 MAY 2027",
+      "color": "#a8832f"
+    }
+  },
+  "footer": "",
+  "layout": {
+    "mode": "royal"
+  },
+  "royal": {
+    "bismillah": "بسم الله الرحمن الرحيم",
+    "invite": "بكل الفخر\nوعظيم المحبة\nوبقلوبٍ يملؤها الفرح\nيتشرف",
+    "middle": "بدعوتكم لحضور حفل زفاف",
+    "right": {
+      "title": "السيد",
+      "father": "محمد علي الأحمد",
+      "rel": "نجله",
+      "name": "",
+      "extra": ""
+    },
+    "left": {
+      "title": "السيد",
+      "father": "خالد حسن السالم",
+      "rel": "ابنته",
+      "name": "",
+      "extra": ""
+    },
+    "showDate": true,
+    "fonts": {
+      "bismillah": "katibeh",
+      "invite": "amiri",
+      "titles": "katibeh",
+      "father": "katibeh",
+      "names": "katibeh",
+      "middle": "amiri"
+    },
+    "scales": {
+      "bismillah": 1,
+      "invite": 1,
+      "family": 1,
+      "names": 1.1,
+      "middle": 1
+    },
+    "colors": {
+      "text": "#fbf3e6",
+      "names": "#fbf3e6"
+    },
+    "anim": {
+      "type": "rise",
+      "duration": 1.2,
+      "gap": 0.5,
+      "delay": 0.4
+    },
+    "paperOpacity": 0.96,
+    "paperStyle": "blank",
+    "customFonts": [],
+    "customPaper": {
+      "top": "",
+      "mid": "",
+      "bot": "",
+      "t": 48.8,
+      "b": 46.5,
+      "mt": 54.7,
+      "padX": 18,
+      "padY": 17
+    },
+    "deco": {
+      "enabled": true,
+      "mono": {
+        "on": true,
+        "kind": "letter",
+        "letter": "",
+        "font": "katibeh",
+        "color": "#a8832f",
+        "size": 1,
+        "src": ""
+      },
+      "orn": {
+        "on": true,
+        "under": true,
+        "src": ""
+      },
+      "swan": {
+        "on": true,
+        "w": 38,
+        "src": ""
+      },
+      "secs": {
+        "countdown": true,
+        "schedule": true,
+        "location": true,
+        "notes": true,
+        "rsvp": true,
+        "closing": true
+      }
+    },
+    "fx": {
+      "strokeW": 0,
+      "strokeColor": "#ffffff",
+      "shadowType": "soft",
+      "shadowColor": "#0c0406",
+      "shadowSize": 10,
+      "shadowOpacity": 0.7
+    },
+    "veil": {
+      "on": true,
+      "color": "#120608",
+      "top": 0.42,
+      "mid": 0.22,
+      "bot": 0.38
+    }
+  },
+  "stickers": []
+}

@@ -29,11 +29,14 @@
 
   /* ---------- preview ---------- */
   var ifr = $('preview'), ready = false, pt = 0;
+  /* every string of the config goes through fn (uploaded-file names, paper slices, decoration pictures, card frame ...) */
+  function eachString(o, fn) {
+    if (Array.isArray(o)) o.forEach(function (v, i) { if (typeof v === 'string') o[i] = fn(v); else eachString(v, fn); });
+    else if (o && typeof o === 'object') Object.keys(o).forEach(function (k) { var v = o[k]; if (typeof v === 'string') o[k] = fn(v); else eachString(v, fn); });
+  }
   function previewCfg() {
     var c = clone(state.cfg);
-    Object.keys(c.media).forEach(function (k) { var v = c.media[k]; if (typeof v === 'string' && urls[v]) c.media[k] = urls[v]; });
-    (c.stickers || []).forEach(function (s) { if (s && urls[s.src]) s.src = urls[s.src]; });
-    ((c.royal && c.royal.customFonts) || []).forEach(function (f) { if (f && urls[f.src]) f.src = urls[f.src]; });
+    eachString(c, function (v) { return urls[v] || v; });
     return c;
   }
   function pushPreview(replay) {
@@ -62,6 +65,7 @@
     ['cover', 'coverPoster', 'bg', 'bgWebm', 'bgPoster', 'music', 'customFont'].forEach(function (k) { if (typeof m[k] === 'string' && /^media\//.test(m[k]) && !files[m[k]]) m[k] = ''; });
     if (cfg.royal) cfg.royal.customFonts = (Array.isArray(cfg.royal.customFonts) ? cfg.royal.customFonts : []).filter(function (f) { return f && f.id && f.src && !(/^media\//.test(f.src) && !files[f.src]); });
     cfg.stickers = (Array.isArray(cfg.stickers) ? cfg.stickers : []).filter(function (s) { return s && s.src && !(/^media\//.test(s.src) && !files[s.src]); });
+    eachString(cfg, function (v) { return /^media\//.test(v) && !files[v] ? '' : v; });
     return cfg;
   }
   function deepMerge(a, b) {
@@ -326,6 +330,94 @@
     drawStickers = draw; draw();
     return box;
   }
+  /* a picture slot of the design (decoration, card frame ...): upload to replace, remove to return to the built-in picture */
+  function dropAsset(name) { if (name && files[name]) { URL.revokeObjectURL(urls[name]); delete files[name]; delete urls[name]; } }
+  function assetField(label, path, hint, accept) {
+    var nm = el('div', { class: 'nm' });
+    function show() { var v = get(state.cfg, path); nm.textContent = v ? (files[v] ? 'صورة مرفوعة' : v) : 'الصورة الأصلية للقالب'; }
+    var inp = el('input', { type: 'file', accept: accept || 'image/png,image/webp,image/jpeg,image/gif' });
+    inp.addEventListener('change', function () {
+      var f = inp.files[0]; if (!f) return; inp.value = '';
+      if (f.size > 12 * 1024 * 1024) { status('الصورة كبيرة (' + Math.round(f.size / 1048576) + ' MB). استخدم أقل من 12 MB.', true); return; }
+      dropAsset(get(state.cfg, path));
+      var name = 'media/' + path.replace(/\./g, '-').toLowerCase() + '-' + Date.now().toString(36) + '.' + (ext(f.name) || 'png');
+      files[name] = f; urls[name] = URL.createObjectURL(f); set(state.cfg, path, name); show(); schedule();
+    });
+    var rm = el('button', { type: 'button', class: 'sm del', text: 'استعادة الأصلية' });
+    rm.addEventListener('click', function () { dropAsset(get(state.cfg, path)); set(state.cfg, path, ''); show(); schedule(); });
+    show();
+    return el('div', { class: 'media' }, [el('b', { text: label }), hint ? el('p', { class: 'hint', text: hint }) : null, nm, inp, rm]);
+  }
+  /* uploaded paper: one picture is cut into top / middle / bottom pieces; the middle piece repeats when a section is long */
+  var paperImg = null; /* the picture last uploaded (kept in memory so the cut can be adjusted) */
+  function slicePaper(img, topPct, botPct) {
+    var P = state.cfg.royal.customPaper, sc = Math.min(1, 1024 / img.naturalWidth), W = Math.round(img.naturalWidth * sc), H = Math.round(img.naturalHeight * sc);
+    var th = Math.max(4, Math.round(H * topPct / 100)), bh = Math.max(4, Math.round(H * botPct / 100)), mh = H - th - bh;
+    if (mh < 8) { status('القطعتان العلوية والسفلية كبيرتان جداً. صغّر إحداهما.', true); return Promise.resolve(); }
+    var parts = [['top', 0, th], ['mid', th, mh], ['bot', th + mh, bh]], id = Date.now().toString(36);
+    return Promise.all(parts.map(function (pt) {
+      var cv = document.createElement('canvas'); cv.width = W; cv.height = pt[2];
+      cv.getContext('2d').drawImage(img, 0, pt[1] / sc, img.naturalWidth, pt[2] / sc, 0, 0, W, pt[2]);
+      return new Promise(function (res) { cv.toBlob(function (b) { res(b); }, 'image/webp', 0.9); });
+    })).then(function (bl) {
+      ['top', 'mid', 'bot'].forEach(function (k) { dropAsset(P[k]); });
+      parts.forEach(function (pt, i) {
+        var nm = 'media/paper-' + pt[0] + '-' + id + '.webp'; files[nm] = bl[i]; urls[nm] = URL.createObjectURL(bl[i]); P[pt[0]] = nm;
+      });
+      P.t = Math.round(th / W * 10000) / 100; P.mt = Math.round(mh / W * 10000) / 100; P.b = Math.round(bh / W * 10000) / 100;
+      state.cfg.royal.paperStyle = 'custom';
+      var po = document.querySelector('#royal-panels select option[value="custom"]'); if (po) po.parentElement.value = 'custom'; /* keep the paper list in step */
+      schedule();
+    });
+  }
+  function paperUploader() {
+    var P = state.cfg.royal.customPaper, cut = { top: 33, bot: 31 }, timer = 0;
+    var info = el('p', { class: 'hint', text: P.top ? 'تم رفع ورقة خاصة. يمكنك تعديل مكان القص أدناه.' : 'لم تُرفع ورقة بعد.' });
+    var inp = el('input', { type: 'file', accept: 'image/png,image/webp,image/jpeg' });
+    function redo() { clearTimeout(timer); timer = setTimeout(function () { if (paperImg) slicePaper(paperImg, cut.top, cut.bot); }, 250); }
+    inp.addEventListener('change', function () {
+      var f = inp.files[0]; if (!f) return; inp.value = '';
+      var u = URL.createObjectURL(f), im = new Image();
+      im.onload = function () { paperImg = im; info.textContent = 'تم رفع الورقة (' + im.naturalWidth + '×' + im.naturalHeight + ').'; slicePaper(im, cut.top, cut.bot).then(function () { URL.revokeObjectURL(u); }); };
+      im.onerror = function () { status('تعذّر قراءة صورة الورقة.', true); URL.revokeObjectURL(u); };
+      im.src = u;
+    });
+    var rm = el('button', { type: 'button', class: 'sm del', text: 'إزالة الورقة المرفوعة' });
+    rm.addEventListener('click', function () {
+      ['top', 'mid', 'bot'].forEach(function (k) { dropAsset(P[k]); P[k] = ''; }); paperImg = null;
+      if (state.cfg.royal.paperStyle === 'custom') state.cfg.royal.paperStyle = 'blank';
+      info.textContent = 'لم تُرفع ورقة بعد.'; buildForm(); schedule();
+    });
+    var cb = function () { redo(); };
+    return el('div', { class: 'media' }, [el('b', { text: 'رفع ورق جديد' }),
+      el('p', { class: 'hint', text: 'ارفع صورة ورقة طولية (يفضّل PNG أو WebP، بحواف شفافة إن كانت ممزقة). تُقصّ إلى ثلاث قطع: الأعلى والأوسط والأسفل، ويتكرر الأوسط تلقائياً عندما يطول القسم. النصوص تُكتب داخل الأوسط.' }),
+      info, inp,
+      slider('ارتفاع الجزء العلوي من الصورة (%)', cut, 'top', 5, 70, 1, '%', cb), slider('ارتفاع الجزء السفلي من الصورة (%)', cut, 'bot', 5, 70, 1, '%', cb),
+      slider('هامش النص الجانبي داخل الورقة', P, 'padX', 4, 40, 0.5, '', function () { schedule(); }), slider('هامش النص العلوي والسفلي', P, 'padY', 4, 50, 0.5, '', function () { schedule(); }),
+      rm]);
+  }
+  function decoPanel() {
+    var D = state.cfg.royal.deco;
+    var kindSel = sel('شكل الحرف', 'royal.deco.mono.kind', [['letter', 'حرف نصي (بالخط المختار)'], ['image', 'صورة مرفوعة']]);
+    var secs = [['countdown', 'العدّ التنازلي'], ['schedule', 'برنامج الحفل'], ['location', 'الموقع'], ['notes', 'التعليمات'], ['rsvp', 'تأكيد الحضور'], ['closing', 'الختام (إن لم تُستخدم بطاقة الختام)']];
+    return el('div', { class: 'sec', style: 'padding:0' }, [
+      check('إظهار الزخارف فوق وتحت كل ورقة', 'royal.deco.enabled'),
+      el('b', { text: 'أعلى الورقة: الحرف الأول' }),
+      check('إظهار الحرف', 'royal.deco.mono.on'), kindSel,
+      text('الحرف', 'royal.deco.mono.letter', 'فارغ = أول حرف من الاسم الأول تلقائياً'),
+      fontSel('خط الحرف', 'royal.deco.mono.font'), color('لون الحرف', 'royal.deco.mono.color'), scale('حجم الحرف', 'royal.deco.mono.size', 0.4, 2.5, 0.05),
+      assetField('صورة الحرف (عند اختيار «صورة مرفوعة»)', 'royal.deco.mono.src', 'مثل حرف بخط الثلث مفرّغ بخلفية شفافة.'),
+      el('b', { text: 'الفاصل الزخرفي' }),
+      check('إظهار الفاصل أعلى وأسفل الورقة', 'royal.deco.orn.on'), check('فاصل صغير تحت عنوان كل قسم', 'royal.deco.orn.under'),
+      assetField('صورة الفاصل', 'royal.deco.orn.src', 'صورة عرضية رفيعة. الأصلية فاصل ذهبي.'),
+      el('b', { text: 'أسفل الورقة: البجعتان' }),
+      check('إظهار الصورة السفلية', 'royal.deco.swan.on'), slider('حجم الصورة السفلية', D.swan, 'w', 8, 90, 1, '', function () { schedule(); }),
+      assetField('صورة بديلة (بجع أو أي ملصق)', 'royal.deco.swan.src', 'PNG أو WebP بخلفية شفافة.'),
+      el('b', { text: 'تظهر الزخارف في الأقسام' }),
+      el('div', { class: 'g2' }, secs.map(function (x) { return check(x[1], 'royal.deco.secs.' + x[0]); })),
+      el('p', { class: 'hint', text: 'للتحكم الكامل بأي صورة إضافية في أي مكان استخدم قسم «الملصقات» أدناه (يمكن تحريكها بالسحب).' })
+    ]);
+  }
   function royalPanels() {
     var R = state.cfg.royal; fontSels = [];
     var fam = function (side, label) {
@@ -365,9 +457,16 @@
         el('p', { class: 'hint', text: 'يُطبَّق على كل نصوص البطاقة الأولى (البسملة والأسماء والتاريخ). مفيد لإبراز النص فوق الخلفيات المزدحمة.' })
       ]),
       section('الوضع الملكي — الورقة', [
-        sel('تصميم الورق', 'royal.paperStyle', [['columns', 'أعمدة ووُرود — ورقة واحدة متصلة'], ['rose', 'إطار الورود الحمراء — كل قسم في ورقة لوحده'], ['gold', 'إطار الورود الذهبي — كل قسم في ورقة لوحده (أطول)']]),
+        sel('تصميم الورق', 'royal.paperStyle', [['blank', 'ورقة الأعمدة والورود الفارغة — كل قسم في ورقة لوحده'], ['columns', 'أعمدة ووُرود — ورقة واحدة متصلة'], ['rose', 'إطار الورود الحمراء — كل قسم في ورقة لوحده'], ['gold', 'إطار الورود الذهبي — كل قسم في ورقة لوحده (أطول)'], ['custom', 'ورقتي المرفوعة (من الخيار أدناه)']]),
+        paperUploader(),
         scale('درجة وضوح الورقة (100% معتمة، أقل = أشفّ)', 'royal.paperOpacity', 0.1, 1, 0.05),
         el('p', { class: 'hint', text: 'الأعمدة والورود تبقى واضحة دائماً، والورقة وحدها تصبح شفافة فتظهر الخلفية من خلالها.' })
+      ]),
+      section('الوضع الملكي — الحرف والبجع والزخارف فوق وتحت كل ورقة', [decoPanel()]),
+      section('الوضع الملكي — تعتيم الخلفية خلف النصوص الفاتحة', [
+        check('تفعيل التعتيم', 'royal.veil.on'), color('لون التعتيم', 'royal.veil.color'),
+        scale('درجة التعتيم في الأعلى', 'royal.veil.top', 0, 1, 0.02), scale('درجة التعتيم في الوسط', 'royal.veil.mid', 0, 1, 0.02), scale('درجة التعتيم في الأسفل', 'royal.veil.bot', 0, 1, 0.02),
+        el('p', { class: 'hint', text: 'استخدمه عندما تكون نصوص البطاقة الأولى فاتحة فوق خلفية فاتحة.' })
       ]),
       section('الوضع الملكي — الملصقات والصور والفيديو', [stickerPanel()])
     ]);
@@ -441,6 +540,7 @@
     F.appendChild(section('5) الموقع', [
       check('إظهار الموقع', 'location.enabled'), text('العنوان', 'location.title'), text('اسم القاعة / المكان', 'location.venue'),
       text('لغة اسم القاعة إن كان بغير العربية', 'location.venueLang', 'مثال: tr أو en، يُعرض من اليسار لليمين', { dir: 'ltr' }),
+      text('اسم القاعة بالإنجليزية (سطر صغير تحته، اختياري)', 'location.venueEn', 'مثال: (Royal Hall)', { dir: 'ltr' }),
       area('العنوان التفصيلي', 'location.address'), text('رابط الخريطة (Google Maps)', 'location.mapUrl', 'اتركه فارغاً لإخفاء الزر', { dir: 'ltr' }), text('نص زر الخريطة', 'location.mapLabel')
     ]));
 
@@ -466,7 +566,14 @@
 
     /* 8 closing */
     F.appendChild(section('8) الختام', [
-      text('سطر لاتيني', 'closing.latin'), text('عبارة الختام', 'closing.text'), text('التوقيع (الأسماء)', 'closing.sign'), text('نص أسفل الصفحة', 'footer', 'اختياري. شعار «MADE BY ZAYTORA» يظهر دائماً تحته.')
+      text('سطر لاتيني', 'closing.latin'), text('عبارة الختام', 'closing.text'), text('التوقيع (الأسماء)', 'closing.sign'), text('نص أسفل الصفحة', 'footer', 'اختياري. شعار «MADE BY ZAYTORA» يظهر دائماً تحته.'),
+      el('b', { text: 'بطاقة الختام (الوضع الملكي)' }),
+      check('عرض بطاقة الختام بدل ورقة الختام', 'closing.card.enabled'),
+      el('div', { class: 'g2' }, [text('الاسم الأول (لاتيني)', 'closing.card.name1', '', { dir: 'ltr' }), text('الاسم الثاني (لاتيني)', 'closing.card.name2', '', { dir: 'ltr' })]),
+      el('div', { class: 'g2' }, [text('الحرف أعلى البطاقة', 'closing.card.letter', 'فارغ = أول حرف من الاسم الأول'), text('التاريخ على البطاقة', 'closing.card.date', 'مثال: 20 MAY 2027', { dir: 'ltr' })]),
+      color('لون النصوص على البطاقة', 'closing.card.color'),
+      assetField('صورة إطار البطاقة', 'closing.card.frame', 'PNG أو WebP شفاف، بنسبة 941×1670 تقريباً وبدون نصوص (النصوص تُكتب أعلاه). الأصلية إطار ورود وبجع.'),
+      el('p', { class: 'hint', text: 'تُعرض البطاقة بلا ورقة خلفها. اترك الخيار مغلقاً لاستخدام ورقة الختام العادية.' })
     ]));
 
     /* 9 theme */
@@ -612,12 +719,19 @@
     });
     ['cover', 'coverPoster', 'bg', 'bgWebm', 'bgPoster', 'music', 'customFont'].forEach(function (k) {
       var v = m[k]; if (typeof v !== 'string' || !v) return;
-      if (/^\/invites\/_template\/media\//.test(v)) {
+      if (/^\/invites\/_template\/(media|templates)\//.test(v)) {
         var rel = 'media/' + v.split('/').pop();
         jobs.push(fetch(v).then(function (r) { if (!r.ok) throw new Error(v); return r.blob(); }).then(blobBytes).then(function (b) { if (!bundled[rel]) { bundled[rel] = 1; entries.push({ name: slug + '/' + rel, data: b }); } m[k] = rel; }));
       } else if (files[v]) {
         jobs.push(blobBytes(files[v]).then(function (b) { if (!bundled[v]) { bundled[v] = 1; entries.push({ name: slug + '/' + v, data: b }); } }));
       } else if (!/^https?:\/\//i.test(v)) m[k] = '';
+    });
+    /* every other picture the design uses (paper pieces, decoration, card frame ...) */
+    eachString(c, function (v) {
+      if (!/^media\//.test(v)) return v;
+      if (!files[v]) return '';
+      jobs.push(blobBytes(files[v]).then(function (b) { if (!bundled[v]) { bundled[v] = 1; entries.push({ name: slug + '/' + v, data: b }); } }));
+      return v;
     });
     Promise.all(jobs).then(function () {
       var bgSrc = urls[state.cfg.media.coverPoster] || state.cfg.media.coverPoster || urls[state.cfg.media.bgPoster] || state.cfg.media.bgPoster;
@@ -653,6 +767,11 @@
     ['cover', 'coverPoster', 'bg', 'bgWebm', 'bgPoster', 'music', 'customFont'].forEach(function (k) {
       var v = m[k]; if (!v) return;
       if (files[v]) up[v] = files[v]; else if (/^media\//.test(v)) m[k] = '';
+    });
+    eachString(c, function (v) {
+      if (!/^media\//.test(v)) return v;
+      if (files[v]) { up[v] = files[v]; return v; }
+      return '';
     });
     var bgSrc = urls[state.cfg.media.coverPoster] || state.cfg.media.coverPoster || urls[state.cfg.media.bgPoster] || state.cfg.media.bgPoster;
     makeOg(c, bgSrc).then(function (og) {
@@ -694,6 +813,7 @@
     if (!confirm('بدء دعوة جديدة؟ ستُمسح التعديلات الحالية.')) return;
     Object.keys(files).forEach(function (k) { URL.revokeObjectURL(urls[k]); }); files = {}; urls = {};
     state.editing = ''; /* a new invitation has no locked link, even after editing or saving another one */
+    if ($('tpl')) { $('tpl').value = 'base'; $('tpl').dataset.cur = 'base'; }
     applyCfg('', clone(state.sample)); status('');
   });
   $('file-cfg').addEventListener('change', function (e) {
@@ -701,6 +821,26 @@
     f.text().then(function (t) { var j = JSON.parse(t); applyCfg(j.slug || '', j.config || j); status('تم فتح الإعدادات. أعد رفع الوسائط إن لزم.'); }).catch(function () { status('ملف الإعدادات غير صالح.', true); });
     e.target.value = '';
   });
+
+  /* ---------- ready-made templates ---------- */
+  var TEMPLATES = [
+    ['base', 'القالب الأساسي (الأوراق الممزقة)', TPL + 'config.json'],
+    ['royal-swans', 'القالب الملكي: الغلاف بالختم + الورق الفارغ بالأعمدة + البجع (نسخة من دعوة محمد ومنار)', TPL + 'templates/royal-swans/config.json']
+  ];
+  (function () {
+    var s = $('tpl'); if (!s) return;
+    TEMPLATES.forEach(function (t) { s.appendChild(el('option', { value: t[0], text: t[1] })); });
+    s.dataset.cur = s.value;
+    s.addEventListener('change', function () {
+      var t = TEMPLATES.filter(function (x) { return x[0] === s.value; })[0];
+      if (!t) return;
+      if (!confirm('تحميل القالب «' + t[1] + '»؟ ستُمسح التعديلات الحالية على هذه الدعوة.')) { s.value = s.dataset.cur; return; }
+      fetch(t[2], { cache: 'no-cache' }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }).then(function (cfg) {
+        Object.keys(files).forEach(function (k) { URL.revokeObjectURL(urls[k]); }); files = {}; urls = {}; paperImg = null;
+        state.editing = ''; applyCfg('', cfg); s.dataset.cur = s.value; status('تم تحميل القالب. عدّل الأسماء والتفاصيل ثم احفظ.');
+      }).catch(function () { s.value = s.dataset.cur; status('تعذّر تحميل القالب.', true); });
+    });
+  })();
 
   /* ---------- init ---------- */
   fetch(TPL + 'config.json', { cache: 'no-cache' }).then(function (r) { return r.json(); }).then(function (sample) {
