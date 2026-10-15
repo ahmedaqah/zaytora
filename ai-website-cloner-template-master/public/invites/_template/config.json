@@ -232,8 +232,12 @@
         "notes": true,
         "rsvp": true,
         "closing": true
-      }
-    }
+      },
+      "rz": true
+    },
+    "useImages": true,
+    "day": "",
+    "papers": {}
   },
   "stickers": []
 }

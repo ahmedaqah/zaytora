@@ -33,7 +33,7 @@
     "name2": "سارة",
     "connector": "&",
     "occasion": "حفل زفاف",
-    "dateText": "الخميس 20 مايو 2027",
+    "dateText": "20 مايو 2027",
     "quote": "",
     "verse": "",
     "intro": ""
@@ -109,7 +109,7 @@
     "venueLang": "",
     "venueEn": "(Hall Name)",
     "address": "عمّان، الأردن",
-    "mapUrl": "",
+    "mapUrl": "https://maps.google.com/",
     "mapLabel": "افتح الخريطة"
   },
   "notes": {
@@ -129,7 +129,8 @@
     "whatsapp": "",
     "maxGuests": 6,
     "showGuests": true,
-    "noteLabel": "كلمة للعروسين (اختياري)"
+    "noteLabel": "كلمة للعروسين (اختياري)",
+    "button": "إرسال"
   },
   "closing": {
     "latin": "WE HOPE TO SEE YOU THERE",
@@ -148,7 +149,7 @@
   },
   "footer": "",
   "layout": {
-    "mode": "royal"
+    "mode": "swans"
   },
   "royal": {
     "bismillah": "بسم الله الرحمن الرحيم",
@@ -170,7 +171,7 @@
     },
     "showDate": true,
     "fonts": {
-      "bismillah": "katibeh",
+      "bismillah": "amiri",
       "invite": "amiri",
       "titles": "katibeh",
       "father": "katibeh",
@@ -189,13 +190,13 @@
       "names": "#fbf3e6"
     },
     "anim": {
-      "type": "rise",
+      "type": "soft",
       "duration": 1.2,
       "gap": 0.5,
       "delay": 0.4
     },
     "paperOpacity": 0.96,
-    "paperStyle": "blank",
+    "paperStyle": "original",
     "customFonts": [],
     "customPaper": {
       "top": "",
@@ -214,7 +215,7 @@
         "kind": "letter",
         "letter": "",
         "font": "katibeh",
-        "color": "#a8832f",
+        "color": "#111111",
         "size": 1,
         "src": ""
       },
@@ -235,12 +236,13 @@
         "notes": true,
         "rsvp": true,
         "closing": true
-      }
+      },
+      "rz": true
     },
     "fx": {
       "strokeW": 0,
       "strokeColor": "#ffffff",
-      "shadowType": "soft",
+      "shadowType": "none",
       "shadowColor": "#0c0406",
       "shadowSize": 10,
       "shadowOpacity": 0.7
@@ -251,7 +253,13 @@
       "top": 0.42,
       "mid": 0.22,
       "bot": 0.38
-    }
+    },
+    "day": "الخميس",
+    "useImages": true,
+    "papers": {}
   },
-  "stickers": []
+  "stickers": [],
+  "ui": {
+    "scrollHint": "قم بالتمرير للأسفل"
+  }
 }

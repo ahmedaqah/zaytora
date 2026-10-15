@@ -51,7 +51,7 @@
       scales: { bismillah: 1, invite: 1, middle: 1, family: 1, names: 1 },
       colors: { text: '#4a3b30', names: '#2a1d15' },
       anim: { type: 'rise', duration: 1.8, gap: 0.55, delay: 0.5 },
-      paperOpacity: 1, paperStyle: 'columns', customFonts: [],
+      paperOpacity: 1, paperStyle: 'columns', customFonts: [], useImages: true, day: '', papers: {},
       customPaper: { top: '', mid: '', bot: '', t: 48.8, b: 46.5, mt: 54.7, padX: 18, padY: 17 },
       veil: { on: false, color: '#120608', top: 0.42, mid: 0.22, bot: 0.38 },
       deco: {
@@ -319,14 +319,174 @@
       '<div class="cc-names">' + nm(K.name1) + amp + nm(K.name2) + '</div>' + (d ? '<span class="cc-d">' + esc(d) + '</span>' : '') + '</div>';
   }
 
+  /* ===== "swans" look (layout.mode = 'swans'): a faithful rebuild of the original swan-lake invitation.
+     The markup mirrors the reference design and swans.css carries its exact styling; every text, picture,
+     colour and paper below is still read from the config so the builder can edit all of it. ===== */
+  var SW = TPL + 'img/';
+  function swansLook() { return document.body.classList.contains('swans'); }
+  function swPx(n, d) { return (Math.round(n * 100) / 100) + (d || 'cqw'); }
+  function swPiece(useImg, t, def, file, imgSt, txtSt, font) {
+    t = String(t == null ? '' : t).trim(); if (!t) return '';
+    if (useImg && t === def) return '<img class="cimg" src="' + SW + file + '" alt="' + esc(t) + '" style="' + imgSt + '" decoding="async">';
+    return '<div style="font-family:' + font + ';' + txtSt + '">' + esc(t) + '</div>';
+  }
+  function swScene(c, dateText) {
+    var R = c.royal, H = c.hero, F = R.fonts || {}, SC = R.scales || {}, CO = R.colors || {}, A = R.anim || {};
+    var useImg = R.useImages !== false;
+    var txt = hex2rgb(CO.text) ? CO.text : '#fbf3e6', nmc = hex2rgb(CO.names) ? CO.names : '#fbf3e6';
+    var sb = num(SC.bismillah, 1, 0.5, 1.8), si = num(SC.invite, 1, 0.5, 1.8), sm = num(SC.middle, 1, 0.5, 1.8), sf = num(SC.family, 1, 0.5, 1.8), sn = num(SC.names, 1, 0.5, 1.8);
+    function ff(k, d) { return fontOf(F[k] || d); }
+    var h = '', bis = String(R.bismillah || '').trim();
+    if (bis) {
+      h += (useImg && bis === 'بسم الله الرحمن الرحيم')
+        ? '<img class="cimg r-open a" style="--i:0;width:60cqw;margin-bottom:5cqw" src="' + SW + 'sw-bismillah.webp" alt="' + esc(bis) + '" decoding="async">'
+        : '<div class="r-open a" style="--i:0;margin-bottom:5cqw;font-family:' + ff('bismillah', 'amiri') + ';font-size:' + swPx(8 * sb) + ';color:' + txt + '">' + nl(bis) + '</div>';
+    }
+    var lines = String(R.invite || '').split(/\r?\n/).filter(function (x) { return x.trim(); });
+    if (lines.length) {
+      h += '<div class="r-lines a" style="--i:1;margin-bottom:5cqw">' + lines.map(function (t, k) {
+        var last = lines.length > 1 && k === lines.length - 1;
+        return '<span style="font-family:' + ff('invite', 'amiri') + ';font-weight:700;font-size:' + swPx((last ? 7.6 : 5.6) * si) + ';color:' + (last ? '#f1dcc0' : txt) + (last ? ';margin-top:3.5cqw' : '') + '">' + esc(t) + '</span>';
+      }).join('') + '</div>';
+    }
+    var D = [R.right || {}, R.left || {}], side = ['r', 'l'], defRel = ['نجله', 'ابنته'], fb = [H.name1, H.name2], tf = ff('titles', 'katibeh');
+    var cols = D.map(function (d, k) {
+      return '<div class="r-col" style="flex:0 0 41cqw">' +
+        swPiece(useImg, d.title, 'السيد', 'sw-sayyid-' + side[k] + '.webp', 'width:29.52cqw', 'font-size:' + swPx(5.4 * sf) + ';color:' + txt, tf) +
+        (d.father ? '<div style="margin-top:1.2cqw;font-family:' + ff('father', 'katibeh') + ';font-size:' + swPx(7 * sf) + ';color:' + txt + ';line-height:1.35;overflow-wrap:anywhere">' + nl(d.father) + '</div>' : '') +
+        '<img class="cimg" src="' + SW + 'sw-div-' + side[k] + '.webp" alt="" style="width:33.62cqw;margin-top:2cqw" decoding="async"></div>';
+    }).join('');
+    h += '<div class="r-cols a" style="--i:2;gap:2cqw">' + cols + '</div>';
+    if (R.middle) h += '<div class="r-mid a" style="--i:3;font-family:' + ff('middle', 'amiri') + ';font-size:' + swPx(6 * sm) + ';font-weight:700;color:' + txt + ';margin:5cqw 0">' + nl(R.middle) + '</div>';
+    var cols2 = D.map(function (d, k) {
+      return '<div class="r-col" style="flex:0 0 41cqw">' +
+        swPiece(useImg, d.rel, defRel[k], 'sw-rel-' + side[k] + '.webp', 'height:4.4cqw;width:auto', 'font-size:' + swPx(4.4 * sf) + ';color:' + txt, tf) +
+        '<div style="margin-top:2.5cqw;font-family:' + ff('names', 'katibeh') + ';font-size:' + swPx(11 * sn) + ';color:' + nmc + ';line-height:1.25;overflow-wrap:anywhere">' + esc(d.name || fb[k] || '') + '</div>' +
+        (d.extra ? '<div class="r-x" style="margin-top:1cqw">' + nl(d.extra) + '</div>' : '') + '</div>';
+    }).join('');
+    h += '<div class="r-cols2 a" style="--i:4;gap:2cqw">' + cols2 + '</div>';
+    if (R.showDate !== false && (dateText || R.day)) {
+      h += '<div class="r-date2 a" style="--i:5;margin-top:6cqw">' + (R.day ? '<div class="r-day">' + esc(R.day) + '</div>' : '') + '<div class="r-dt" style="font-size:' + swPx(9) + '">' + esc(dateText) + '</div></div>';
+    }
+    var map = { rise: ['rise', 'up'], drop: ['rise', 'down'], slide: ['rise', 'left'], fade: ['fade'], zoom: ['soft'], blur: ['soft'], soft: ['soft'] };
+    var m = map[A.type] || map.soft, dist = 18, tx = '0', ty = '0', sc = 1, bl = '0px';
+    if (m[0] === 'soft') { sc = 0.96; bl = '6px'; ty = '8px'; }
+    if (m[0] === 'rise') { if (m[1] === 'up') ty = dist + 'px'; else if (m[1] === 'down') ty = -dist + 'px'; else tx = dist + 'px'; }
+    var vars = '--tx:' + tx + ';--ty:' + ty + ';--sc:' + sc + ';--bl:' + bl + ';--dur:' + num(A.duration, 1.2, 0.3, 6) + 's;--step:' + num(A.gap, 0.5, 0, 3) + 's;--start:' + num(A.delay, 0.4, 0, 6) + 's' + (R.fx && R.fx.shadowType && R.fx.shadowType !== 'none' ? fxVars(R.fx) : '');
+    var hint = '<div class="r-scroll a" style="--i:6" aria-hidden="true"><span class="mouse"><i></i></span><span class="st">' + esc(c.ui.scrollHint) + '</span><span class="chev"></span></div>';
+    return '<section class="royal" id="royal" aria-label="الدعوة" style="' + vars + '"><div class="stage" id="stage"><div class="mlayer ml-behind"></div>' +
+      '<div class="mlayer ml-between">' + stickersHtml(c.stickers, 'scene') + '</div><div class="rcontent" id="rcontent" style="left:5%;right:5%;top:7%;bottom:12%">' + h + '</div><div class="mlayer ml-front"></div>' + hint + '</div></section>';
+  }
+  /* which paper each card sits on: the reference mix, or one kind for all (frame / blank / torn / your own upload) */
+  function swKinds(R) {
+    var ps = R.paperStyle, P = R.customPaper || {}, k = { countdown: 'frame', schedule: 'blank', location: 'torn', notes: 'torn', rsvp: 'torn' };
+    if (['blank', 'frame', 'torn'].indexOf(ps) >= 0) Object.keys(k).forEach(function (x) { k[x] = ps; });
+    else if (ps === 'custom' && P.top && P.bot) Object.keys(k).forEach(function (x) { k[x] = 'custom'; });
+    var o = R.papers || {};
+    Object.keys(k).forEach(function (x) { if (['frame', 'blank', 'torn', 'custom'].indexOf(o[x]) >= 0 && (o[x] !== 'custom' || (P.top && P.bot))) k[x] = o[x]; });
+    return k;
+  }
+  function swMono(key, FL) {
+    if (!decoOn(key)) return '';
+    var D = DECO, h = '';
+    if (D.mono && D.mono.on !== false) {
+      if (D.mono.kind === 'image' && D.mono.src) h += '<img class="m" src="' + esc(resolve(D.mono.src)) + '" alt="" draggable="false">';
+      else {
+        var L = String(D.mono.letter || FL || '').trim().slice(0, 3);
+        if (L) h += '<span class="m m-t" style="font-family:' + fontOf(D.mono.font) + ';color:' + (hex2rgb(D.mono.color) ? D.mono.color : '#111') + ';font-size:' + swPx(25 * num(D.mono.size, 1, 0.4, 2.5)) + '">' + esc(L) + '</span>';
+      }
+    }
+    if (D.orn && D.orn.on !== false) h += '<img class="o" src="' + esc(decoImg(D.orn.src, 'deco-orn.webp')) + '" alt="" width="455" height="58" draggable="false">';
+    return h ? '<div class="pmono" aria-hidden="true">' + h + '</div>' : '';
+  }
+  function swSwan(key) {
+    if (!decoOn(key)) return '';
+    var D = DECO, h = '';
+    if (D.swan && D.swan.on !== false) h += '<img class="s" src="' + esc(decoImg(D.swan.src, 'deco-swan.webp')) + '" alt="" width="900" height="487" draggable="false" style=""width:' + swPx(num(D.swan.w, 38, 8, 90)) + '">';
+    if (D.orn && D.orn.on !== false) h += '<img class="o" src="' + esc(decoImg(D.orn.src, 'deco-orn.webp')) + '" alt="" width="455" height="58" draggable="false">';
+    return h ? '<div class="pswan" aria-hidden="true">' + h + '</div>' : '';
+  }
+  function swTitle(key, t) {
+    var u = (decoOn(key) && DECO.orn && DECO.orn.on !== false && DECO.orn.under !== false) ? '<img class="o2" src="' + esc(decoImg(DECO.orn.src, 'deco-orn.webp')) + '" alt="" width="455" height="58" draggable="false">' : '';
+    return '<h2 class="title"><svg aria-hidden="true"><use href="#swirl"/></svg>' + esc(t) + '<svg aria-hidden="true"><use href="#swirl"/></svg></h2>' + u;
+  }
+  var SW_RZ = {
+    'rz-tr': ['sw-rz-tr.webp', 277, 404], 'rz-bl': ['sw-rz-bl.webp', 317, 379], 'rz-tl': ['sw-rz-tl.webp', 317, 379]
+  };
+  function swSec(key, kind, label, rz, inner, FL, CP) {
+    var cls = 'paper' + (kind === 'torn' ? '' : ' fc') + (kind === 'blank' ? ' pk-blank' : '') + (kind === 'custom' ? ' pk-custom' : '') + ' sec-' + key;
+    var st = '';
+    if (kind === 'custom') st = ' style="--t:' + swPx(num(CP.t, 48.8, 5, 150)) + ';--b:' + swPx(num(CP.b, 46.5, 5, 150)) + ';--mt:' + swPx(num(CP.mt, 54.7, 3, 300)) + ';--px:' + swPx(num(CP.padX, 18, 4, 40)) + ';--py:' + swPx(num(CP.padY, 17, 4, 50)) + '"';
+    function pc(u) { return u ? ' style="background-image:url(\'' + esc(resolve(u)).replace(/'/g, '%27') + '\')"' : ''; }
+    var bg = kind === 'torn' ? '<div class="pbg" aria-hidden="true"></div>'
+      : '<div class="fbg" aria-hidden="true"><div class="ft"' + (kind === 'custom' ? pc(CP.top) : '') + '></div><div class="fm"' + (kind === 'custom' ? pc(CP.mid || CP.top) : '') + '></div><div class="fb"' + (kind === 'custom' ? pc(CP.bot) : '') + '></div></div>';
+    var fls = '';
+    if (kind === 'torn' && !(DECO && DECO.rz === false)) fls = rz.map(function (r) { var f = SW_RZ[r]; return '<img class="fl rz ' + r + '" src="' + SW + f[0] + '" alt="" width="' + f[1] + '" height="' + f[2] + '">'; }).join('');
+    return '<section class="' + cls + '" aria-label="' + esc(label) + '"' + st + '>' + bg + swMono(key, FL) + fls + inner.replace('<!--SWAN-->', swSwan(key)) + '</section>';
+  }
+  function swansBody(c, start, dateText, FL) {
+    var R = c.royal, kinds = swKinds(R), CP = R.customPaper || {}, h = stickersHtml(c.stickers, 'page'), SEC = '';
+    h += swScene(c, dateText);
+    if (c.countdown.enabled && start && start.ms) {
+      var L = c.countdown.labels;
+      h += swSec('countdown', kinds.countdown, c.countdown.title, [], swTitle('countdown', c.countdown.title) +
+        '<div class="count" id="count" role="timer" aria-live="off">' + ['d', 'h', 'm', 's'].map(function (id, i) { return '<div class="cell"><b id="' + id + '">00</b><span>' + esc(L[i] || '') + '</span></div>'; }).join('') + '</div><!--SWAN-->', FL, CP);
+    }
+    var items = c.schedule.items.filter(function (it) { return it && (it.title || it.time); });
+    if (c.schedule.enabled && items.length) {
+      h += swSec('schedule', kinds.schedule, c.schedule.title, ['rz-tr', 'rz-bl'], swTitle('schedule', c.schedule.title) + '<ul class="tl">' + items.map(function (it) {
+        var d = !!it.detail;
+        return '<li' + (it.rose ? ' class="rose"' : '') + '><span class="t">' + esc(it.time) + '</span><button class="e' + (d ? '' : ' nd') + '" type="button"' + (d ? ' aria-expanded="false"' : ' tabindex="-1"') + '><span class="nm">' + esc(it.title) + '</span>' +
+          (d ? '<span class="dt"><span>' + nl(it.detail) + '</span></span>' : '') + '</button></li>';
+      }).join('') + '</ul>' + (items.some(function (it) { return it.detail; }) && c.schedule.tip ? '<p class="tip">' + esc(c.schedule.tip) + '</p>' : '') + '<!--SWAN-->', FL, CP);
+    }
+    var L2 = c.location;
+    if (L2.enabled && (L2.venue || L2.address || L2.mapUrl)) {
+      h += swSec('location', kinds.location, L2.title, ['rz-tr', 'rz-bl'], swTitle('location', L2.title) + '<div class="card"><svg class="pin" aria-hidden="true"><use href="#pinicon"/></svg>' +
+        (L2.venue ? '<p class="venue"' + (L2.venueLang ? ' dir="ltr" lang="' + esc(L2.venueLang) + '"' : '') + '>' + esc(L2.venue) + '</p>' : '') +
+        (L2.venueEn ? '<p class="venue-en" dir="ltr" lang="en">' + esc(L2.venueEn) + '</p>' : '') +
+        (L2.address ? '<p class="addr">' + nl(L2.address) + '</p>' : '') +
+        (/^https?:\/\//i.test(L2.mapUrl) ? '<a class="btn" href="' + esc(L2.mapUrl) + '" target="_blank" rel="noopener">' + esc(L2.mapLabel) + '</a>' : '') + '</div><!--SWAN-->', FL, CP);
+    }
+    var notes = c.notes.items.filter(function (n) { return n && n.text; });
+    if (c.notes.enabled && notes.length) {
+      h += swSec('notes', kinds.notes, c.notes.title, ['rz-tr'], swTitle('notes', c.notes.title) + notes.map(function (n) { return '<p class="note">' + nl(n.text) + '</p>'; }).join('') + '<!--SWAN-->', FL, CP);
+    }
+    var R2 = c.rsvp;
+    if (R2.enabled) {
+      var max = Math.max(1, Math.min(30, parseInt(R2.maxGuests, 10) || 6)), opt = '';
+      for (var i = 1; i <= max; i++) opt += '<option>' + i + '</option>';
+      h += swSec('rsvp', kinds.rsvp, R2.title, ['rz-tl'], swTitle('rsvp', R2.title) + (R2.intro ? '<p class="note">' + nl(R2.intro) + '</p>' : '') +
+        '<form id="rsvp" novalidate>' +
+        '<div><label for="name">' + esc(R2.nameLabel) + '</label><input type="text" id="name" name="name" autocomplete="name" required></div>' +
+        '<div><span class="lbl" id="att-l">' + esc(R2.attendLabel) + '</span><div class="choice" role="radiogroup" aria-labelledby="att-l">' +
+        '<input type="radio" name="att" id="yes" value="yes" checked><label for="yes">' + esc(R2.yesLabel) + '</label>' +
+        '<input type="radio" name="att" id="no" value="no"><label for="no">' + esc(R2.noLabel) + '</label></div></div>' +
+        (R2.showGuests !== false ? '<div id="guestsWrap"><label for="guests">' + esc(R2.guestsLabel) + '</label><select id="guests" name="guests">' + opt + '</select></div>' : '') +
+        '<div><label for="msg">' + esc(R2.noteLabel) + '</label><textarea id="msg" rows="3"></textarea></div>' +
+        '<button class="btn gold" type="submit" style="align-self:center">' + esc(R2.button) + '</button>' +
+        '<p id="err" role="alert" style="color:#8a2b1a;text-align:center;font-size:17px" hidden>' + esc(R2.nameError) + '</p></form>' +
+        '<p class="thanks" id="thanks" hidden></p>' +
+        '<div class="cta" id="cta" hidden><p>' + esc(c.ui.ctaText) + '</p><a class="credit" href="https://www.zaytorainvites.com/" target="_blank" rel="noopener">MADE BY ZAYTORA</a></div><!--SWAN-->', FL, CP);
+    }
+    var CL = c.closing, names = c.hero.name1 + (c.hero.name2 ? ' ' + c.hero.name2 : '');
+    h += '<section class="paper sec-closing" aria-label="' + esc(CL.sign || names) + '">' + cardHtml(CL.card && CL.card.enabled ? CL.card : { name1: c.hero.name1, name2: c.hero.name2, amp: '&', date: '' }, FL, start, dateText) + '</section>';
+    return h;
+  }
+  function swansShare(c, names) {
+    return '<button id="share" type="button" aria-label="مشاركة الدعوة" hidden><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><path d="M8.3 10.8l7.4-4.3M8.3 13.2l7.4 4.3"/></svg></button><div id="toast" role="status" aria-live="polite"></div>';
+  }
+
   function render(raw, opts) {
     opts = opts || {};
     teardown();
     var c = merge(DEF, raw || {});
     var H = c.hero, R = c.rsvp, M = c.media;
+    var swans = c.layout.mode === 'swans';
     var royal = c.layout.mode === 'royal'; ROYAL = royal;
-    DECO = royal ? c.royal.deco : null;
+    DECO = (royal || swans) ? c.royal.deco : null;
     CARD.custom = royal && paperStyle(c.royal) === 'custom' ? c.royal.customPaper : null;
+    document.body.classList.toggle('swans', swans);
     var FL = (H.name1 || '').trim().charAt(0);
     var SEC = 'paper';
     document.body.classList.toggle('royal', royal);
@@ -385,10 +545,13 @@
         '<svg class="off" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 9v6h4l5 4V5L7 9H3zm13.6 3 2.4-2.4-1.4-1.4-2.4 2.4-2.4-2.4-1.4 1.4 2.4 2.4-2.4 2.4 1.4 1.4 2.4-2.4 2.4 2.4 1.4-1.4z"/></svg></button>';
     }
 
-    h += '<div id="scrollhint" aria-hidden="true"><span class="mouse"></span><span class="chev"><i></i><i></i></span><span class="tx">' + esc(c.ui.scrollHint) + '</span></div>';
+    if (!swans) h += '<div id="scrollhint" aria-hidden="true"><span class="mouse"></span><span class="chev"><i></i><i></i></span><span class="tx">' + esc(c.ui.scrollHint) + '</span></div>';
 
+    if (swans) h += swansShare(c, names);
     h += '<main' + (royal ? ' class="royal"' : '') + '>';
     var secAt = 0;
+    if (swans) h += swansBody(c, start, dateText, FL);
+    else {
     if (royal) { h += sceneHtml(c, dateText, names) + sheetOpen(c); secAt = h.length; }
     SEC = royal ? 'rsec' : 'paper';
     /* hero (classic mode) */
@@ -475,6 +638,7 @@
       (CL.text ? '<p class="quote" style="font-size:30px">' + esc(CL.text) + '</p>' : '') +
       (CL.sign ? '<p class="sign">' + esc(CL.sign) + '</p>' : '') + decoBottom('closing') + '<div class="closing-space"></div></section>';
     if (royal) { if (paperStyle(c.royal) !== 'columns') h = h.slice(0, secAt) + cardify(h.slice(secAt)); h += sheetClose(c); }
+    }
     /* "MADE BY ZAYTORA" always closes the page and links to the site's home page. It does not depend on the stored
        footer text, so every invitation (saved earlier or later) gets it. A custom footer line, if any, sits above it;
        the old default text "ZAYTORA INVITES" is not repeated. */
@@ -502,8 +666,8 @@
     live.aud = aud;
 
     /* scroll-down hint */
-    function showHint() { live.timers.push(setTimeout(function () { if (window.scrollY < 60) sh.classList.add('show'); }, 900)); }
-    on(window, 'scroll', function () { if (window.scrollY > 60) { sh.classList.remove('show'); sh.classList.add('hide'); } }, { passive: true });
+    function showHint() { if (!sh) return; live.timers.push(setTimeout(function () { if (window.scrollY < 60) sh.classList.add('show'); }, 900)); }
+    if (sh) on(window, 'scroll', function () { if (window.scrollY > 60) { sh.classList.remove('show'); sh.classList.add('hide'); } }, { passive: true });
 
     /* music: never relies on audio.volume (iPhones ignore it); the button pauses/plays directly */
     var vol = Math.max(0.05, Math.min(1, Number(c.media.musicVolume) || 0.5));
@@ -574,11 +738,34 @@
       live.timers.push(setTimeout(function () { pos = window.scrollY; if (autoOn) raf = requestAnimationFrame(frame); }, 1800));
     }
 
+    var shb = $('share'), toast = $('toast');
+    if (shb) {
+      var say = function (m) { toast.textContent = m; toast.classList.add('show'); setTimeout(function () { toast.classList.remove('show'); }, 2200); };
+      on(shb, 'click', function () {
+        var url = location.href.split('#')[0], data = { title: ctx.names, text: c.meta.description || ctx.names, url: url };
+        if (navigator.share) { navigator.share(data).catch(function () { /* ignore */ }); return; }
+        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(function () { say('تم نسخ رابط الدعوة'); }, function () { say(url); });
+        else say(url);
+      });
+    }
+    if (swansLook()) {
+      document.documentElement.classList.add('anim2');
+      on(window, 'scroll', function () { document.documentElement.classList.toggle('scrolled', window.scrollY > 60); }, { passive: true });
+      live.unbind.push(function () { document.documentElement.classList.remove('anim2', 'scrolled'); });
+    }
+
     function reveal() {
+      if (shb) shb.hidden = false;
       if (cover) {
         if (cover.classList.contains('gone')) return;
         cover.classList.add('gone');
         live.timers.push(setTimeout(function () { cover.hidden = true; }, 1200));
+      }
+      var sr = swansLook() ? $('royal') : null;
+      if (sr) {
+        if (!cover && !ctx.opts.replay) { sr.classList.add('still'); sr.classList.add('play'); }
+        else live.timers.push(setTimeout(function () { sr.classList.add('play'); }, 250));
+        live.timers.push(setTimeout(function () { var hh = document.querySelector('.r-scroll'); if (hh) hh.classList.add('off'); }, 7000));
       }
       var rs = $('rscene');
       if (rs) { if (!cover && !ctx.opts.replay) rs.classList.add('still'); rs.classList.add('go'); }
@@ -611,7 +798,7 @@
     /* scroll reveal */
     var papers = [].slice.call(document.querySelectorAll('.paper, .rsec'));
     papers.forEach(function (p) {
-      var kids = [].slice.call(p.children).filter(function (k) { return !k.classList.contains('fl') && !k.classList.contains('hero-top') && !k.classList.contains('closing-space'); }), i = 0;
+      var kids = [].slice.call(p.children).filter(function (k) { return !k.classList.contains('fl') && !k.classList.contains('hero-top') && !k.classList.contains('pbg') && !k.classList.contains('closing-space'); }), i = 0;
       kids.forEach(function (k) {
         if (k.classList.contains('tl')) { [].forEach.call(k.children, function (li) { li.classList.add('rv'); li.style.setProperty('--d', (0.25 + i * 0.14) + 's'); i++; }); }
         else { k.classList.add('rv'); k.style.setProperty('--d', (0.15 + i * 0.12) + 's'); i++; }
@@ -653,6 +840,7 @@
       var fill = document.createElement('div'); fill.className = 'fill'; tl.appendChild(fill);
       lis.forEach(function (li) {
         var b = li.querySelector('.e');
+        if (b.classList.contains('nd')) return;
         function toggle() {
           var open = b.getAttribute('aria-expanded') === 'true';
           lis.forEach(function (o) { o.classList.remove('open'); o.querySelector('.e').setAttribute('aria-expanded', 'false'); });

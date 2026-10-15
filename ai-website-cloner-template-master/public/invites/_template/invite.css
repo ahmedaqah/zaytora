@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap');
+@import url('swans.css');
 /* Layout: swan-lake video as a fixed backdrop; content sits on torn-paper panels with watercolor floral corners. Single warm look by design. */
 :root{
   --paper:#f0e3d3;

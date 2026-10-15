@@ -402,6 +402,7 @@
     var secs = [['countdown', 'العدّ التنازلي'], ['schedule', 'برنامج الحفل'], ['location', 'الموقع'], ['notes', 'التعليمات'], ['rsvp', 'تأكيد الحضور'], ['closing', 'الختام (إن لم تُستخدم بطاقة الختام)']];
     return el('div', { class: 'sec', style: 'padding:0' }, [
       check('إظهار الزخارف فوق وتحت كل ورقة', 'royal.deco.enabled'),
+      state.cfg.layout.mode === 'swans' ? check('ورود زوايا الورق الممزق', 'royal.deco.rz') : null,
       el('b', { text: 'أعلى الورقة: الحرف الأول' }),
       check('إظهار الحرف', 'royal.deco.mono.on'), kindSel,
       text('الحرف', 'royal.deco.mono.letter', 'فارغ = أول حرف من الاسم الأول تلقائياً'),
@@ -419,7 +420,7 @@
     ]);
   }
   function royalPanels() {
-    var R = state.cfg.royal; fontSels = [];
+    var R = state.cfg.royal, SWANS = state.cfg.layout.mode === 'swans'; fontSels = [];
     var fam = function (side, label) {
       return el('div', { class: 'item' }, [el('div', { class: 'h' }, [el('b', { text: label })]),
         el('div', { class: 'g2' }, [text('اللقب', 'royal.' + side + '.title'), text('اسم الأب / العائلة', 'royal.' + side + '.father')]),
@@ -433,7 +434,9 @@
         area('الجملة العليا (البسملة أو أي عبارة)', 'royal.bismillah', '', 2), area('نص الدعوة تحتها', 'royal.invite', '', 2),
         area('نص في الوسط قبل «الصلة» (اختياري، يدفع الصلة والأسماء للأسفل في العمودين معاً)', 'royal.middle', '', 2),
         fam('right', 'العمود الأيمن (العريس عادةً)'), fam('left', 'العمود الأيسر (العروس عادةً)'),
-        check('إظهار التاريخ أسفل الأسماء', 'royal.showDate')
+        check('إظهار التاريخ أسفل الأسماء', 'royal.showDate'),
+        SWANS ? text('اليوم فوق التاريخ (مثال: الخميس)', 'royal.day') : null,
+        SWANS ? check('استخدام صور الخط الأصلية للعبارات الثابتة (بسم الله، السيد، نجله، ابنته) — عند تغيير النص تتحول لنص بالخط المختار', 'royal.useImages') : null
       ], true),
       section('الوضع الملكي — الخطوط والألوان', [
         fontSel('خط الجملة العليا', 'royal.fonts.bismillah'), fontSel('خط نص الدعوة', 'royal.fonts.invite'), fontSel('خط النص الأوسط', 'royal.fonts.middle'),
@@ -444,7 +447,7 @@
         el('div', { class: 'g2' }, [color('لون النصوص', 'royal.colors.text'), color('لون أسماء العروسين (أغمق)', 'royal.colors.names')])
       ]),
       section('الوضع الملكي — حركة الظهور', [
-        sel('نوع الحركة', 'royal.anim.type', [['rise', 'صعود هادئ'], ['fade', 'ظهور تدريجي'], ['drop', 'نزول هادئ'], ['zoom', 'تقريب ناعم'], ['blur', 'من الضبابية إلى الوضوح'], ['slide', 'انزلاق الأعمدة من الجانبين']]),
+        sel('نوع الحركة', 'royal.anim.type', [['soft', 'ناعم (الأصلي)'], ['rise', 'صعود هادئ'], ['fade', 'ظهور تدريجي'], ['drop', 'نزول هادئ'], ['zoom', 'تقريب ناعم'], ['blur', 'من الضبابية إلى الوضوح'], ['slide', 'انزلاق الأعمدة من الجانبين']]),
         num('مدة ظهور كل عنصر (ثانية)', 'royal.anim.duration', 0.3, 6, 0.1), num('الفاصل بين العناصر (ثانية)', 'royal.anim.gap', 0, 3, 0.05), num('التأخير بعد فتح الغلاف (ثانية)', 'royal.anim.delay', 0, 6, 0.1),
         replay, el('p', { class: 'hint', text: 'تبدأ الحركة عند فتح الغلاف. زر الإعادة يعرضها في المعاينة دون الحاجة لفتح الغلاف.' })
       ]),
@@ -457,7 +460,12 @@
         el('p', { class: 'hint', text: 'يُطبَّق على كل نصوص البطاقة الأولى (البسملة والأسماء والتاريخ). مفيد لإبراز النص فوق الخلفيات المزدحمة.' })
       ]),
       section('الوضع الملكي — الورقة', [
-        sel('تصميم الورق', 'royal.paperStyle', [['blank', 'ورقة الأعمدة والورود الفارغة — كل قسم في ورقة لوحده'], ['columns', 'أعمدة ووُرود — ورقة واحدة متصلة'], ['rose', 'إطار الورود الحمراء — كل قسم في ورقة لوحده'], ['gold', 'إطار الورود الذهبي — كل قسم في ورقة لوحده (أطول)'], ['custom', 'ورقتي المرفوعة (من الخيار أدناه)']]),
+        SWANS
+          ? sel('تصميم الورق لكل الأقسام', 'royal.paperStyle', [['original', 'كما في التصميم الأصلي (إطار رخامي للعدّ، أعمدة فارغة للبرنامج، ورق ممزق بورود للباقي)'], ['blank', 'ورقة الأعمدة والورود الفارغة لكل الأقسام'], ['frame', 'الإطار الرخامي لكل الأقسام'], ['torn', 'الورق الممزق بالورود لكل الأقسام'], ['custom', 'ورقتي المرفوعة (من الخيار أدناه)']])
+          : sel('تصميم الورق', 'royal.paperStyle', [['blank', 'ورقة الأعمدة والورود الفارغة — كل قسم في ورقة لوحده'], ['columns', 'أعمدة ووُرود — ورقة واحدة متصلة'], ['rose', 'إطار الورود الحمراء — كل قسم في ورقة لوحده'], ['gold', 'إطار الورود الذهبي — كل قسم في ورقة لوحده (أطول)'], ['custom', 'ورقتي المرفوعة (من الخيار أدناه)']]),
+        SWANS ? el('div', { class: 'g2' }, [['countdown', 'ورق العدّ التنازلي'], ['schedule', 'ورق برنامج الحفل'], ['location', 'ورق الموقع'], ['notes', 'ورق التعليمات'], ['rsvp', 'ورق تأكيد الحضور']].map(function (x) {
+          return sel(x[1] + ' (يغلب الاختيار أعلاه)', 'royal.papers.' + x[0], [['', 'حسب الاختيار أعلاه'], ['frame', 'إطار رخامي'], ['blank', 'أعمدة فارغة'], ['torn', 'ممزق بالورود'], ['custom', 'ورقتي المرفوعة']]);
+        })) : null,
         paperUploader(),
         scale('درجة وضوح الورقة (100% معتمة، أقل = أشفّ)', 'royal.paperOpacity', 0.1, 1, 0.05),
         el('p', { class: 'hint', text: 'الأعمدة والورود تبقى واضحة دائماً، والورقة وحدها تصبح شفافة فتظهر الخلفية من خلالها.' })
@@ -470,7 +478,7 @@
       ]),
       section('الوضع الملكي — الملصقات والصور والفيديو', [stickerPanel()])
     ]);
-    wrapEl.hidden = state.cfg.layout.mode !== 'royal';
+    wrapEl.hidden = state.cfg.layout.mode !== 'royal' && state.cfg.layout.mode !== 'swans';
     return wrapEl;
   }
 
@@ -481,9 +489,26 @@
 
     /* layout mode: keeps the current look or switches to the royal one */
     var panels = royalPanels();
-    var modeSel = el('select', {}, [el('option', { value: 'classic', text: 'الوضع الحالي (الأوراق الممزقة)' }), el('option', { value: 'royal', text: 'الوضع الجديد (ملكي: أعمدة وورود)' })]);
-    modeSel.value = cfg.layout.mode === 'royal' ? 'royal' : 'classic';
-    modeSel.addEventListener('input', function () { state.cfg.layout.mode = modeSel.value; panels.hidden = modeSel.value !== 'royal'; schedule(); });
+    var modeSel = el('select', {}, [el('option', { value: 'classic', text: 'الوضع الحالي (الأوراق الممزقة)' }), el('option', { value: 'royal', text: 'الوضع الجديد (ملكي: أعمدة وورود)' }), el('option', { value: 'swans', text: 'قالب البجع — طبق الأصل من التصميم المعتمد' })]);
+    modeSel.value = cfg.layout.mode === 'royal' || cfg.layout.mode === 'swans' ? cfg.layout.mode : 'classic';
+    modeSel.addEventListener('input', function () {
+      var R = state.cfg.royal || (state.cfg.royal = {}), ps = R.paperStyle;
+      state.cfg.layout.mode = modeSel.value;
+      if (modeSel.value === 'swans') {
+        /* the swans look ships with its own colours, fonts, motion and decoration: apply them when the look is chosen */
+        if (['original', 'blank', 'frame', 'torn', 'custom'].indexOf(ps) < 0) R.paperStyle = 'original';
+        state.cfg.theme = Object.assign(state.cfg.theme || {}, { paper: '#f0e3d3', gold: '#a8832f', goldBright: '#c8a24a', olive: '#7b1a22', brown: '#5b4636' });
+        R.colors = { text: '#fbf3e6', names: '#fbf3e6' };
+        R.fonts = { bismillah: 'amiri', invite: 'amiri', titles: 'katibeh', father: 'katibeh', names: 'katibeh', middle: 'amiri' };
+        R.anim = { type: 'soft', duration: 1.2, gap: 0.5, delay: 0.4 };
+        R.veil = { on: true, color: '#120608', top: 0.42, mid: 0.22, bot: 0.38 };
+        R.fx = Object.assign(R.fx || {}, { shadowType: 'none' });
+        R.paperOpacity = 0.96; R.useImages = true; R.papers = R.papers || {};
+        R.deco = R.deco || {}; R.deco.enabled = true; R.deco.rz = true; R.deco.mono = Object.assign(R.deco.mono || {}, { color: '#111111', size: 1 });
+      }
+      if (modeSel.value === 'royal' && ['blank', 'columns', 'rose', 'gold', 'custom'].indexOf(ps) < 0) R.paperStyle = 'blank';
+      buildForm(); schedule();
+    });
     F.appendChild(el('div', { class: 'modebox' }, [wrap('شكل الدعوة', modeSel, 'الدعوات المحفوظة سابقاً تبقى كما هي ما لم تغيّر هذا الخيار وتعيد حفظها.')]));
     F.appendChild(panels);
 
