@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap');
+@import url('swans.css');
 /* Layout: swan-lake video as a fixed backdrop; content sits on torn-paper panels with watercolor floral corners. Single warm look by design. */
 :root{
   --paper:#f0e3d3;
@@ -265,6 +267,10 @@ main.royal{max-width:520px;padding-block:0 28px;gap:0;overflow-x:clip}
 .rs-columns{--t:90.82cqw;--b:43.55cqw;--mt:31.25cqw}
 .rs-rose{--t:41.02cqw;--b:45.51cqw;--mt:31.25cqw}
 .rs-gold{--t:55.51cqw;--b:54.12cqw;--mt:13.88cqw}
+.rs-blank{--t:48.83cqw;--b:46.48cqw;--mt:54.69cqw}
+.rs-blank .rl-p .t{background-image:url(/invites/_template/img/blank-top-paper.webp)}
+.rs-blank .rl-p .m{background-image:url(/invites/_template/img/blank-mid-paper.webp)}
+.rs-blank .rl-p .b{background-image:url(/invites/_template/img/blank-bot-paper.webp)}
 .rs-columns .rl-p .t{background-image:url(/invites/_template/img/royal-top-paper.webp)}
 .rs-columns .rl-p .m{background-image:url(/invites/_template/img/royal-mid-paper.webp)}
 .rs-columns .rl-p .b{background-image:url(/invites/_template/img/royal-bot-paper.webp)}
@@ -290,6 +296,8 @@ main.royal{max-width:520px;padding-block:0 28px;gap:0;overflow-x:clip}
 .r-cin{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center}
 .rs-rose .r-cin{min-height:calc(var(--t) + var(--b));padding:23cqw 18cqw}
 .rs-gold .r-cin{min-height:calc(var(--t) + var(--b));padding:22cqw 19cqw}
+.rs-blank .r-cin{min-height:calc(var(--t) + var(--b));padding:17cqw 18cqw}
+.rs-custom .r-cin{min-height:calc(var(--t) + var(--b));padding:var(--py,17cqw) var(--px,18cqw)}
 
 /* detail sections on the sheet (same inner markup as the classic paper cards, no card of their own) */
 .rsec{position:relative;display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;width:100%}
@@ -328,3 +336,25 @@ main.royal{max-width:520px;padding-block:0 28px;gap:0;overflow-x:clip}
 .r-c{display:flex;flex-direction:column;align-items:center;min-width:0}
 .r-mid{grid-column:1/-1;display:flex;justify-content:center;padding-block:1.5cqw}
 .r-m{font-family:var(--f-m);font-size:calc(5.4cqw*var(--sm,1));line-height:1.7;color:var(--r-text);text-align:center;max-width:34ch;text-wrap:balance}
+
+/* ===== opt-in section decoration (royal.deco): monogram + ornament above, swan + ornament below ===== */
+.dc{display:flex;flex-direction:column;align-items:center;width:100%;gap:2cqw}
+.dc-m{display:block;line-height:1.15;text-shadow:0 1px 0 rgba(255,255,255,.35)}
+.dc-mi{display:block;height:20cqw;width:auto;max-width:60%;object-fit:contain}
+.dc-o{display:block;width:56cqw;max-width:100%;height:auto;opacity:.92}
+.dc-o2{display:block;width:42cqw;max-width:100%;height:auto;opacity:.9;margin-top:-1cqw}
+.dc-s{display:block;height:auto;max-width:100%;filter:drop-shadow(0 3px 5px rgba(70,40,15,.28))}
+.dc-bot{margin-top:2.5cqw}
+.venue-en{font-family:var(--latin);direction:ltr;font-size:18px;letter-spacing:.06em;color:var(--olive);margin-top:-5px;margin-bottom:8px}
+
+/* ===== closing card (closing.card): frame picture with live text, no paper behind it ===== */
+.rsec-card{padding:0!important}
+.ccard{direction:ltr;container-type:inline-size;position:relative;width:100%;aspect-ratio:941/1670;filter:drop-shadow(0 12px 20px rgba(8,2,4,.45))}
+.cc-fr{position:absolute;inset:0;width:100%;height:100%;display:block;-webkit-user-drag:none;user-select:none}
+.cc-m,.cc-n,.cc-amp,.cc-d{position:absolute;left:50%;transform:translate(-50%,-50%);white-space:nowrap;text-align:center}
+.cc-m{top:21.6%;font-size:34cqw;line-height:1.2;background:var(--cg);-webkit-background-clip:text;background-clip:text;color:transparent}
+.cc-names{position:absolute;left:0;right:0;top:49.5%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:1cqw}
+.cc-names .cc-n,.cc-names .cc-amp{position:static;transform:none}
+.cc-n{font-family:'Great Vibes','Snell Roundhand','Apple Chancery',cursive;font-size:calc(21cqw*var(--k,1));line-height:1.25;background:var(--cg);-webkit-background-clip:text;background-clip:text;color:transparent;padding-inline:.12em}
+.cc-amp{font-family:var(--latin);font-size:8cqw;line-height:1;background:var(--cg);-webkit-background-clip:text;background-clip:text;color:transparent}
+.cc-d{top:68.9%;font-family:var(--latin);font-size:4.3cqw;letter-spacing:.3em;background:var(--cg);-webkit-background-clip:text;background-clip:text;color:transparent;padding-inline-start:.3em}

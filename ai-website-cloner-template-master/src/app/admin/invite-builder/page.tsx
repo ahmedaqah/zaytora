@@ -61,7 +61,14 @@ function isSaveMessage(value: unknown): value is SaveMessage {
   );
 }
 
-const MEDIA_KEYS = ["cover", "coverPoster", "bg", "bgWebm", "bgPoster", "music", "customFont"] as const;
+function replaceUploaded(value: unknown, uploaded: Record<string, string>): unknown {
+  if (typeof value === "string") return uploaded[value] ?? value;
+  if (Array.isArray(value)) return value.map((item) => replaceUploaded(item, uploaded));
+  if (isRecord(value)) {
+    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, replaceUploaded(item, uploaded)]));
+  }
+  return value;
+}
 
 export default function AdminInviteBuilderPage() {
   const { language } = useLanguage();
@@ -85,29 +92,9 @@ export default function AdminInviteBuilderPage() {
           uploaded[path] = url;
         }
 
-        const config: PrivateInviteConfig = { ...msg.config };
-        const media = isRecord(config.media) ? { ...config.media } : {};
-        for (const key of MEDIA_KEYS) {
-          const value = media[key];
-          if (typeof value === "string" && uploaded[value]) media[key] = uploaded[value];
-        }
-        config.media = media;
-        if (isRecord(config.royal) && Array.isArray(config.royal.customFonts)) {
-          config.royal = {
-            ...config.royal,
-            customFonts: config.royal.customFonts.map((item) => {
-              if (!isRecord(item) || typeof item.src !== "string" || !uploaded[item.src]) return item;
-              return { ...item, src: uploaded[item.src] };
-            }),
-          };
-        }
-        if (Array.isArray(config.stickers)) {
-          config.stickers = config.stickers.map((item) => {
-            if (!isRecord(item) || typeof item.src !== "string" || !uploaded[item.src]) return item;
-            return { ...item, src: uploaded[item.src] };
-          });
-        }
-        if (typeof config.ogImage === "string" && uploaded[config.ogImage]) config.ogImage = uploaded[config.ogImage];
+        // Every picture the design uses (cover, background, music, fonts, stickers, paper pieces, decoration,
+        // card frame ...) is referenced by its local name; swap each one for its uploaded URL.
+        const config = replaceUploaded(msg.config, uploaded) as PrivateInviteConfig;
 
         const saved = await savePrivateInvite(msg.slug, { title: msg.title, config });
         // Open the public page once right after saving: it keeps the API awake and the page's serverless function
