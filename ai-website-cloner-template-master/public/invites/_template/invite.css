@@ -353,6 +353,7 @@ main.royal{max-width:520px;padding-block:0 28px;gap:0;overflow-x:clip}
 .cc-fr{position:absolute;inset:0;width:100%;height:100%;display:block;-webkit-user-drag:none;user-select:none}
 .cc-m,.cc-n,.cc-amp,.cc-d{position:absolute;left:50%;transform:translate(-50%,-50%);white-space:nowrap;text-align:center}
 .cc-m{top:21.6%;font-size:34cqw;line-height:1.2;background:var(--cg);-webkit-background-clip:text;background-clip:text;color:transparent}
+.cc-mi{position:absolute;transform:translate(-50%,-50%);height:auto;max-width:none;display:block}
 .cc-names{position:absolute;left:0;right:0;top:49.5%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:1cqw}
 .cc-names .cc-n,.cc-names .cc-amp{position:static;transform:none}
 .cc-n{font-family:'Great Vibes','Snell Roundhand','Apple Chancery',cursive;font-size:calc(21cqw*var(--k,1));line-height:1.25;background:var(--cg);-webkit-background-clip:text;background-clip:text;color:transparent;padding-inline:.12em}

@@ -595,8 +595,11 @@
       el('b', { text: 'بطاقة الختام (الوضع الملكي)' }),
       check('عرض بطاقة الختام بدل ورقة الختام', 'closing.card.enabled'),
       el('div', { class: 'g2' }, [text('الاسم الأول (لاتيني)', 'closing.card.name1', '', { dir: 'ltr' }), text('الاسم الثاني (لاتيني)', 'closing.card.name2', '', { dir: 'ltr' })]),
-      el('div', { class: 'g2' }, [text('الحرف أعلى البطاقة', 'closing.card.letter', 'فارغ = أول حرف من الاسم الأول'), text('التاريخ على البطاقة', 'closing.card.date', 'مثال: 20 MAY 2027', { dir: 'ltr' })]),
+      el('div', { class: 'g2' }, [text('الحرف أعلى البطاقة', 'closing.card.letter', 'فارغ = بدون حرف'), text('التاريخ على البطاقة', 'closing.card.date', 'مثال: 20 MAY 2027', { dir: 'ltr' })]),
       color('لون النصوص على البطاقة', 'closing.card.color'),
+      slider('حجم الحرف', state.cfg.closing.card, 'letterSize', 0.3, 3, 0.05, '', function () { schedule(); }), slider('مكان الحرف أفقياً (%)', state.cfg.closing.card, 'letterX', 0, 100, 1, '', function () { schedule(); }), slider('مكان الحرف عمودياً (%)', state.cfg.closing.card, 'letterY', 0, 100, 1, '', function () { schedule(); }),
+      assetField('حرف كصورة (بدل الحرف النصي أو معه)', 'closing.card.img', 'PNG أو WebP شفاف، مثل حرف بخط الثلث. يظهر أعلى البطاقة.'),
+      slider('عرض صورة الحرف', state.cfg.closing.card, 'imgW', 3, 100, 1, '', function () { schedule(); }), slider('مكان صورة الحرف أفقياً (%)', state.cfg.closing.card, 'imgX', 0, 100, 1, '', function () { schedule(); }), slider('مكان صورة الحرف عمودياً (%)', state.cfg.closing.card, 'imgY', 0, 100, 1, '', function () { schedule(); }),
       assetField('صورة إطار البطاقة', 'closing.card.frame', 'PNG أو WebP شفاف، بنسبة 941×1670 تقريباً وبدون نصوص (النصوص تُكتب أعلاه). الأصلية إطار ورود وبجع.'),
       el('p', { class: 'hint', text: 'تُعرض البطاقة بلا ورقة خلفها. اترك الخيار مغلقاً لاستخدام ورقة الختام العادية.' })
     ]));
