@@ -30,7 +30,7 @@
     location: { enabled: true, title: 'الموقع', venue: '', venueLang: '', venueEn: '', address: '', mapUrl: '', mapLabel: 'افتح الخريطة' },
     notes: { enabled: true, title: 'تعليمات خاصة', items: [] },
     rsvp: {
-      enabled: true, title: 'تأكيد الحضور', intro: '', whatsapp: '', maxGuests: 6, showGuests: true,
+      enabled: true, title: 'تأكيد الحضور', intro: '', whatsapp: '', whatsapp2: '', maxGuests: 6, showGuests: true,
       nameLabel: 'الاسم', attendLabel: 'هل ستحضر؟', yesLabel: 'يشرفني الحضور', noLabel: 'أعتذر عن الحضور',
       guestsLabel: 'عدد الحضور', noteLabel: 'كلمة لأصحاب الدعوة (اختياري)', button: 'تأكيد عبر واتساب',
       nameError: 'اكتب اسمك أولاً.', thanksYes: 'شكراً {name}، سعدنا بتأكيدك.',
@@ -893,20 +893,26 @@
         if (yes && $('guests')) lines.push(R.msgGuests + ': ' + $('guests').value);
         var note = $('msg').value.trim();
         if (note) lines.push(R.msgNote + ': ' + note);
-        var digits = String(R.whatsapp || '').replace(/\D/g, '');
-        var url = digits ? 'https://wa.me/' + digits + '?text=' + encodeURIComponent(lines.join('\n')) : '';
+        var msg = encodeURIComponent(lines.join('\n'));
+        var urls = [R.whatsapp, R.whatsapp2].map(function (v) { return String(v || '').replace(/\D/g, ''); }).filter(Boolean).map(function (d) { return 'https://wa.me/' + d + '?text=' + msg; });
+        var url = urls[0] || '';
         var th = $('thanks'); th.textContent = '';
         var t1 = document.createElement('span'); t1.style.display = 'block';
         t1.textContent = fmt(yes ? R.thanksYes : R.thanksNo, { name: n });
         th.appendChild(t1);
-        if (url) {
+        if (urls.length) {
           var t2 = document.createElement('span'); t2.style.cssText = 'display:block;font-family:var(--body);font-size:19px;margin-top:6px';
           t2.textContent = R.thanksHint; th.appendChild(t2);
-          var a = document.createElement('a'); a.className = 'btn gold'; a.href = url; a.target = '_blank'; a.rel = 'noopener'; a.textContent = R.openWhatsapp; th.appendChild(a);
+          urls.forEach(function (u, i) {
+            var a = document.createElement('a'); a.className = 'btn gold'; a.href = u; a.target = '_blank'; a.rel = 'noopener';
+            a.textContent = urls.length > 1 ? R.openWhatsapp + ' (' + (i + 1) + ')' : R.openWhatsapp;
+            if (i) a.style.marginInlineStart = '8px';
+            th.appendChild(a);
+          });
         }
         form.hidden = true; th.hidden = false;
         if ($('cta')) $('cta').hidden = false; /* the call-to-action appears under the thank-you, for yes and no alike */
-        if (url && !ctx.opts.noAutoMusic) window.open(url, '_blank', 'noopener');
+        if (urls.length === 1 && !ctx.opts.noAutoMusic) window.open(url, '_blank', 'noopener'); /* with two numbers the guest picks which one */
       });
     }
   }
