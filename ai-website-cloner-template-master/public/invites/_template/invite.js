@@ -39,7 +39,7 @@
       msgName: 'الاسم', msgAttend: 'الحضور', msgYes: 'سأحضر', msgNo: 'أعتذر عن الحضور',
       msgGuests: 'عدد الحضور', msgNote: 'كلمة'
     },
-    closing: { latin: '', text: '', sign: '', card: { enabled: false, frame: '', letter: '', name1: '', name2: '', amp: '&', date: '', color: '#a8832f' } },
+    closing: { latin: '', text: '', sign: '', card: { enabled: false, frame: '', letter: '', letterX: 50, letterY: 21.6, letterSize: 1, img: '', imgX: 50, imgY: 21.6, imgW: 22, name1: '', name2: '', amp: '&', date: '', color: '#a8832f' } },
     footer: '',
     layout: { mode: 'classic' },
     royal: {
@@ -311,8 +311,11 @@
     var g = 'linear-gradient(180deg,' + css(mix(rgb, [255, 255, 255], 0.3)) + ',' + css(rgb) + ' 55%,' + css(mix(rgb, [0, 0, 0], 0.28)) + ')';
     var frame = K.frame ? resolve(K.frame) : TPL + 'img/card-frame.webp';
     function nm(t) { var n = String(t || '').trim(); if (!n) return ''; var k = n.length <= 8 ? 1 : Math.max(0.5, 8 / n.length); return '<span class="cc-n" style="--k:' + k.toFixed(3) + '">' + esc(n) + '</span>'; }
-    var L = String(K.letter || FL || '').trim().slice(0, 3);
-    var mono = L ? '<span class="cc-m" style="font-family:' + fontOf((DECO && DECO.mono && DECO.mono.font) || 'katibeh') + '">' + esc(L) + '</span>' : '';
+    /* the top letter is optional (empty = none); it can also be a picture. Both can be moved and resized. */
+    var L = String(K.letter || '').trim().slice(0, 3);
+    var pos = function (x, y, dx, dy) { return 'left:' + num(x, dx, 0, 100) + '%;top:' + num(y, dy, 0, 100) + '%'; };
+    var mono = L ? '<span class="cc-m" style="' + pos(K.letterX, K.letterY, 50, 21.6) + ';font-size:' + (34 * num(K.letterSize, 1, 0.3, 3)).toFixed(2) + 'cqw;font-family:' + fontOf((DECO && DECO.mono && DECO.mono.font) || 'katibeh') + '">' + esc(L) + '</span>' : '';
+    if (K.img) mono += '<img class="cc-mi" src="' + esc(resolve(K.img)) + '" alt="" draggable="false" style="' + pos(K.imgX, K.imgY, 50, 21.6) + ';width:' + num(K.imgW, 22, 3, 100) + 'cqw">';
     var amp = (K.name1 && K.name2) ? '<span class="cc-amp">' + esc(K.amp || '&') + '</span>' : '';
     var d = String(K.date || '').trim();
     return '<div class="ccard" style="--cg:' + g + '"><img class="cc-fr" src="' + esc(frame) + '" alt="" draggable="false">' + mono +
@@ -424,6 +427,11 @@
     if (kind === 'torn' && !(DECO && DECO.rz === false)) fls = rz.map(function (r) { var f = SW_RZ[r]; return '<img class="fl rz ' + r + '" src="' + SW + f[0] + '" alt="" width="' + f[1] + '" height="' + f[2] + '">'; }).join('');
     return '<section class="' + cls + '" aria-label="' + esc(label) + '"' + st + '>' + bg + swMono(key, FL) + fls + inner.replace('<!--SWAN-->', swSwan(key)) + '</section>';
   }
+  /* the map button is always shown: your link if there is one, otherwise a Google Maps search for the venue and address */
+  function swMapBtn(L2) {
+    var u = /^https?:\/\//i.test(L2.mapUrl) ? L2.mapUrl : 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent([L2.venueEn || L2.venue, L2.address].filter(Boolean).join(' '));
+    return '<a class="btn" href="' + esc(u) + '" target="_blank" rel="noopener">' + esc(L2.mapLabel || 'افتح الخريطة') + '</a>';
+  }
   function swansBody(c, start, dateText, FL) {
     var R = c.royal, kinds = swKinds(R), CP = R.customPaper || {}, h = stickersHtml(c.stickers, 'page'), SEC = '';
     h += swScene(c, dateText);
@@ -446,7 +454,7 @@
         (L2.venue ? '<p class="venue"' + (L2.venueLang ? ' dir="ltr" lang="' + esc(L2.venueLang) + '"' : '') + '>' + esc(L2.venue) + '</p>' : '') +
         (L2.venueEn ? '<p class="venue-en" dir="ltr" lang="en">' + esc(L2.venueEn) + '</p>' : '') +
         (L2.address ? '<p class="addr">' + nl(L2.address) + '</p>' : '') +
-        (/^https?:\/\//i.test(L2.mapUrl) ? '<a class="btn" href="' + esc(L2.mapUrl) + '" target="_blank" rel="noopener">' + esc(L2.mapLabel) + '</a>' : '') + '</div><!--SWAN-->', FL, CP);
+        swMapBtn(L2) + '</div><!--SWAN-->', FL, CP);
     }
     var notes = c.notes.items.filter(function (n) { return n && n.text; });
     if (c.notes.enabled && notes.length) {
