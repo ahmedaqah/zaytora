@@ -517,13 +517,13 @@
     } else {
       h += '<div id="bg" aria-hidden="true"></div>';
     }
-    var VL = royal && c.royal.veil && c.royal.veil.on ? c.royal.veil : null, veilCss = '';
+    var VL = (royal || swans) && c.royal.veil && c.royal.veil.on ? c.royal.veil : null, veilCss = swans ? ' style="background:none"' : ''; /* swans: its own stylesheet paints a veil, so "off" must clear it */
     if (VL) {
       var vr = (hex2rgb(VL.color) || [18, 6, 8]).join(',');
       veilCss = ' style="background:linear-gradient(180deg,rgba(' + vr + ',' + num(VL.top, 0.42, 0, 1) + '),rgba(' + vr + ',' + num(VL.mid, 0.22, 0, 1) + ') 45%,rgba(' + vr + ',' + num(VL.bot, 0.38, 0, 1) + '))"';
     }
     h += '<div id="veil"' + veilCss + '></div>';
-    if (royal) h += fontCss(M, c.royal.customFonts);
+    if (royal || swans) h += fontCss(M, c.royal.customFonts);
 
     if (!opts.skipCover) {
       h += '<button id="cover" type="button" class="' + (useVideo ? '' : 'simple') + '" aria-label="' + esc(c.ui.coverHint) + '">';
