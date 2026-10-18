@@ -225,6 +225,14 @@ export function EnvelopeMediaCover({
           onPlay={(event) => {
             if (!startedRef.current) event.currentTarget.pause();
           }}
+          onLoadedMetadata={(event) => {
+            // Paint the first frame even where the phone won't autoplay,
+            // instead of a grey screen.
+            const v = event.currentTarget;
+            if (!startedRef.current && !v.currentTime) {
+              try { v.currentTime = 0.01; } catch { /* ignore */ }
+            }
+          }}
           onEnded={handleFinish}
         />
       ) : (
