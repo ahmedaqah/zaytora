@@ -534,7 +534,9 @@
     if (royal || swans) h += fontCss(M, c.royal.customFonts);
 
     if (!opts.skipCover) {
-      h += '<button id="cover" type="button" class="' + (useVideo ? '' : 'simple') + '" aria-label="' + esc(c.ui.coverHint) + '">';
+      /* the poster also paints the button itself, so phones that hold back the video (low-power mode, slow network) still show the cover picture */
+      h += '<button id="cover" type="button" class="' + (useVideo ? '' : 'simple') + '" aria-label="' + esc(c.ui.coverHint) + '"' +
+        (useVideo && poster ? ' style="background:#e9dfcb url(\'' + esc(poster).replace(/'/g, '%27') + '\') center/cover no-repeat"' : '') + '>';
       if (useVideo) {
         h += '<video id="cv" src="' + esc(coverUrl) + '" muted playsinline preload="auto"' + (poster ? ' poster="' + esc(poster) + '"' : '') + '></video>';
       } else {
@@ -669,6 +671,7 @@
   /* ---------- behaviour ---------- */
   function wire(c, ctx) {
     var $ = function (id) { return document.getElementById(id); };
+    if ($('cv')) { var cv0 = $('cv'); on(cv0, 'loadedmetadata', function () { try { if (!cv0.currentTime) cv0.currentTime = 0.01; } catch (e) { /* ignore */ } }); } /* paints the first frame instead of the phone's play glyph */
     var cover = $('cover'), cv = $('cv'), aud = $('aud'), mbtn = $('music'), sh = $('scrollhint'), bg = $('bg');
     var fade = null, opened = false;
     live.aud = aud;
