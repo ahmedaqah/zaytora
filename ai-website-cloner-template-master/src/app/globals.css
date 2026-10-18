@@ -498,3 +498,15 @@
   border-radius: 9999px;
 }
 
+
+/* Phones (iOS Safari/Chrome, esp. Low Power Mode) draw their own big play
+   button over a muted video they refuse to autoplay. Our covers/backgrounds
+   never use native controls, so hide that glyph everywhere. */
+video::-webkit-media-controls,
+video::-webkit-media-controls-start-playback-button,
+video::-webkit-media-controls-overlay-play-button,
+video::-webkit-media-controls-panel {
+  display: none !important;
+  -webkit-appearance: none;
+  opacity: 0;
+}
