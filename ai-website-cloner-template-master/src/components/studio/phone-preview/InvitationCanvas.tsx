@@ -1,5 +1,6 @@
 "use client";
 
+import { GuestQrCode } from "@/components/GuestQrCode";
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
@@ -18,7 +19,6 @@ import {
   PauseIcon,
   PhoneIcon,
   PlayIcon,
-  QrCodeIcon,
   XIcon,
 } from "@/components/icons";
 import { getTemplates } from "@/lib/services/templates.service";
@@ -1501,7 +1501,13 @@ export function InvitationCanvas({
             )}
             {!templatePreviewMode && value.enableQrEntry && (
               <motion.div {...heroFade(5)}>
-                <QrCodeIcon className={cn("mt-2 size-6", TONE.muted)} />
+                {value.shareCode && (
+                  <GuestQrCode
+                    shareCode={value.shareCode}
+                    label={language === "en" ? "Show this code at the entrance" : "أبرز هذا الرمز عند الدخول"}
+                    className={cn("mt-3", TONE.muted)}
+                  />
+                )}
               </motion.div>
             )}
           </div>

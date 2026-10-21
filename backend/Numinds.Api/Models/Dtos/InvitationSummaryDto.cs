@@ -23,6 +23,8 @@ public class InvitationSummaryDto
     public DateTime? EventDateTime { get; set; }
     public int ResponseCount { get; set; }
     public int GalleryCount { get; set; }
+    // QR guest entry switched on -- shows the dashboard's guest-entry button.
+    public bool QrEnabled { get; set; }
     public string? FirstName { get; set; }
     public string? SecondName { get; set; }
 }

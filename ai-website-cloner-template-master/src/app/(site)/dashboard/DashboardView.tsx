@@ -17,6 +17,7 @@ import {
   MailIcon,
   PenLineIcon,
   PhoneIcon,
+  QrCodeIcon,
   SearchIcon,
   SendIcon,
   TrashIcon,
@@ -36,6 +37,7 @@ import {
 import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
 import { RsvpResponsesModal } from "./RsvpResponsesModal";
 import { GalleryModal } from "./GalleryModal";
+import { QrEntryModal } from "./QrEntryModal";
 
 interface BookingRow {
   id: string;
@@ -45,6 +47,7 @@ interface BookingRow {
   eventDate: string | null;
   responses: number;
   galleryCount: number;
+  qrEnabled: boolean;
   names: string;
   // Only "paid"/"shared" invitations are visible to guests via the public
   // link — everything else is still a draft awaiting admin approval, so the
@@ -72,6 +75,7 @@ const COPY = {
     stats: { total: "الإجمالي", upcoming: "قادمة", responses: "الردود" },
     searchPlaceholder: "ابحث في الدعوات...",
     tableTitle: "الحجوزات",
+    qrEntry: "دخول الضيوف",
     responsesCount: (n: number) => `${n} ${n === 1 ? "رد" : "ردود"}`,
     galleryCount: (n: number) => `${n} ${n === 1 ? "صورة" : "صور"}`,
     actionLabels: {
@@ -105,6 +109,7 @@ const COPY = {
     stats: { total: "Total", upcoming: "Upcoming", responses: "Responses" },
     searchPlaceholder: "Search invitations...",
     tableTitle: "Bookings",
+    qrEntry: "Guest entry",
     responsesCount: (n: number) => `${n} response${n === 1 ? "" : "s"}`,
     galleryCount: (n: number) => `${n} photo${n === 1 ? "" : "s"}`,
     actionLabels: {
@@ -205,6 +210,7 @@ function BookingCard({
   onDelete,
   onOpenResponses,
   onOpenGallery,
+  onOpenQr,
   onCopyLink,
   onHandoff,
 }: {
@@ -225,6 +231,7 @@ function BookingCard({
   onDelete: (row: BookingRow) => void;
   onOpenResponses: (row: BookingRow) => void;
   onOpenGallery: (row: BookingRow) => void;
+  onOpenQr: (row: BookingRow) => void;
   onCopyLink: (row: BookingRow) => void;
   onHandoff: (row: BookingRow) => void;
 }) {
@@ -266,6 +273,16 @@ function BookingCard({
           <ImageIcon className="size-3.5 text-gold/70" />
           {t.galleryCount(booking.galleryCount)}
         </button>
+        {booking.qrEnabled && (
+          <button
+            type="button"
+            onClick={() => onOpenQr(booking)}
+            className="flex items-center gap-1.5 rounded-full transition-colors hover:text-gold"
+          >
+            <QrCodeIcon className="size-3.5 text-gold/70" />
+            {t.qrEntry}
+          </button>
+        )}
         <span>{formatDate(booking.bookingDate, language, t.noDate)}</span>
       </div>
 
@@ -374,6 +391,7 @@ export function DashboardView() {
   const [query, setQuery] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<BookingRow | null>(null);
   const [responsesRow, setResponsesRow] = useState<BookingRow | null>(null);
+  const [qrRow, setQrRow] = useState<BookingRow | null>(null);
   const [galleryRow, setGalleryRow] = useState<BookingRow | null>(null);
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
   const galleryRequestIdRef = useRef(0);
@@ -397,6 +415,7 @@ export function DashboardView() {
           eventDate: s.eventDateTime ?? null,
           responses: s.responseCount,
           galleryCount: s.galleryCount,
+          qrEnabled: s.qrEnabled ?? false,
           names: [s.firstName, s.secondName].filter(Boolean).join(" & ") || t.untitled,
           isPaid: s.isPaid,
           hasPendingOrder: s.hasPendingOrder,
@@ -658,6 +677,7 @@ export function DashboardView() {
             onDelete={setDeleteTarget}
             onOpenResponses={setResponsesRow}
             onOpenGallery={openGallery}
+            onOpenQr={setQrRow}
             onCopyLink={copyLink}
             onHandoff={handleHandoff}
           />
@@ -692,6 +712,12 @@ export function DashboardView() {
         invitationId={responsesRow?.id ?? null}
         language={language}
         onClose={() => setResponsesRow(null)}
+      />
+
+      <QrEntryModal
+        invitationId={qrRow?.id ?? null}
+        language={language}
+        onClose={() => setQrRow(null)}
       />
 
       <GalleryModal

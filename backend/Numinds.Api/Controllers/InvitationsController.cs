@@ -227,6 +227,7 @@ public class InvitationsController(
                 EventDateTime = invitation.EventDateTime,
                 ResponseCount = invitation.Responses.Count,
                 GalleryCount = Deserialize<string>(invitation.GalleryImagesJson).Count,
+                QrEnabled = invitation.EnableQrEntry,
                 FirstName = invitation.FirstName,
                 SecondName = invitation.SecondName,
             })
@@ -1200,6 +1201,7 @@ public class InvitationsController(
         EventDateTime = invitation.EventDateTime,
         EventEndDateTime = invitation.EventEndDateTime,
         Timezone = invitation.Timezone,
+        ShareCode = invitation.ShareCode,
         UseHijriDate = invitation.UseHijriDate,
         ThankYouText = invitation.ThankYouText,
         ThankYouTextColor = invitation.ThankYouTextColor,

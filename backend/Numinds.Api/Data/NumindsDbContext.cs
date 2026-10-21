@@ -20,6 +20,8 @@ public class NumindsDbContext(DbContextOptions<NumindsDbContext> options)
     public DbSet<Invitation> Invitations => Set<Invitation>();
     public DbSet<RsvpResponse> RsvpResponses => Set<RsvpResponse>();
     public DbSet<CapturedPhoto> CapturedPhotos => Set<CapturedPhoto>();
+    public DbSet<QrScanner> QrScanners => Set<QrScanner>();
+    public DbSet<QrCheckin> QrCheckins => Set<QrCheckin>();
     public DbSet<ContactSettings> ContactSettings => Set<ContactSettings>();
     public DbSet<ContactWhatsAppNumber> ContactWhatsAppNumbers => Set<ContactWhatsAppNumber>();
     public DbSet<PaymentAccount> PaymentAccounts => Set<PaymentAccount>();
@@ -151,6 +153,30 @@ public class NumindsDbContext(DbContextOptions<NumindsDbContext> options)
             entity.HasOne(p => p.Invitation)
                 .WithMany(i => i.CapturedPhotos)
                 .HasForeignKey(p => p.InvitationId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<QrScanner>(entity =>
+        {
+            entity.Property(q => q.Label).HasMaxLength(80).IsRequired();
+            entity.Property(q => q.Token).HasMaxLength(64).IsRequired();
+            entity.HasIndex(q => q.Token).IsUnique();
+
+            entity.HasOne(q => q.Invitation)
+                .WithMany()
+                .HasForeignKey(q => q.InvitationId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<QrCheckin>(entity =>
+        {
+            entity.Property(q => q.ScannerLabel).HasMaxLength(80).IsRequired();
+            entity.Property(q => q.GuestName).HasMaxLength(128).IsRequired();
+            entity.HasIndex(q => q.InvitationId);
+
+            entity.HasOne(q => q.Invitation)
+                .WithMany()
+                .HasForeignKey(q => q.InvitationId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 

@@ -30,6 +30,8 @@ public class InvitationDetailDto
     public DateTime? EventDateTime { get; set; }
     public DateTime? EventEndDateTime { get; set; }
     public string? Timezone { get; set; }
+    // Public share code -- what the guest-facing QR (QR guest entry) encodes.
+    public string? ShareCode { get; set; }
     public bool UseHijriDate { get; set; }
     public string? ThankYouText { get; set; }
     public string? ThankYouTextColor { get; set; }
