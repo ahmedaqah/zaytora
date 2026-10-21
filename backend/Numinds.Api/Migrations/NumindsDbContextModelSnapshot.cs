@@ -1737,6 +1737,76 @@ namespace Numinds.Api.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Numinds.Api.Models.Entities.QrCheckin", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("GuestName")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<Guid>("InvitationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("PartySize")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("ScannerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ScannerLabel")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InvitationId");
+
+                    b.ToTable("QrCheckins");
+                });
+
+            modelBuilder.Entity("Numinds.Api.Models.Entities.QrScanner", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("InvitationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<DateTime?>("RevokedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InvitationId");
+
+                    b.HasIndex("Token")
+                        .IsUnique();
+
+                    b.ToTable("QrScanners");
+                });
+
             modelBuilder.Entity("Numinds.Api.Models.Entities.PrivateInvite", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1856,6 +1926,28 @@ namespace Numinds.Api.Migrations
                 {
                     b.HasOne("Numinds.Api.Models.Entities.Invitation", "Invitation")
                         .WithMany("CapturedPhotos")
+                        .HasForeignKey("InvitationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Invitation");
+                });
+
+            modelBuilder.Entity("Numinds.Api.Models.Entities.QrCheckin", b =>
+                {
+                    b.HasOne("Numinds.Api.Models.Entities.Invitation", "Invitation")
+                        .WithMany()
+                        .HasForeignKey("InvitationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Invitation");
+                });
+
+            modelBuilder.Entity("Numinds.Api.Models.Entities.QrScanner", b =>
+                {
+                    b.HasOne("Numinds.Api.Models.Entities.Invitation", "Invitation")
+                        .WithMany()
                         .HasForeignKey("InvitationId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();

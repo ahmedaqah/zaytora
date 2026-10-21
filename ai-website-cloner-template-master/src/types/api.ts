@@ -337,6 +337,7 @@ export interface InvitationSummaryDto {
   eventDateTime?: string | null;
   responseCount: number;
   galleryCount: number;
+  qrEnabled?: boolean;
   firstName?: string | null;
   secondName?: string | null;
 }
@@ -661,4 +662,61 @@ export interface ReviewSubmissionRequest {
   body: string;
   country: string;
   countryFlag: string;
+}
+
+// QR guest entry (see QrEntryController): the owner's dashboard view, and the
+// public scanner page's own calls.
+export interface QrScannerDto {
+  id: string;
+  label: string;
+  token: string;
+  createdAt: string;
+  revokedAt?: string | null;
+}
+
+export interface QrCheckinDto {
+  id: string;
+  guestName: string;
+  partySize: number;
+  scannerLabel: string;
+  createdAt: string;
+}
+
+export interface QrEntryStateDto {
+  enabled: boolean;
+  guestCount?: number | null;
+  scannerLimit: number;
+  scanStart?: string | null;
+  scanEnd?: string | null;
+  shareCode?: string | null;
+  totalPeople: number;
+  scanners: QrScannerDto[];
+  checkins: QrCheckinDto[];
+}
+
+export interface QrScanInfoDto {
+  names: string;
+  scannerLabel: string;
+  shareCode?: string | null;
+  guestCount?: number | null;
+  totalPeople: number;
+  scanStart?: string | null;
+  scanEnd?: string | null;
+  windowOpen?: boolean | null;
+}
+
+export interface QrCheckinRequest {
+  guestName: string;
+  partySize?: number;
+  shareCode: string;
+  confirm: boolean;
+}
+
+export type QrWarning = "duplicate" | "over_capacity" | "outside_window";
+
+export interface QrCheckinResultDto {
+  recorded: boolean;
+  warnings: QrWarning[];
+  totalPeople: number;
+  checkin?: QrCheckinDto | null;
 }

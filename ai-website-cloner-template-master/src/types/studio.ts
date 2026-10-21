@@ -116,6 +116,8 @@ export interface InvitationDetail {
   hideSaveButton: boolean;
   hideCapturedGallery: boolean;
 
+  // Public share code -- what the guest-facing QR (QR guest entry) encodes.
+  shareCode?: string | null;
   enableQrEntry: boolean;
   qrGuestCount?: number | null;
   qrScannerCount?: number | null;
