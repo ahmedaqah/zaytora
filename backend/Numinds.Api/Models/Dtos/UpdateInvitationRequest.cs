@@ -63,6 +63,16 @@ public class UpdateInvitationRequest
     public string? EventRulesFont { get; set; }
     public int? EventRulesFontSize { get; set; }
     public string? EventRulesTextColor { get; set; }
+    public string? DateMonthStyle { get; set; }
+    public string? TimeFormat { get; set; }
+    public string? WeekdayFont { get; set; }
+    public string? WeekdayTextColor { get; set; }
+    public string? DateFont { get; set; }
+    public string? DateTextColor { get; set; }
+    public string? PersonalMessageExtraText { get; set; }
+    public string? PersonalMessageExtraFont { get; set; }
+    public int? PersonalMessageExtraFontSize { get; set; }
+    public string? PersonalMessageExtraTextColor { get; set; }
 
     public bool? ShowEventRules { get; set; }
     public string? EventRulesText { get; set; }

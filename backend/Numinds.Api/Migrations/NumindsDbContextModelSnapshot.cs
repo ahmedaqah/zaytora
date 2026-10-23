@@ -599,6 +599,36 @@ namespace Numinds.Api.Migrations
                     b.Property<string>("VenueTextColor")
                         .HasColumnType("text");
 
+                    b.Property<string>("DateFont")
+                        .HasColumnType("text");
+
+                    b.Property<string>("DateMonthStyle")
+                        .HasColumnType("text");
+
+                    b.Property<string>("DateTextColor")
+                        .HasColumnType("text");
+
+                    b.Property<string>("PersonalMessageExtraFont")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("PersonalMessageExtraFontSize")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PersonalMessageExtraText")
+                        .HasColumnType("text");
+
+                    b.Property<string>("PersonalMessageExtraTextColor")
+                        .HasColumnType("text");
+
+                    b.Property<string>("TimeFormat")
+                        .HasColumnType("text");
+
+                    b.Property<string>("WeekdayFont")
+                        .HasColumnType("text");
+
+                    b.Property<string>("WeekdayTextColor")
+                        .HasColumnType("text");
+
                     b.Property<string>("ProgramFont")
                         .HasColumnType("text");
 

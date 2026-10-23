@@ -19,6 +19,9 @@ const COPY = {
     signature: "التوقيع",
     signaturePlaceholder: "بمحبة، أحمد وسارة",
     sectionFont: "نوع خط الرسالة",
+    extraText: "جملة إضافية (اختياري)",
+    extraPlaceholder: "اكتب أي جملة تريدها تحت الرسالة...",
+    extraFont: "نوع خط الجملة الإضافية",
   },
   en: {
     hint: 'Example: "Dear friends, your presence means so much to us. With love, Ahmed and Sarah"',
@@ -30,6 +33,9 @@ const COPY = {
     signature: "Signature",
     signaturePlaceholder: "With love, Ahmed and Sarah",
     sectionFont: "Message font",
+    extraText: "Extra sentence (optional)",
+    extraPlaceholder: "Write any sentence under the message...",
+    extraFont: "Extra sentence font",
   },
 };
 
@@ -82,6 +88,23 @@ export function Step11PersonalMessage({
             onSize={(personalMessageFontSize) => onChange({ personalMessageFontSize })}
             onColor={(personalMessageTextColor) => onChange({ personalMessageTextColor })}
           />
+          <TextareaField
+            label={t.extraText}
+            value={value.personalMessageExtraText ?? ""}
+            placeholder={t.extraPlaceholder}
+            onChange={(personalMessageExtraText) => onChange({ personalMessageExtraText })}
+          />
+          {value.personalMessageExtraText && (
+            <SectionTypographyFields
+              fontLabel={t.extraFont}
+              font={value.personalMessageExtraFont}
+              size={value.personalMessageExtraFontSize}
+              color={value.personalMessageExtraTextColor}
+              onFont={(personalMessageExtraFont) => onChange({ personalMessageExtraFont })}
+              onSize={(personalMessageExtraFontSize) => onChange({ personalMessageExtraFontSize })}
+              onColor={(personalMessageExtraTextColor) => onChange({ personalMessageExtraTextColor })}
+            />
+          )}
         </>
       )}
     </div>

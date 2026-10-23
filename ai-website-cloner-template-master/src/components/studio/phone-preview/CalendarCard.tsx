@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { CalendarIcon } from "@/components/icons";
 import { calendarEventUrl, toEventStamps } from "@/lib/calendarEvent";
+import { cn } from "@/lib/utils";
 
 // A "physical desk calendar" widget — still reads as an object sitting on
 // the page rather than a themed glass panel like the other sections, but its
@@ -23,6 +24,10 @@ export function CalendarCard({
   venueName,
   saveDateLabel,
   untitledEventLabel,
+  weekdayFont,
+  weekdayColor,
+  dateFont,
+  dateColor,
 }: {
   month: string;
   day: string;
@@ -40,6 +45,11 @@ export function CalendarCard({
   // component has no `language` of its own to key off.
   saveDateLabel: string;
   untitledEventLabel: string;
+  // Owner-picked typography for the weekday (e.g. الخميس) and the date (month + day).
+  weekdayFont?: string | null;
+  weekdayColor?: string | null;
+  dateFont?: string | null;
+  dateColor?: string | null;
 }) {
   function handleSaveDate() {
     if (!eventIso) return;
@@ -74,12 +84,27 @@ export function CalendarCard({
         />
         <div className="overflow-hidden rounded-[24px] border border-[var(--tpl-card-border)] bg-[var(--tpl-card-bg)] shadow-[0_12px_32px_var(--tpl-card-shadow),inset_0_1px_0_var(--tpl-card-highlight)] backdrop-blur-lg">
           <div className="bg-[var(--tpl-accent)] px-3 py-2 text-center">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white">{month}</p>
+            <p
+              style={dateColor ? { color: dateColor } : undefined}
+              className={cn("text-[11px] font-semibold uppercase tracking-[0.2em] text-white", dateFont)}
+            >
+              {month}
+            </p>
           </div>
           <div className="flex flex-col items-center gap-1 px-3 py-5">
-            <p className="font-cinzel text-6xl leading-none text-[var(--tpl-text-strong)] [text-shadow:var(--tpl-text-shadow)]">{day}</p>
+            <p
+              style={dateColor ? { color: dateColor } : undefined}
+              className={cn("text-6xl leading-none text-[var(--tpl-text-strong)] [text-shadow:var(--tpl-text-shadow)]", dateFont || "font-cinzel")}
+            >
+              {day}
+            </p>
             <div className="my-3 h-px w-12 bg-[var(--tpl-card-border)]" aria-hidden />
-            <p className="text-xs font-medium text-[var(--tpl-text-muted)] [text-shadow:var(--tpl-text-shadow)]">{weekday}</p>
+            <p
+              style={weekdayColor ? { color: weekdayColor } : undefined}
+              className={cn("text-xs font-medium text-[var(--tpl-text-muted)] [text-shadow:var(--tpl-text-shadow)]", weekdayFont)}
+            >
+              {weekday}
+            </p>
             {time && <p className="mt-2 text-[11px] tracking-wide text-[var(--tpl-accent)]">{time}</p>}
           </div>
         </div>

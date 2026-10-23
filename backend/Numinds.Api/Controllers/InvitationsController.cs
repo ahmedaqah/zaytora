@@ -616,6 +616,16 @@ public class InvitationsController(
         if (request.EventRulesFont is not null) invitation.EventRulesFont = request.EventRulesFont;
         if (request.EventRulesFontSize is not null) invitation.EventRulesFontSize = request.EventRulesFontSize;
         if (request.EventRulesTextColor is not null) invitation.EventRulesTextColor = NormalizeColor(request.EventRulesTextColor);
+        if (request.DateMonthStyle is not null) invitation.DateMonthStyle = request.DateMonthStyle == "levant" ? "levant" : string.Empty;
+        if (request.TimeFormat is not null) invitation.TimeFormat = (request.TimeFormat is "12" or "24") ? request.TimeFormat : string.Empty;
+        if (request.WeekdayFont is not null) invitation.WeekdayFont = request.WeekdayFont;
+        if (request.WeekdayTextColor is not null) invitation.WeekdayTextColor = NormalizeColor(request.WeekdayTextColor);
+        if (request.DateFont is not null) invitation.DateFont = request.DateFont;
+        if (request.DateTextColor is not null) invitation.DateTextColor = NormalizeColor(request.DateTextColor);
+        if (request.PersonalMessageExtraText is not null) invitation.PersonalMessageExtraText = request.PersonalMessageExtraText.Length > 500 ? request.PersonalMessageExtraText[..500] : request.PersonalMessageExtraText;
+        if (request.PersonalMessageExtraFont is not null) invitation.PersonalMessageExtraFont = request.PersonalMessageExtraFont;
+        if (request.PersonalMessageExtraFontSize is not null) invitation.PersonalMessageExtraFontSize = request.PersonalMessageExtraFontSize;
+        if (request.PersonalMessageExtraTextColor is not null) invitation.PersonalMessageExtraTextColor = NormalizeColor(request.PersonalMessageExtraTextColor);
 
         if (request.ShowEventRules is not null) invitation.ShowEventRules = request.ShowEventRules.Value;
         if (request.EventRulesText is not null) invitation.EventRulesText = request.EventRulesText;
@@ -1249,6 +1259,16 @@ public class InvitationsController(
         EventRulesFont = invitation.EventRulesFont,
         EventRulesFontSize = invitation.EventRulesFontSize,
         EventRulesTextColor = invitation.EventRulesTextColor,
+        DateMonthStyle = invitation.DateMonthStyle,
+        TimeFormat = invitation.TimeFormat,
+        WeekdayFont = invitation.WeekdayFont,
+        WeekdayTextColor = invitation.WeekdayTextColor,
+        DateFont = invitation.DateFont,
+        DateTextColor = invitation.DateTextColor,
+        PersonalMessageExtraText = invitation.PersonalMessageExtraText,
+        PersonalMessageExtraFont = invitation.PersonalMessageExtraFont,
+        PersonalMessageExtraFontSize = invitation.PersonalMessageExtraFontSize,
+        PersonalMessageExtraTextColor = invitation.PersonalMessageExtraTextColor,
 
         ShowEventRules = invitation.ShowEventRules,
         EventRulesText = invitation.EventRulesText,
