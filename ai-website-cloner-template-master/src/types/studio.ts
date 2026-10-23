@@ -98,6 +98,8 @@ export interface InvitationDetail {
   // The calendar card's weekday (e.g. الخميس) and date (month + day) typography.
   weekdayFont?: string | null;
   weekdayTextColor?: string | null;
+  weekdayFontSize?: number | null;
+  dateFontSize?: number | null;
   dateFont?: string | null;
   dateTextColor?: string | null;
   // Optional free sentence under the personal message.

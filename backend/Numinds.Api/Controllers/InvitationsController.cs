@@ -620,6 +620,8 @@ public class InvitationsController(
         if (request.TimeFormat is not null) invitation.TimeFormat = (request.TimeFormat is "12" or "24") ? request.TimeFormat : string.Empty;
         if (request.WeekdayFont is not null) invitation.WeekdayFont = request.WeekdayFont;
         if (request.WeekdayTextColor is not null) invitation.WeekdayTextColor = NormalizeColor(request.WeekdayTextColor);
+        if (request.WeekdayFontSize is not null) invitation.WeekdayFontSize = request.WeekdayFontSize;
+        if (request.DateFontSize is not null) invitation.DateFontSize = request.DateFontSize;
         if (request.DateFont is not null) invitation.DateFont = request.DateFont;
         if (request.DateTextColor is not null) invitation.DateTextColor = NormalizeColor(request.DateTextColor);
         if (request.PersonalMessageExtraText is not null) invitation.PersonalMessageExtraText = request.PersonalMessageExtraText.Length > 500 ? request.PersonalMessageExtraText[..500] : request.PersonalMessageExtraText;
@@ -1263,6 +1265,8 @@ public class InvitationsController(
         TimeFormat = invitation.TimeFormat,
         WeekdayFont = invitation.WeekdayFont,
         WeekdayTextColor = invitation.WeekdayTextColor,
+        WeekdayFontSize = invitation.WeekdayFontSize,
+        DateFontSize = invitation.DateFontSize,
         DateFont = invitation.DateFont,
         DateTextColor = invitation.DateTextColor,
         PersonalMessageExtraText = invitation.PersonalMessageExtraText,

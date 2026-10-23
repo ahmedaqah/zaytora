@@ -67,6 +67,8 @@ public class UpdateInvitationRequest
     public string? TimeFormat { get; set; }
     public string? WeekdayFont { get; set; }
     public string? WeekdayTextColor { get; set; }
+    public int? WeekdayFontSize { get; set; }
+    public int? DateFontSize { get; set; }
     public string? DateFont { get; set; }
     public string? DateTextColor { get; set; }
     public string? PersonalMessageExtraText { get; set; }

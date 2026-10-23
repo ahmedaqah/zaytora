@@ -10,6 +10,18 @@ namespace Numinds.Api.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.AddColumn<int>(
+                name: "WeekdayFontSize",
+                table: "Invitations",
+                type: "integer",
+                nullable: true);
+
+            migrationBuilder.AddColumn<int>(
+                name: "DateFontSize",
+                table: "Invitations",
+                type: "integer",
+                nullable: true);
+
             migrationBuilder.AddColumn<string>(
                 name: "DateMonthStyle",
                 table: "Invitations",
@@ -74,6 +86,14 @@ namespace Numinds.Api.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropColumn(
+                name: "WeekdayFontSize",
+                table: "Invitations");
+
+            migrationBuilder.DropColumn(
+                name: "DateFontSize",
+                table: "Invitations");
+
             migrationBuilder.DropColumn(
                 name: "DateMonthStyle",
                 table: "Invitations");

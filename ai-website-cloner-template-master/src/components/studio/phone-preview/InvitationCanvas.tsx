@@ -1689,6 +1689,8 @@ export function InvitationCanvas({
                 weekdayColor={value.weekdayTextColor}
                 dateFont={value.dateFont}
                 dateColor={value.dateTextColor}
+                weekdaySize={value.weekdayFontSize}
+                dateSize={value.dateFontSize}
                 untitledEventLabel={canvas.untitledEvent}
               />
             </div>

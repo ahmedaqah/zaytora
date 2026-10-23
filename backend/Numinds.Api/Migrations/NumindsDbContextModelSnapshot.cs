@@ -629,6 +629,12 @@ namespace Numinds.Api.Migrations
                     b.Property<string>("WeekdayTextColor")
                         .HasColumnType("text");
 
+                    b.Property<int?>("WeekdayFontSize")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("DateFontSize")
+                        .HasColumnType("integer");
+
                     b.Property<string>("ProgramFont")
                         .HasColumnType("text");
 

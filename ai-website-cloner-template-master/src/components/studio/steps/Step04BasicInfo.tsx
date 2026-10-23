@@ -454,15 +454,19 @@ export function Step04BasicInfo({
       <SectionTypographyFields
         fontLabel={t.weekdayFont}
         font={value.weekdayFont}
+        size={value.weekdayFontSize}
         color={value.weekdayTextColor}
         onFont={(weekdayFont) => onChange({ weekdayFont })}
+        onSize={(weekdayFontSize) => onChange({ weekdayFontSize })}
         onColor={(weekdayTextColor) => onChange({ weekdayTextColor })}
       />
       <SectionTypographyFields
         fontLabel={t.dateFont}
         font={value.dateFont}
+        size={value.dateFontSize}
         color={value.dateTextColor}
         onFont={(dateFont) => onChange({ dateFont })}
+        onSize={(dateFontSize) => onChange({ dateFontSize })}
         onColor={(dateTextColor) => onChange({ dateTextColor })}
       />
 
