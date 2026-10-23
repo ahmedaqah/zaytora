@@ -2,50 +2,7 @@
 
 import { motion } from "framer-motion";
 import { CalendarIcon } from "@/components/icons";
-
-// Minimal RFC 5545 .ics builder — just enough for a single VEVENT, no
-// recurrence/timezone/attendee support, since all this widget needs is a
-// "tap to add to your phone's calendar" button. DTSTART/DTEND are emitted
-// as UTC ("Z" suffix), which every calendar app interprets correctly
-// regardless of the guest's own timezone.
-function toIcsTimestamp(date: Date) {
-  return date.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
-}
-
-const DEFAULT_EVENT_DURATION_MS = 3 * 60 * 60 * 1000;
-
-function buildIcsContent({
-  startIso,
-  endIso,
-  title,
-  location,
-}: {
-  startIso: string;
-  // The event's own real end time, when set (a "from - to" invitation) —
-  // falls back to the fixed default duration for the plain single-time case.
-  endIso?: string | null;
-  title: string;
-  location?: string | null;
-}) {
-  const start = new Date(startIso);
-  const end = endIso ? new Date(endIso) : new Date(start.getTime() + DEFAULT_EVENT_DURATION_MS);
-  return [
-    "BEGIN:VCALENDAR",
-    "VERSION:2.0",
-    "PRODID:-//ZAYTORA//Invitation//AR",
-    "BEGIN:VEVENT",
-    `UID:${start.getTime()}@zaytorainvites.com`,
-    `DTSTAMP:${toIcsTimestamp(new Date())}`,
-    `DTSTART:${toIcsTimestamp(start)}`,
-    `DTEND:${toIcsTimestamp(end)}`,
-    `SUMMARY:${title}`,
-    location ? `LOCATION:${location}` : null,
-    "END:VEVENT",
-    "END:VCALENDAR",
-  ]
-    .filter(Boolean)
-    .join("\r\n");
-}
+import { calendarEventUrl, toEventStamps } from "@/lib/calendarEvent";
 
 // A "physical desk calendar" widget — still reads as an object sitting on
 // the page rather than a themed glass panel like the other sections, but its
@@ -54,7 +11,7 @@ function buildIcsContent({
 // through the DOM, no props needed here), instead of a fixed cream/sage
 // palette baked in regardless of the active template. Two small ring/pin
 // notches poke above its top edge to sell the torn-calendar-page metaphor,
-// plus a "save the date" button that hands the guest a real .ics file.
+// plus a "save the date" button that adds the event to the guest's calendar.
 export function CalendarCard({
   month,
   day,
@@ -86,16 +43,16 @@ export function CalendarCard({
 }) {
   function handleSaveDate() {
     if (!eventIso) return;
-    const ics = buildIcsContent({ startIso: eventIso, endIso: endEventIso, title: eventTitle || untitledEventLabel, location: venueName });
-    // iOS Safari — including in-app browsers like Messenger/Instagram's,
-    // which is where a guest actually opens this link from — doesn't honor
-    // <a download> for blob: URLs; it just navigates to the blob and
-    // renders the raw .ics text as a page instead of opening the native
-    // "Add Event" calendar sheet. A data: URI navigated to directly (not
-    // via a programmatically-clicked link) is the technique iOS actually
-    // recognizes and hands off to Calendar; it still triggers a normal file
-    // download on desktop browsers.
-    window.location.href = `data:text/calendar;charset=utf-8,${encodeURIComponent(ics)}`;
+    const stamps = toEventStamps({
+      startIso: eventIso,
+      endIso: endEventIso,
+      title: eventTitle || untitledEventLabel,
+      location: venueName,
+    });
+    if (!stamps) return;
+    // Android -> Google Calendar's pre-filled "add event" page; iPhone/desktop
+    // -> an https text/calendar URL (see lib/calendarEvent.ts).
+    window.location.href = calendarEventUrl(stamps, navigator.userAgent);
   }
 
   return (
