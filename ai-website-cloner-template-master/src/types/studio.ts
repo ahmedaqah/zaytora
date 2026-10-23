@@ -82,6 +82,16 @@ export interface InvitationDetail {
   // whole program section; unset renders exactly as before.
   programFont?: string | null;
   programFontSize?: number | null;
+  // Per-section typography (font class / percent scale / "#rrggbb"; ""/null = template default).
+  venueFont?: string | null;
+  venueFontSize?: number | null;
+  venueTextColor?: string | null;
+  personalMessageFont?: string | null;
+  personalMessageFontSize?: number | null;
+  personalMessageTextColor?: string | null;
+  eventRulesFont?: string | null;
+  eventRulesFontSize?: number | null;
+  eventRulesTextColor?: string | null;
 
   showEventRules: boolean;
   eventRulesText?: string | null;

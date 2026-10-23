@@ -572,6 +572,33 @@ namespace Numinds.Api.Migrations
                     b.Property<string>("PersonalMessageTitle")
                         .HasColumnType("text");
 
+                    b.Property<string>("EventRulesFont")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("EventRulesFontSize")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("EventRulesTextColor")
+                        .HasColumnType("text");
+
+                    b.Property<string>("PersonalMessageFont")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("PersonalMessageFontSize")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PersonalMessageTextColor")
+                        .HasColumnType("text");
+
+                    b.Property<string>("VenueFont")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("VenueFontSize")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("VenueTextColor")
+                        .HasColumnType("text");
+
                     b.Property<string>("ProgramFont")
                         .HasColumnType("text");
 

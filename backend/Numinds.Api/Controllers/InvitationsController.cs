@@ -607,6 +607,15 @@ public class InvitationsController(
         if (request.ProgramItems is not null) invitation.ProgramItemsJson = JsonSerializer.Serialize(request.ProgramItems);
         if (request.ProgramFont is not null) invitation.ProgramFont = request.ProgramFont;
         if (request.ProgramFontSize is not null) invitation.ProgramFontSize = request.ProgramFontSize;
+        if (request.VenueFont is not null) invitation.VenueFont = request.VenueFont;
+        if (request.VenueFontSize is not null) invitation.VenueFontSize = request.VenueFontSize;
+        if (request.VenueTextColor is not null) invitation.VenueTextColor = NormalizeColor(request.VenueTextColor);
+        if (request.PersonalMessageFont is not null) invitation.PersonalMessageFont = request.PersonalMessageFont;
+        if (request.PersonalMessageFontSize is not null) invitation.PersonalMessageFontSize = request.PersonalMessageFontSize;
+        if (request.PersonalMessageTextColor is not null) invitation.PersonalMessageTextColor = NormalizeColor(request.PersonalMessageTextColor);
+        if (request.EventRulesFont is not null) invitation.EventRulesFont = request.EventRulesFont;
+        if (request.EventRulesFontSize is not null) invitation.EventRulesFontSize = request.EventRulesFontSize;
+        if (request.EventRulesTextColor is not null) invitation.EventRulesTextColor = NormalizeColor(request.EventRulesTextColor);
 
         if (request.ShowEventRules is not null) invitation.ShowEventRules = request.ShowEventRules.Value;
         if (request.EventRulesText is not null) invitation.EventRulesText = request.EventRulesText;
@@ -1107,6 +1116,15 @@ public class InvitationsController(
         return exists ? parsed : null;
     }
 
+    // Owner-picked text colours are stored as "#rrggbb", or "" for "use the
+    // template's own colour"; anything else is dropped to "" so a malformed value
+    // can never reach the guest-facing page.
+    private static string NormalizeColor(string value)
+    {
+        var trimmed = value.Trim();
+        return System.Text.RegularExpressions.Regex.IsMatch(trimmed, "^#[0-9a-fA-F]{6}$") ? trimmed : string.Empty;
+    }
+
     private async Task<Guid?> GetCurrentUserIdAsync()
     {
         if (User.Identity?.IsAuthenticated != true) return null;
@@ -1222,6 +1240,15 @@ public class InvitationsController(
         ProgramItems = Deserialize<ProgramItemDto>(invitation.ProgramItemsJson),
         ProgramFont = invitation.ProgramFont,
         ProgramFontSize = invitation.ProgramFontSize,
+        VenueFont = invitation.VenueFont,
+        VenueFontSize = invitation.VenueFontSize,
+        VenueTextColor = invitation.VenueTextColor,
+        PersonalMessageFont = invitation.PersonalMessageFont,
+        PersonalMessageFontSize = invitation.PersonalMessageFontSize,
+        PersonalMessageTextColor = invitation.PersonalMessageTextColor,
+        EventRulesFont = invitation.EventRulesFont,
+        EventRulesFontSize = invitation.EventRulesFontSize,
+        EventRulesTextColor = invitation.EventRulesTextColor,
 
         ShowEventRules = invitation.ShowEventRules,
         EventRulesText = invitation.EventRulesText,

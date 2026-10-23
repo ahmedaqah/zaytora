@@ -4,6 +4,7 @@ import { ListEditor } from "@/components/studio/fields/ListEditor";
 import { TextField } from "@/components/studio/fields/TextField";
 import { TextareaField } from "@/components/studio/fields/TextareaField";
 import { HintBox } from "@/components/studio/fields/HintBox";
+import { SectionTypographyFields } from "@/components/studio/fields/SectionTypographyFields";
 import { MapPinIcon } from "@/components/icons";
 import { useLanguage } from "@/context/LanguageContext";
 import type { InvitationDetail, VenueItem } from "@/types/studio";
@@ -20,6 +21,7 @@ const COPY = {
     venueAddressPlaceholder: "شارع الزفاف، المدينة",
     mapUrl: "رابط الخريطة",
     openMaps: "افتح خرائط جوجل",
+    sectionFont: "نوع خط الموقع",
   },
   en: {
     hint: 'Example: venue name: "Palm Hall" · address: "King Fahd Road, Riyadh"',
@@ -32,6 +34,7 @@ const COPY = {
     venueAddressPlaceholder: "Wedding street, city",
     mapUrl: "Map link",
     openMaps: "Open Google Maps",
+    sectionFont: "Location font",
   },
 };
 
@@ -108,6 +111,18 @@ export function Step06Location({
           </>
         )}
       />
+
+      {value.venues.length > 0 && (
+        <SectionTypographyFields
+          fontLabel={t.sectionFont}
+          font={value.venueFont}
+          size={value.venueFontSize}
+          color={value.venueTextColor}
+          onFont={(venueFont) => onChange({ venueFont })}
+          onSize={(venueFontSize) => onChange({ venueFontSize })}
+          onColor={(venueTextColor) => onChange({ venueTextColor })}
+        />
+      )}
     </div>
   );
 }

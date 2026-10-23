@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ToggleField } from "@/components/studio/fields/ToggleField";
 import { HintBox } from "@/components/studio/fields/HintBox";
+import { SectionTypographyFields } from "@/components/studio/fields/SectionTypographyFields";
 import { PlusIcon, XIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/context/LanguageContext";
@@ -37,6 +38,7 @@ const COPY = {
     deleteAria: "حذف",
     customRulePlaceholder: "قاعدة أخرى...",
     add: "إضافة",
+    sectionFont: "نوع خط التعليمات",
   },
   en: {
     hint: "Example: No children · No photography · Please arrive on time",
@@ -45,6 +47,7 @@ const COPY = {
     deleteAria: "Delete",
     customRulePlaceholder: "Another rule...",
     add: "Add",
+    sectionFont: "Instructions font",
   },
 };
 
@@ -156,6 +159,16 @@ export function Step08Rules({
               {t.add}
             </button>
           </div>
+
+          <SectionTypographyFields
+            fontLabel={t.sectionFont}
+            font={value.eventRulesFont}
+            size={value.eventRulesFontSize}
+            color={value.eventRulesTextColor}
+            onFont={(eventRulesFont) => onChange({ eventRulesFont })}
+            onSize={(eventRulesFontSize) => onChange({ eventRulesFontSize })}
+            onColor={(eventRulesTextColor) => onChange({ eventRulesTextColor })}
+          />
         </div>
       )}
     </div>
