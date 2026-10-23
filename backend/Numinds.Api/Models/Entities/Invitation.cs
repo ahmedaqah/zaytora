@@ -95,6 +95,17 @@ public class Invitation
     // the guest picked for the program section; null renders exactly as before this existed.
     public string? ProgramFont { get; set; }
     public int? ProgramFontSize { get; set; }
+    // Per-section typography the owner picked in the studio (font class from the shared font
+    // catalog, percentage scale where 100 = default, hex colour; ""/null = the template's own).
+    public string? VenueFont { get; set; }
+    public int? VenueFontSize { get; set; }
+    public string? VenueTextColor { get; set; }
+    public string? PersonalMessageFont { get; set; }
+    public int? PersonalMessageFontSize { get; set; }
+    public string? PersonalMessageTextColor { get; set; }
+    public string? EventRulesFont { get; set; }
+    public int? EventRulesFontSize { get; set; }
+    public string? EventRulesTextColor { get; set; }
 
     // Step 8 — Event Rules / Notes
     public bool ShowEventRules { get; set; }

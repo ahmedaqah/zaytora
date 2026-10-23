@@ -54,6 +54,15 @@ public class UpdateInvitationRequest
     public List<ProgramItemDto>? ProgramItems { get; set; }
     public string? ProgramFont { get; set; }
     public int? ProgramFontSize { get; set; }
+    public string? VenueFont { get; set; }
+    public int? VenueFontSize { get; set; }
+    public string? VenueTextColor { get; set; }
+    public string? PersonalMessageFont { get; set; }
+    public int? PersonalMessageFontSize { get; set; }
+    public string? PersonalMessageTextColor { get; set; }
+    public string? EventRulesFont { get; set; }
+    public int? EventRulesFontSize { get; set; }
+    public string? EventRulesTextColor { get; set; }
 
     public bool? ShowEventRules { get; set; }
     public string? EventRulesText { get; set; }

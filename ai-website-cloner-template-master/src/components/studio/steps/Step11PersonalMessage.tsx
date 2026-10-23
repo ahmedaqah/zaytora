@@ -4,6 +4,7 @@ import { ToggleField } from "@/components/studio/fields/ToggleField";
 import { TextField } from "@/components/studio/fields/TextField";
 import { TextareaField } from "@/components/studio/fields/TextareaField";
 import { HintBox } from "@/components/studio/fields/HintBox";
+import { SectionTypographyFields } from "@/components/studio/fields/SectionTypographyFields";
 import { useLanguage } from "@/context/LanguageContext";
 import type { InvitationDetail } from "@/types/studio";
 
@@ -17,6 +18,7 @@ const COPY = {
     messageTextPlaceholder: "أعزاءنا الأصدقاء والعائلة...",
     signature: "التوقيع",
     signaturePlaceholder: "بمحبة، أحمد وسارة",
+    sectionFont: "نوع خط الرسالة",
   },
   en: {
     hint: 'Example: "Dear friends, your presence means so much to us. With love, Ahmed and Sarah"',
@@ -27,6 +29,7 @@ const COPY = {
     messageTextPlaceholder: "Dear friends and family...",
     signature: "Signature",
     signaturePlaceholder: "With love, Ahmed and Sarah",
+    sectionFont: "Message font",
   },
 };
 
@@ -69,6 +72,15 @@ export function Step11PersonalMessage({
             value={value.personalMessageSignature ?? ""}
             placeholder={t.signaturePlaceholder}
             onChange={(personalMessageSignature) => onChange({ personalMessageSignature })}
+          />
+          <SectionTypographyFields
+            fontLabel={t.sectionFont}
+            font={value.personalMessageFont}
+            size={value.personalMessageFontSize}
+            color={value.personalMessageTextColor}
+            onFont={(personalMessageFont) => onChange({ personalMessageFont })}
+            onSize={(personalMessageFontSize) => onChange({ personalMessageFontSize })}
+            onColor={(personalMessageTextColor) => onChange({ personalMessageTextColor })}
           />
         </>
       )}

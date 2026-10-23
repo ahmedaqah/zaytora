@@ -467,6 +467,12 @@ function fontSizeStyle(baseRem: number, percent?: number | null): CSSProperties 
   return { fontSize: `${(baseRem * percent) / 100}rem` };
 }
 
+// An owner-picked text colour override ("#rrggbb"); empty/null keeps the
+// template's own colour.
+function textColorStyle(color?: string | null): CSSProperties | undefined {
+  return color && /^#[0-9a-fA-F]{6}$/.test(color) ? { color } : undefined;
+}
+
 // Centralized typographic tone so every header/body/muted string across the
 // program, rules, accommodation, gallery, personal-message and footer
 // sections reads consistently — driven entirely by the --tpl-text-* custom
@@ -1565,15 +1571,25 @@ export function InvitationCanvas({
             <motion.div
               {...sectionReveal}
               style={sceneStyle("venue")}
-              className={cn(sectionCardClass(undefined, transparentCards), "text-center")}
+              className={cn(sectionCardClass(undefined, transparentCards), "text-center", value.venueFont)}
             >
               <p className={cn("mb-2 flex items-center justify-center gap-1.5 text-[11px] font-semibold", TONE.heading)}>
                 <MapPinIcon className="size-3.5 text-[var(--tpl-accent)]" />
                 {labels.location}
               </p>
-              <p className={cn("text-sm font-medium", TONE.strong)}>{primaryVenue.name}</p>
+              <p
+                style={{ ...fontSizeStyle(0.875, value.venueFontSize), ...textColorStyle(value.venueTextColor) }}
+                className={cn("text-sm font-medium", TONE.strong)}
+              >
+                {primaryVenue.name}
+              </p>
               {primaryVenue.address && (
-                <p className={cn("mt-1 text-xs leading-relaxed", TONE.body)}>{primaryVenue.address}</p>
+                <p
+                  style={{ ...fontSizeStyle(0.75, value.venueFontSize), ...textColorStyle(value.venueTextColor) }}
+                  className={cn("mt-1 text-xs leading-relaxed", TONE.body)}
+                >
+                  {primaryVenue.address}
+                </p>
               )}
             </motion.div>
           )}
@@ -1746,7 +1762,7 @@ export function InvitationCanvas({
 
           {/* Rules */}
           {value.showEventRules && rules.length > 0 && (
-            <motion.div {...sectionReveal} style={sceneStyle("rules")} className={sectionCardClass(undefined, transparentCards)}>
+            <motion.div {...sectionReveal} style={sceneStyle("rules")} className={cn(sectionCardClass(undefined, transparentCards), value.eventRulesFont)}>
               <p className={cn("mb-6 flex items-center gap-1.5 text-[11px] font-semibold", TONE.heading)}>
                 <ClipboardListIcon className="size-3.5 text-[var(--tpl-accent)]" />
                 {canvas.eventDetails}
@@ -1755,6 +1771,7 @@ export function InvitationCanvas({
                 {rules.map((rule) => (
                   <span
                     key={rule}
+                    style={{ ...fontSizeStyle(0.625, value.eventRulesFontSize), ...textColorStyle(value.eventRulesTextColor) }}
                     className={cn(
                       "rounded-full border border-[var(--tpl-accent-40)] bg-[var(--tpl-chip-bg)] px-2.5 py-1 text-[10px] font-medium text-[var(--tpl-emphasis)]",
                       theme.isDark && "drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]"
@@ -1772,14 +1789,29 @@ export function InvitationCanvas({
             <motion.div
               {...sectionReveal}
               style={sceneStyle("personalMessage")}
-              className={cn(sectionCardClass(undefined, transparentCards), "text-center")}
+              className={cn(sectionCardClass(undefined, transparentCards), "text-center", value.personalMessageFont)}
             >
               {value.personalMessageTitle && (
-                <p className={cn("text-[11px] font-semibold", TONE.heading)}>{value.personalMessageTitle}</p>
+                <p
+                  style={{ ...fontSizeStyle(0.6875, value.personalMessageFontSize), ...textColorStyle(value.personalMessageTextColor) }}
+                  className={cn("text-[11px] font-semibold", TONE.heading)}
+                >
+                  {value.personalMessageTitle}
+                </p>
               )}
-              <p className={cn("mt-1 text-[11px] leading-relaxed", TONE.body)}>{value.personalMessageText}</p>
+              <p
+                style={{ ...fontSizeStyle(0.6875, value.personalMessageFontSize), ...textColorStyle(value.personalMessageTextColor) }}
+                className={cn("mt-1 text-[11px] leading-relaxed", TONE.body)}
+              >
+                {value.personalMessageText}
+              </p>
               {value.personalMessageSignature && (
-                <p className="mt-1 text-[10px] text-[var(--tpl-accent)]">{value.personalMessageSignature}</p>
+                <p
+                  style={{ ...fontSizeStyle(0.625, value.personalMessageFontSize), ...textColorStyle(value.personalMessageTextColor) }}
+                  className="mt-1 text-[10px] text-[var(--tpl-accent)]"
+                >
+                  {value.personalMessageSignature}
+                </p>
               )}
             </motion.div>
           )}
