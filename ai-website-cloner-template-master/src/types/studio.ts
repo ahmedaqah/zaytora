@@ -92,6 +92,21 @@ export interface InvitationDetail {
   eventRulesFont?: string | null;
   eventRulesFontSize?: number | null;
   eventRulesTextColor?: string | null;
+  // Date/time display: "levant" shows Levantine month names (تشرين الثاني); "12"/"24" clock; "" = default.
+  dateMonthStyle?: string | null;
+  timeFormat?: string | null;
+  // The calendar card's weekday (e.g. الخميس) and date (month + day) typography.
+  weekdayFont?: string | null;
+  weekdayTextColor?: string | null;
+  weekdayFontSize?: number | null;
+  dateFontSize?: number | null;
+  dateFont?: string | null;
+  dateTextColor?: string | null;
+  // Optional free sentence under the personal message.
+  personalMessageExtraText?: string | null;
+  personalMessageExtraFont?: string | null;
+  personalMessageExtraFontSize?: number | null;
+  personalMessageExtraTextColor?: string | null;
 
   showEventRules: boolean;
   eventRulesText?: string | null;

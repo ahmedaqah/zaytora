@@ -305,11 +305,45 @@ function hijriDateParts(date: Date, locale: string) {
   return { weekday: get("weekday"), day: get("day"), month: get("month"), year: get("year") };
 }
 
+// Owner-chosen date/time display (Step04): "levant" swaps Gregorian month names
+// for the Levantine ones (تشرين الثاني...), and the clock can be forced to 12h
+// or 24h. Unset keeps each formatter's own previous behaviour exactly.
+interface DateDisplayOptions {
+  timeFormat?: string | null;
+  monthStyle?: string | null;
+}
+
+const LEVANT_MONTHS = [
+  "كانون الثاني",
+  "شباط",
+  "آذار",
+  "نيسان",
+  "أيار",
+  "حزيران",
+  "تموز",
+  "آب",
+  "أيلول",
+  "تشرين الأول",
+  "تشرين الثاني",
+  "كانون الأول",
+];
+
+function isLevantMonths(locale: string, useHijri: boolean, options?: DateDisplayOptions) {
+  return locale === "ar" && !useHijri && options?.monthStyle === "levant";
+}
+
+function clockOptions(options?: DateDisplayOptions): Intl.DateTimeFormatOptions {
+  if (options?.timeFormat === "24") return { hour: "2-digit", minute: "2-digit", hourCycle: "h23" };
+  if (options?.timeFormat === "12") return { hour: "numeric", minute: "2-digit", hour12: true };
+  return { hour: "numeric", minute: "2-digit" };
+}
+
 function formatEventDate(
   iso: string | null | undefined,
   locale: string,
   useHijri: boolean,
-  endIso?: string | null
+  endIso?: string | null,
+  options?: DateDisplayOptions
 ) {
   if (!iso) return null;
   const date = parseWallClockDate(iso);
@@ -317,15 +351,17 @@ function formatEventDate(
   const dateLocale = resolveDateLocale(locale, useHijri);
   const endDate = endIso ? parseWallClockDate(endIso) : null;
   const hasEnd = endDate && !Number.isNaN(endDate.getTime());
+  const levant = isLevantMonths(locale, useHijri, options);
+  const clock = clockOptions(options);
   if (!hasEnd) {
-    return new Intl.DateTimeFormat(dateLocale, {
+    const parts = new Intl.DateTimeFormat(dateLocale, {
       weekday: "long",
       day: "numeric",
       month: "long",
       year: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    }).format(date);
+      ...clock,
+    }).formatToParts(date);
+    return parts.map((part) => (levant && part.type === "month" ? LEVANT_MONTHS[date.getMonth()] : part.value)).join("");
   }
   // A time range can't reuse Intl's single combined date+time format above
   // (it only ever states one time) — built manually instead: the date
@@ -336,8 +372,11 @@ function formatEventDate(
     day: "numeric",
     month: "long",
     year: "numeric",
-  }).format(date);
-  const timeFormatter = new Intl.DateTimeFormat(dateLocale, { hour: "numeric", minute: "2-digit" });
+  })
+    .formatToParts(date)
+    .map((part) => (levant && part.type === "month" ? LEVANT_MONTHS[date.getMonth()] : part.value))
+    .join("");
+  const timeFormatter = new Intl.DateTimeFormat(dateLocale, clock);
   const startTime = timeFormatter.format(date);
   const endTime = timeFormatter.format(endDate);
   return locale === "ar" ? `${dateWords}، من ${startTime} إلى ${endTime}` : `${dateWords}, ${startTime} – ${endTime}`;
@@ -362,11 +401,20 @@ function formatShortDate(iso: string | null | undefined) {
 // When useHijriDate is on, day/month/weekday all come from hijriDateParts
 // instead — a Hijri desk calendar showing a Gregorian day-of-month would be
 // actively wrong, not just unlocalized.
-function calendarParts(iso: string | null | undefined, locale: string, useHijri: boolean, endIso?: string | null) {
+function calendarParts(
+  iso: string | null | undefined,
+  locale: string,
+  useHijri: boolean,
+  endIso?: string | null,
+  options?: DateDisplayOptions
+) {
   if (!iso) return null;
   const date = parseWallClockDate(iso);
   if (Number.isNaN(date.getTime())) return null;
-  const timeFormatter = new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+  const timeFormatter = new Intl.DateTimeFormat(
+    "en-US",
+    options?.timeFormat === "24" ? { hour: "2-digit", minute: "2-digit", hourCycle: "h23" } : { hour: "numeric", minute: "2-digit", hour12: true }
+  );
   let time = timeFormatter.format(date);
   const endDate = endIso ? parseWallClockDate(endIso) : null;
   if (endDate && !Number.isNaN(endDate.getTime())) {
@@ -378,7 +426,9 @@ function calendarParts(iso: string | null | undefined, locale: string, useHijri:
   }
   return {
     day: String(date.getDate()),
-    month: new Intl.DateTimeFormat(locale, { month: "long" }).format(date),
+    month: isLevantMonths(locale, false, options)
+      ? LEVANT_MONTHS[date.getMonth()]
+      : new Intl.DateTimeFormat(locale, { month: "long" }).format(date),
     weekday: new Intl.DateTimeFormat(locale, { weekday: "long" }).format(date),
     time,
   };
@@ -998,9 +1048,7 @@ export function InvitationCanvas({
   // own, more specific template default first so an admin can give the two
   // captions genuinely different looks before a guest has picked either.
   const eventTitleFont = value.eventTitleFont || template?.eventTitleFont || "font-cinzel";
-  const thankYouFont = value.eventTitleFont || template?.thankYouTextFont || template?.eventTitleFont || "font-cinzel";
   // The hero's "family of X & family of Y" line.
-  const familyNamesFont = value.familyNamesFont || template?.familyNamesFont || "font-cinzel";
   // One font choice drives only the invitation card's own text (title,
   // invitation copy, date line, the "بانتظار تشريفكم" note) — Step18
   // Additional's "Invitation card font" picker. Everything else on the
@@ -1011,6 +1059,12 @@ export function InvitationCanvas({
   // DefaultNamesFont (set on templates from before that dedicated field
   // existed).
   const cardTextFont = value.generalTextFont || template?.invitationTextFont || template?.defaultNamesFont || "";
+
+  // Thank-you caption: same base size/look as the invitation text unless the owner picks a font.
+  const thankYouFont = value.eventTitleFont || cardTextFont || "font-sans";
+  // Same base size and (unless the owner picks one) the same font as the invitation text, so
+  // 150% here reads like 150% there.
+  const familyNamesFont = value.familyNamesFont || cardTextFont || "font-sans";
 
   const language = resolveLanguage(value.language);
   const isRtl = RTL_LANGUAGES.has(language);
@@ -1026,9 +1080,10 @@ export function InvitationCanvas({
     ? ""
     : [value.familyName1, value.familyName2].filter(Boolean).join(" & ");
   const useHijri = Boolean(value.useHijriDate);
-  const eventDate = formatEventDate(value.eventDateTime, LOCALE_TAGS[language], useHijri, value.eventEndDateTime);
+  const dateOptions: DateDisplayOptions = { timeFormat: value.timeFormat, monthStyle: value.dateMonthStyle };
+  const eventDate = formatEventDate(value.eventDateTime, LOCALE_TAGS[language], useHijri, value.eventEndDateTime, dateOptions);
   const countdown = useCountdown(value.eventDateTime);
-  const calendar = calendarParts(value.eventDateTime, LOCALE_TAGS[language], useHijri, value.eventEndDateTime);
+  const calendar = calendarParts(value.eventDateTime, LOCALE_TAGS[language], useHijri, value.eventEndDateTime, dateOptions);
   const primaryVenue = value.venues[0] ?? null;
   const rules = (value.eventRulesText ?? "").split(RULES_DELIMITER).map((rule) => rule.trim()).filter(Boolean);
 
@@ -1363,8 +1418,8 @@ export function InvitationCanvas({
             {!templatePreviewMode && familyNames && (
               <motion.p
                 {...heroFade(1)}
-                style={fontSizeStyle(0.6875, value.familyNamesFontSize)}
-                className={cn("text-[11px] tracking-wide", familyNamesFont, TONE.body)}
+                style={fontSizeStyle(1, value.familyNamesFontSize)}
+                className={cn("text-base tracking-wide", familyNamesFont, TONE.body)}
               >
                 {familyNames}
               </motion.p>
@@ -1495,10 +1550,10 @@ export function InvitationCanvas({
               !templatePreviewMode && value.thankYouText && (
                 <motion.p
                   {...heroFade(4)}
-                  className={cn("mt-1 text-[10px] uppercase tracking-widest", thankYouFont)}
+                  className={cn("mt-1 text-base leading-relaxed", thankYouFont)}
                   style={{
                     color: theme.isDark ? "#ffffff" : (value.thankYouTextColor ?? "#111111"),
-                    ...fontSizeStyle(0.625, value.thankYouTextFontSize),
+                    ...fontSizeStyle(1, value.thankYouTextFontSize),
                   }}
                 >
                   {value.thankYouText}
@@ -1630,6 +1685,12 @@ export function InvitationCanvas({
                 eventTitle={value.eventTitle}
                 venueName={primaryVenue?.name}
                 saveDateLabel={canvas.saveDate}
+                weekdayFont={value.weekdayFont}
+                weekdayColor={value.weekdayTextColor}
+                dateFont={value.dateFont}
+                dateColor={value.dateTextColor}
+                weekdaySize={value.weekdayFontSize}
+                dateSize={value.dateFontSize}
                 untitledEventLabel={canvas.untitledEvent}
               />
             </div>
@@ -1785,7 +1846,7 @@ export function InvitationCanvas({
           )}
 
           {/* Personal message */}
-          {value.showPersonalMessage && value.personalMessageText && (
+          {value.showPersonalMessage && (value.personalMessageText || value.personalMessageExtraText) && (
             <motion.div
               {...sectionReveal}
               style={sceneStyle("personalMessage")}
@@ -1799,18 +1860,32 @@ export function InvitationCanvas({
                   {value.personalMessageTitle}
                 </p>
               )}
-              <p
-                style={{ ...fontSizeStyle(0.6875, value.personalMessageFontSize), ...textColorStyle(value.personalMessageTextColor) }}
-                className={cn("mt-1 text-[11px] leading-relaxed", TONE.body)}
-              >
-                {value.personalMessageText}
-              </p>
+              {value.personalMessageText && (
+                <p
+                  style={{ ...fontSizeStyle(0.6875, value.personalMessageFontSize), ...textColorStyle(value.personalMessageTextColor) }}
+                  className={cn("mt-1 text-[11px] leading-relaxed", TONE.body)}
+                >
+                  {value.personalMessageText}
+                </p>
+              )}
               {value.personalMessageSignature && (
                 <p
                   style={{ ...fontSizeStyle(0.625, value.personalMessageFontSize), ...textColorStyle(value.personalMessageTextColor) }}
                   className="mt-1 text-[10px] text-[var(--tpl-accent)]"
                 >
                   {value.personalMessageSignature}
+                </p>
+              )}
+              {value.personalMessageExtraText && (
+                <p
+                  style={{
+                    whiteSpace: "pre-line",
+                    ...fontSizeStyle(0.6875, value.personalMessageExtraFontSize),
+                    ...textColorStyle(value.personalMessageExtraTextColor),
+                  }}
+                  className={cn("mt-3 text-[11px] leading-relaxed", TONE.body, value.personalMessageExtraFont)}
+                >
+                  {value.personalMessageExtraText}
                 </p>
               )}
             </motion.div>

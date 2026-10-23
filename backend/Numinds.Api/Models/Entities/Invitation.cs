@@ -106,6 +106,20 @@ public class Invitation
     public string? EventRulesFont { get; set; }
     public int? EventRulesFontSize { get; set; }
     public string? EventRulesTextColor { get; set; }
+    // Date/time display options (month-name style "levant"/"", clock "12"/"24"/""), the
+    // calendar card's weekday/date typography, and the optional extra line under the personal message.
+    public string? DateMonthStyle { get; set; }
+    public string? TimeFormat { get; set; }
+    public string? WeekdayFont { get; set; }
+    public string? WeekdayTextColor { get; set; }
+    public int? WeekdayFontSize { get; set; }
+    public int? DateFontSize { get; set; }
+    public string? DateFont { get; set; }
+    public string? DateTextColor { get; set; }
+    public string? PersonalMessageExtraText { get; set; }
+    public string? PersonalMessageExtraFont { get; set; }
+    public int? PersonalMessageExtraFontSize { get; set; }
+    public string? PersonalMessageExtraTextColor { get; set; }
 
     // Step 8 — Event Rules / Notes
     public bool ShowEventRules { get; set; }

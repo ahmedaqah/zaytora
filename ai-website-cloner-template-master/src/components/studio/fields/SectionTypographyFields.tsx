@@ -26,7 +26,8 @@ export function SectionTypographyFields({
   size?: number | null;
   color?: string | null;
   onFont: (value: string) => void;
-  onSize: (value: number) => void;
+  // Omit onSize to hide the size stepper.
+  onSize?: (value: number) => void;
   onColor: (value: string) => void;
 }) {
   const { language } = useLanguage();
@@ -35,7 +36,7 @@ export function SectionTypographyFields({
   return (
     <div className="space-y-4">
       <FontSelect label={fontLabel} value={font ?? ""} onChange={onFont} />
-      <FontSizeStepper value={size} onChange={onSize} />
+      {onSize && <FontSizeStepper value={size} onChange={onSize} />}
       <div className="space-y-1.5">
         <ColorField label={t.color} value={color || "#111111"} onChange={onColor} />
         {color ? (

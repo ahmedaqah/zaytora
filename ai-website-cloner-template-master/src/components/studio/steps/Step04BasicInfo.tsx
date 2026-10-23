@@ -7,6 +7,7 @@ import { ColorField } from "@/components/studio/fields/ColorField";
 import { FontSelect } from "@/components/studio/fields/FontSelect";
 import { FontSizeStepper } from "@/components/studio/fields/FontSizeStepper";
 import { ToggleField } from "@/components/studio/fields/ToggleField";
+import { SectionTypographyFields } from "@/components/studio/fields/SectionTypographyFields";
 import { PlusIcon, TrashIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/context/LanguageContext";
@@ -38,6 +39,15 @@ const COPY = {
     timeMode: "الوقت",
     timeModeSingle: "وقت واحد",
     timeModeRange: "من - إلى",
+    monthStyle: "أسماء الأشهر",
+    monthStyleDefault: "نوفمبر",
+    monthStyleLevant: "تشرين الثاني",
+    timeFormat: "تنسيق الساعة",
+    timeFormatDefault: "تلقائي",
+    timeFormat12: "12 ساعة",
+    timeFormat24: "24 ساعة",
+    weekdayFont: "خط اليوم (مثل الخميس)",
+    dateFont: "خط التاريخ (مثل نوفمبر 19)",
     eventEndTime: "وقت الانتهاء",
     detectedTimezone: (tz: string) => `المنطقة الزمنية المكتشفة: ${tz}`,
     hijriDate: "التاريخ الهجري",
@@ -72,6 +82,15 @@ const COPY = {
     timeMode: "Time",
     timeModeSingle: "Single time",
     timeModeRange: "From - To",
+    monthStyle: "Month names",
+    monthStyleDefault: "November",
+    monthStyleLevant: "Levantine (Tishrin)",
+    timeFormat: "Time format",
+    timeFormatDefault: "Auto",
+    timeFormat12: "12-hour",
+    timeFormat24: "24-hour",
+    weekdayFont: "Weekday font (e.g. Thursday)",
+    dateFont: "Date font (e.g. November 19)",
     eventEndTime: "End time",
     detectedTimezone: (tz: string) => `Detected timezone: ${tz}`,
     hijriDate: "Hijri date",
@@ -378,6 +397,77 @@ export function Step04BasicInfo({
         description={t.hijriDateDescription}
         checked={value.useHijriDate}
         onChange={(useHijriDate) => onChange({ useHijriDate })}
+      />
+      <div>
+        <p className="mb-1.5 text-sm text-body-foreground">{t.timeFormat}</p>
+        <div className="grid grid-cols-3 gap-2">
+          {(
+            [
+              ["", t.timeFormatDefault],
+              ["12", t.timeFormat12],
+              ["24", t.timeFormat24],
+            ] as const
+          ).map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => onChange({ timeFormat: key })}
+              className={cn(
+                "rounded-xl border-2 py-2.5 text-sm font-medium transition-all",
+                (value.timeFormat ?? "") === key
+                  ? "border-gold bg-gold/10 text-foreground"
+                  : "border-border text-body-foreground hover:border-gold/40"
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+      {!value.useHijriDate && (value.language === "ar" || value.language === "bilingual" || !value.language) && (
+        <div>
+          <p className="mb-1.5 text-sm text-body-foreground">{t.monthStyle}</p>
+          <div className="grid grid-cols-2 gap-2">
+            {(
+              [
+                ["", t.monthStyleDefault],
+                ["levant", t.monthStyleLevant],
+              ] as const
+            ).map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => onChange({ dateMonthStyle: key })}
+                className={cn(
+                  "rounded-xl border-2 py-2.5 text-sm font-medium transition-all",
+                  (value.dateMonthStyle ?? "") === key
+                    ? "border-gold bg-gold/10 text-foreground"
+                    : "border-border text-body-foreground hover:border-gold/40"
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      <SectionTypographyFields
+        fontLabel={t.weekdayFont}
+        font={value.weekdayFont}
+        size={value.weekdayFontSize}
+        color={value.weekdayTextColor}
+        onFont={(weekdayFont) => onChange({ weekdayFont })}
+        onSize={(weekdayFontSize) => onChange({ weekdayFontSize })}
+        onColor={(weekdayTextColor) => onChange({ weekdayTextColor })}
+      />
+      <SectionTypographyFields
+        fontLabel={t.dateFont}
+        font={value.dateFont}
+        size={value.dateFontSize}
+        color={value.dateTextColor}
+        onFont={(dateFont) => onChange({ dateFont })}
+        onSize={(dateFontSize) => onChange({ dateFontSize })}
+        onColor={(dateTextColor) => onChange({ dateTextColor })}
       />
 
       <div>
