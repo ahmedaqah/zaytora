@@ -111,7 +111,10 @@ export function Step13Music({
   // plays the track being previewed, or else the one currently chosen for the
   // invitation (selecting/typing a track keeps the two in sync below).
   const playerUrl = previewUrl ?? value.musicUrl ?? null;
-  const preview = useMusicPlayer(playerUrl);
+  // Start offset only applies to the track actually chosen for the invitation,
+  // and the YouTube player is built lazily (first play tap) -- see useMusicPlayer.
+  const hookStart = playerUrl && playerUrl === value.musicUrl ? (value.musicStartSeconds ?? 0) : 0;
+  const preview = useMusicPlayer(playerUrl, hookStart, { lazy: true });
   // Rows can't call preview.play() the instant they're clicked — for a
   // YouTube-backed track the IFrame Player is still being created
   // asynchronously at that point, so play() would land on a null ref and do
@@ -147,6 +150,7 @@ export function Step13Music({
       preview.togglePlay();
       return;
     }
+    preview.activate();
     setPreviewTrackId(track.id);
   }
 
