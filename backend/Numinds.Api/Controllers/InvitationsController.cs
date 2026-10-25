@@ -270,6 +270,50 @@ public class InvitationsController(
         return isEn ? $"{occasion.En} — {names}" : $"حفل {occasion.Ar} {names}";
     }
 
+    // What the share-link endpoints (/i/{code} and its cover.jpg) actually
+    // need: a handful of scalar columns plus the template's two image URLs.
+    // They used to load the whole Invitation row (with every guest-uploaded
+    // data-URL track, gallery list, etc.) plus the whole Template for every
+    // crawler/guest hit -- on the 512MB instance a burst of link opens held
+    // enough of that in memory to get the process OOM-killed.
+    private sealed record ShareInfo(Invitation Invitation, string? BackgroundImageUrl, string? ImageUrl);
+
+    private async Task<ShareInfo?> LoadShareInfoAsync(string code, CancellationToken cancellationToken)
+    {
+        var row = await db.Invitations
+            .AsNoTracking()
+            .Where(i => i.ShareCode == code)
+            .Select(i => new
+            {
+                i.Id,
+                i.Status,
+                i.Language,
+                i.FirstName,
+                i.SecondName,
+                i.InvitationType,
+                i.OccasionType,
+                BackgroundImageUrl = i.Template != null ? i.Template.BackgroundImageUrl : null,
+                ImageUrl = i.Template != null ? i.Template.ImageUrl : null,
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+        if (row is null)
+        {
+            return null;
+        }
+
+        var invitation = new Invitation
+        {
+            Id = row.Id,
+            Status = row.Status,
+            Language = row.Language,
+            FirstName = row.FirstName,
+            SecondName = row.SecondName,
+            InvitationType = row.InvitationType,
+            OccasionType = row.OccasionType,
+        };
+        return new ShareInfo(invitation, row.BackgroundImageUrl, row.ImageUrl);
+    }
+
     // GET /i/{code} — the short link customers actually share (see copyLink
     // in DashboardView.tsx). Lives on this API, not the Vercel frontend's
     // own /invitationpublic, because Facebook's/WhatsApp's crawler gets a
@@ -292,21 +336,18 @@ public class InvitationsController(
         Response.Headers.Remove("Content-Security-Policy");
         Response.Headers.Append("Content-Security-Policy", "script-src 'unsafe-inline'; default-src 'none'; frame-ancestors 'none'");
 
-        var invitation = await db.Invitations
-            .AsNoTracking()
-            .Include(i => i.Template)
-            .FirstOrDefaultAsync(i => i.ShareCode == code, cancellationToken);
-        if (invitation is null || !IsPubliclyVisible(invitation))
+        var invitation = await LoadShareInfoAsync(code, cancellationToken);
+        if (invitation is null || !IsPubliclyVisible(invitation.Invitation))
         {
             return Content("<!doctype html><meta charset=\"utf-8\"><title>ZAYTORA</title>", "text/html");
         }
 
-        var isEn = invitation.Language == "en";
-        var title = BuildInvitationTitle(invitation) ?? (isEn ? "You're Invited | ZAYTORA" : "دعوة | ZAYTORA");
+        var isEn = invitation.Invitation.Language == "en";
+        var title = BuildInvitationTitle(invitation.Invitation) ?? (isEn ? "You're Invited | ZAYTORA" : "دعوة | ZAYTORA");
         var description = isEn
             ? "You're warmly invited to celebrate with us."
             : "يسعدنا دعوتكم لحضور هذه المناسبة.";
-        var destination = $"{FrontendBaseUrl}/invitationpublic?id={invitation.Id}";
+        var destination = $"{FrontendBaseUrl}/invitationpublic?id={invitation.Invitation.Id}";
         var encodedTitle = System.Net.WebUtility.HtmlEncode(title);
         var encodedDescription = System.Net.WebUtility.HtmlEncode(description);
 
@@ -322,7 +363,7 @@ public class InvitationsController(
         // the vertical middle third server-side is what actually fixes that,
         // not just hinting dimensions via og:image:width/height (several
         // clients, e.g. Telegram, still render the full image regardless).
-        var hasCoverImage = invitation.Template?.BackgroundImageUrl is not null || invitation.Template?.ImageUrl is not null;
+        var hasCoverImage = invitation.BackgroundImageUrl is not null || invitation.ImageUrl is not null;
         // Deliberately hardcoded to https, not Request.Scheme -- despite
         // Program.cs's ForwardedHeaders setup (which does fix Request's
         // client-IP for Meta CAPI), Request.Scheme still read back "http"
@@ -382,16 +423,13 @@ public class InvitationsController(
     [HttpHead("/i/{code}/cover.jpg")]
     public async Task<IActionResult> ShareCoverImage(string code, CancellationToken cancellationToken)
     {
-        var invitation = await db.Invitations
-            .AsNoTracking()
-            .Include(i => i.Template)
-            .FirstOrDefaultAsync(i => i.ShareCode == code, cancellationToken);
-        if (invitation is null || !IsPubliclyVisible(invitation))
+        var invitation = await LoadShareInfoAsync(code, cancellationToken);
+        if (invitation is null || !IsPubliclyVisible(invitation.Invitation))
         {
             return NotFound();
         }
 
-        var sourceUrl = invitation.Template?.BackgroundImageUrl ?? invitation.Template?.ImageUrl;
+        var sourceUrl = invitation.BackgroundImageUrl ?? invitation.ImageUrl;
         if (sourceUrl is null)
         {
             return NotFound();
