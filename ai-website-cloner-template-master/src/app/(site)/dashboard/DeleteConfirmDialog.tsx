@@ -11,6 +11,9 @@ const COPY = {
       "لديك طلب دفع قيد الانتظار مرتبط بهذه الدعوة — حذفها الآن سيفقد الإدارة القدرة على مراجعته أو تأكيد الدفع لاحقاً.",
     delete: "حذف",
     cancel: "إلغاء",
+    adminBody: "سيتم حذف الدعوة وكل ما يخصها نهائياً: الردود، الصور، ملفات التخزين، وبيانات الدخول بالـ QR. هذا الإجراء لا يمكن التراجع عنه.",
+    adminPendingOrderWarning:
+      "يوجد طلب دفع قيد الانتظار مرتبط بهذه الدعوة — سيبقى الطلب في السجلات لكن بدون ربط بالدعوة.",
   },
   en: {
     title: "Delete Invitation?",
@@ -20,6 +23,10 @@ const COPY = {
       "You have a pending payment order linked to this invitation — deleting it now means our team won't be able to review it or confirm the payment later.",
     delete: "Delete",
     cancel: "Cancel",
+    adminBody:
+      "The invitation and everything tied to it will be permanently deleted: RSVPs, photos, stored files and QR check-in data. This cannot be undone.",
+    adminPendingOrderWarning:
+      "A payment order is still pending for this invitation — it stays in the records but is detached from the invitation.",
   },
 };
 
@@ -28,9 +35,11 @@ export function DeleteConfirmDialog({
   names,
   hasPendingOrder,
   language,
+  adminMode = false,
   onConfirm,
   onCancel,
 }: {
+  adminMode?: boolean;
   open: boolean;
   names: string;
   hasPendingOrder?: boolean;
@@ -66,10 +75,11 @@ export function DeleteConfirmDialog({
             </div>
             <h2 className="mt-4 text-lg font-semibold text-foreground">{t.title}</h2>
             <p className="mt-2 text-sm leading-relaxed text-body-foreground">{t.body(names)}</p>
+            {adminMode && <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{t.adminBody}</p>}
             {hasPendingOrder && (
               <div className="mt-3 flex items-start gap-2 rounded-xl bg-amber-100 p-3 text-start dark:bg-amber-950/50">
                 <InfoIcon className="mt-0.5 size-4 shrink-0 text-amber-700 dark:text-amber-400" />
-                <p className="text-xs leading-relaxed text-amber-800 dark:text-amber-300">{t.pendingOrderWarning}</p>
+                <p className="text-xs leading-relaxed text-amber-800 dark:text-amber-300">{adminMode ? t.adminPendingOrderWarning : t.pendingOrderWarning}</p>
               </div>
             )}
             <div className="mt-6 flex gap-3">

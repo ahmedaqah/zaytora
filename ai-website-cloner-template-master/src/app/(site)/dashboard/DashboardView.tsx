@@ -28,12 +28,15 @@ import { API_BASE_URL } from "@/lib/api/config";
 import { useLanguage } from "@/context/LanguageContext";
 import { useAuth } from "@/context/AuthContext";
 import {
+  adminDeleteInvitation,
   createInvitationTransferLink,
   deleteInvitation,
   getInvitation,
+  listAdminInvitations,
   listInvitations,
   updateInvitation,
 } from "@/lib/services/invitations.service";
+import { Pagination } from "@/components/admin/Pagination";
 import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
 import { RsvpResponsesModal } from "./RsvpResponsesModal";
 import { GalleryModal } from "./GalleryModal";
@@ -58,7 +61,31 @@ interface BookingRow {
   // InvitationId gets nulled out server-side), so the delete dialog warns
   // first instead of silently losing the admin's ability to review it.
   hasPendingOrder: boolean;
+  // Admin section only: whose invitation this is (null email = guest draft).
+  ownerEmail?: string | null;
+  ownerName?: string | null;
 }
+
+const ADMIN_PAGE_SIZE = 20;
+
+const ADMIN_COPY = {
+  ar: {
+    title: "الدعوات النشطة",
+    subtitle: "كل الدعوات المفعّلة على حسابات الزبائن — تعديل وحذف نهائي",
+    searchPlaceholder: "ابحث بالاسم أو البريد أو رمز الدعوة...",
+    tableTitle: "الدعوات",
+    total: "إجمالي الدعوات",
+    empty: "لا توجد دعوات مطابقة",
+  },
+  en: {
+    title: "Active invitations",
+    subtitle: "Every live invitation on customer accounts — edit or delete permanently",
+    searchPlaceholder: "Search by name, email or invitation code...",
+    tableTitle: "Invitations",
+    total: "Total invitations",
+    empty: "No matching invitations",
+  },
+};
 
 const DEMO_USER = {
   email: "guest@zaytorainvites.com",
@@ -100,6 +127,7 @@ const COPY = {
     guestLink: "أنشئ حساباً لحفظها بشكل دائم",
     partnerProfile: "ملف الشراكة",
     noPhone: "لا يوجد رقم مسجّل",
+    guestOwner: "مسودة ضيف (بلا حساب)",
   },
   en: {
     title: "My Invitations",
@@ -134,6 +162,7 @@ const COPY = {
     guestLink: "Create an account to keep them permanently",
     partnerProfile: "Partner profile",
     noPhone: "No phone number on file",
+    guestOwner: "Guest draft (no account)",
   },
 };
 
@@ -254,6 +283,19 @@ function BookingCard({
           <CalendarIcon className="size-3.5 text-gold" />
           {formatDate(booking.eventDate, language, t.noDate)}
         </p>
+        {booking.ownerEmail !== undefined && (
+          <p className="mt-1 flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
+            <UserIcon className="size-3.5 text-gold" />
+            {booking.ownerEmail ? (
+              <>
+                <span dir="ltr">{booking.ownerEmail}</span>
+                {booking.ownerName && <span>· {booking.ownerName}</span>}
+              </>
+            ) : (
+              t.guestOwner
+            )}
+          </p>
+        )}
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-muted-foreground">
@@ -381,14 +423,22 @@ function BookingCard({
   );
 }
 
-export function DashboardView() {
+// `adminMode` renders the admin "active invitations" section: the same cards
+// and tools as a customer's own dashboard, but listing every customer's
+// invitations (server-paged + searched) and deleting them permanently.
+export function DashboardView({ adminMode = false }: { adminMode?: boolean } = {}) {
   const { language } = useLanguage();
   const t = COPY[language];
+  const adminT = ADMIN_COPY[language];
   const { user, loading: authLoading } = useAuth();
 
   const [bookings, setBookings] = useState<BookingRow[]>([]);
   const [bookingsLoading, setBookingsLoading] = useState(true);
   const [query, setQuery] = useState("");
+  // Admin section: the server does the paging/searching.
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const [totalCount, setTotalCount] = useState(0);
   const [deleteTarget, setDeleteTarget] = useState<BookingRow | null>(null);
   const [responsesRow, setResponsesRow] = useState<BookingRow | null>(null);
   const [qrRow, setQrRow] = useState<BookingRow | null>(null);
@@ -405,9 +455,21 @@ export function DashboardView() {
     // guests see their own real invitations here too.
     setBookingsLoading(true);
     try {
-      const summaries = await listInvitations();
+      let ownerById: Record<string, { ownerEmail: string | null; ownerName: string | null }> = {};
+      let summaries;
+      if (adminMode) {
+        const result = await listAdminInvitations({ page, pageSize: ADMIN_PAGE_SIZE, search });
+        summaries = result.items;
+        setTotalCount(result.totalCount);
+        ownerById = Object.fromEntries(
+          result.items.map((s) => [s.id, { ownerEmail: s.ownerEmail ?? null, ownerName: s.ownerName ?? null }])
+        );
+      } else {
+        summaries = await listInvitations();
+      }
       setBookings(
         summaries.map((s) => ({
+          ...(adminMode ? ownerById[s.id] : {}),
           id: s.id,
           bookingId: s.bookingId,
           shareCode: s.shareCode,
@@ -424,16 +486,27 @@ export function DashboardView() {
     } catch (error) {
       console.error("[dashboard] failed to load invitations:", error);
       setBookings([]);
+      setTotalCount(0);
     } finally {
       setBookingsLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [adminMode, page, search]);
 
   useEffect(() => {
     if (authLoading) return;
     loadBookings();
   }, [authLoading, loadBookings]);
+
+  // Admin search is debounced and sent to the server; it also resets to page 1.
+  useEffect(() => {
+    if (!adminMode) return;
+    const timer = window.setTimeout(() => {
+      setSearch(query.trim());
+      setPage(1);
+    }, 400);
+    return () => window.clearTimeout(timer);
+  }, [adminMode, query]);
 
   // DEMO_USER is only for a confirmed guest (auth check finished and there's
   // genuinely no user) — while authLoading, `user` is null too, but that's
@@ -450,16 +523,17 @@ export function DashboardView() {
 
   const stats = useMemo(
     () => ({
-      total: bookings.length,
+      total: adminMode ? totalCount : bookings.length,
       upcoming: bookings.filter((b) => b.eventDate && new Date(b.eventDate) > new Date()).length,
       responses: bookings.reduce((sum, b) => sum + b.responses, 0),
     }),
-    [bookings]
+    [adminMode, bookings, totalCount]
   );
 
   const visibleBookings = useMemo(() => {
+    if (adminMode) return bookings;
     return bookings.filter((b) => b.bookingId.toLowerCase().includes(query.trim().toLowerCase()));
-  }, [bookings, query]);
+  }, [adminMode, bookings, query]);
 
   async function confirmDelete() {
     const row = deleteTarget;
@@ -467,12 +541,19 @@ export function DashboardView() {
     setDeleteTarget(null);
 
     try {
-      await deleteInvitation(row.id);
+      if (adminMode) await adminDeleteInvitation(row.id);
+      else await deleteInvitation(row.id);
     } catch (error) {
       console.error("[dashboard] failed to delete invitation:", error);
       return;
     }
     setBookings((current) => current.filter((b) => b.id !== row.id));
+    if (adminMode) {
+      setTotalCount((count) => Math.max(0, count - 1));
+      // Deleted the last card on a later page: step back (or reload this page).
+      if (bookings.length <= 1 && page > 1) setPage(page - 1);
+      else loadBookings();
+    }
   }
 
   async function addPhotos(row: BookingRow, files: FileList | null) {
@@ -578,14 +659,15 @@ export function DashboardView() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-    <div className="mx-auto max-w-3xl space-y-6 px-4 py-10">
+    <div className={adminMode ? "" : "min-h-screen bg-background"}>
+    <div className={cn("mx-auto max-w-3xl space-y-6 px-4", adminMode ? "py-2" : "py-10")}>
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="font-cinzel text-2xl font-semibold text-foreground">{t.title}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{t.subtitle}</p>
+          <h1 className="font-cinzel text-2xl font-semibold text-foreground">{adminMode ? adminT.title : t.title}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{adminMode ? adminT.subtitle : t.subtitle}</p>
         </div>
+        {!adminMode && (
         <div className="flex items-center gap-2">
           {user && (
             <Link
@@ -603,9 +685,11 @@ export function DashboardView() {
             + {t.createNew}
           </Link>
         </div>
+        )}
       </div>
 
       {/* User info banner */}
+      {!adminMode && (
       <div className={cn("flex flex-wrap items-center gap-x-8 gap-y-2 px-5 py-4 text-sm text-body-foreground", GLASS_CARD)}>
         <span className="flex items-center gap-1.5">
           <MailIcon className="size-4 text-gold" />
@@ -627,8 +711,9 @@ export function DashboardView() {
         </span>
         {loading && <LoaderIcon className="size-4 animate-spin text-muted-foreground" />}
       </div>
+      )}
 
-      {!loading && !user && (
+      {!adminMode && !loading && !user && (
         <p className="-mt-3 text-xs text-muted-foreground">
           {t.guestPrompt}{" "}
           <Link href="/login" className="font-medium text-gold hover:underline">
@@ -652,7 +737,7 @@ export function DashboardView() {
             type="text"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder={t.searchPlaceholder}
+            placeholder={adminMode ? adminT.searchPlaceholder : t.searchPlaceholder}
             className="w-full rounded-full border border-border bg-background/5 py-2.5 ps-9 pe-3 text-sm text-foreground outline-none transition-colors focus:border-gold"
           />
         </div>
@@ -661,7 +746,7 @@ export function DashboardView() {
       {/* Bookings — a stacked card list (not a table) so it reflows cleanly
           on a phone-width screen instead of forcing horizontal scroll. */}
       <div className="space-y-3">
-        <h2 className="px-1 text-sm font-semibold text-foreground">{t.tableTitle}</h2>
+        <h2 className="px-1 text-sm font-semibold text-foreground">{adminMode ? adminT.tableTitle : t.tableTitle}</h2>
 
         {visibleBookings.map((booking, index) => (
           <BookingCard
@@ -671,7 +756,7 @@ export function DashboardView() {
             t={t}
             index={index}
             linkCopied={copiedId === booking.id}
-            isAdmin={user?.isAdmin ?? false}
+            isAdmin={!adminMode && (user?.isAdmin ?? false)}
             handoffState={handoffId === booking.id ? handoffStatus : "idle"}
             onPreview={openPreview}
             onDelete={setDeleteTarget}
@@ -685,7 +770,9 @@ export function DashboardView() {
 
         {!loading && visibleBookings.length === 0 && (
           <div className={cn("px-5 py-10 text-center text-sm text-muted-foreground", GLASS_CARD)}>
-            {bookings.length === 0 ? (
+            {adminMode ? (
+              adminT.empty
+            ) : bookings.length === 0 ? (
               <>
                 {t.noInvitationsYet}{" "}
                 <Link href="/studio" className="font-medium text-gold hover:underline">
@@ -699,7 +786,18 @@ export function DashboardView() {
         )}
       </div>
 
+      {adminMode && totalCount > ADMIN_PAGE_SIZE && (
+        <Pagination
+          page={page}
+          pageSize={ADMIN_PAGE_SIZE}
+          totalCount={totalCount}
+          onPageChange={setPage}
+          language={language}
+        />
+      )}
+
       <DeleteConfirmDialog
+        adminMode={adminMode}
         open={Boolean(deleteTarget)}
         names={deleteTarget?.names ?? ""}
         hasPendingOrder={deleteTarget?.hasPendingOrder ?? false}

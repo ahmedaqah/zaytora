@@ -1,4 +1,5 @@
 import {
+  ClipboardListIcon,
   DashboardIcon,
   HandshakeIcon,
   ImageIcon,
@@ -17,6 +18,7 @@ export const ADMIN_NAV = [
   { key: "users", href: "/admin/users", icon: UsersIcon, label: { ar: "المستخدمون", en: "Users" } },
   { key: "partners", href: "/admin/partners", icon: HandshakeIcon, label: { ar: "الشركاء", en: "Partners" } },
   { key: "orders", href: "/admin/orders", icon: OrdersIcon, label: { ar: "الطلبات", en: "Orders" } },
+  { key: "invitations", href: "/admin/invitations", icon: ClipboardListIcon, label: { ar: "الدعوات النشطة", en: "Active Invitations" } },
   { key: "pricing", href: "/admin/pricing", icon: PercentIcon, label: { ar: "الأسعار والعروض", en: "Pricing & Promo" } },
   { key: "reviews", href: "/admin/reviews", icon: StarIcon, label: { ar: "التقييمات", en: "Reviews" } },
   {

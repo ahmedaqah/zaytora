@@ -25,7 +25,8 @@ public class InvitationsController(
     IFileStorageService storage,
     IConfiguration configuration,
     IHttpClientFactory httpClientFactory,
-    IMemoryCache cache) : ControllerBase
+    IMemoryCache cache,
+    ILogger<InvitationsController> logger) : ControllerBase
 {
     private string FrontendBaseUrl => configuration["Frontend:BaseUrl"] ?? "http://localhost:3000";
 
@@ -476,6 +477,183 @@ public class InvitationsController(
         return File(croppedBytes!, "image/jpeg");
     }
 
+    // GET /api/invitations/admin?page=&pageSize=&search=&activeOnly=
+    // Admin-only list of every customer's invitations (default: just the
+    // active, i.e. paid/shared, ones), shaped like the customer dashboard's
+    // rows so the same card UI renders it. Never loads the heavy JSON columns
+    // into the app (a legacy invitation can be tens of MB): everything comes
+    // from a scalar projection, and the gallery photo count is computed inside
+    // Postgres for just this page's ids.
+    [HttpGet("admin")]
+    [Authorize(Roles = Roles.Admin)]
+    public async Task<ActionResult<AdminInvitationListDto>> AdminList(
+        int page = 1,
+        int pageSize = 20,
+        string? search = null,
+        bool activeOnly = true,
+        CancellationToken cancellationToken = default)
+    {
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 50);
+
+        var query = db.Invitations.AsNoTracking().Where(HasContent);
+        if (activeOnly)
+        {
+            query = query.Where(i => i.Status == "paid" || i.Status == "shared");
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim();
+            var like = "%" + EscapeLike(term) + "%";
+            // "ND-1A2B3C4D" (the booking id on each card) -> match the id's own prefix.
+            var idPrefix = (term.StartsWith("nd-", StringComparison.OrdinalIgnoreCase) ? term[3..] : term).Replace("-", "");
+            var idLike = EscapeLike(idPrefix) + "%";
+            query = query.Where(i =>
+                (i.ShareCode != null && EF.Functions.ILike(i.ShareCode, like)) ||
+                (i.FirstName != null && EF.Functions.ILike(i.FirstName, like)) ||
+                (i.SecondName != null && EF.Functions.ILike(i.SecondName, like)) ||
+                EF.Functions.ILike(i.Id.ToString().Replace("-", ""), idLike) ||
+                db.Users.Any(u => u.Id == i.UserId && u.Email != null && EF.Functions.ILike(u.Email, like)));
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var rows = await query
+            .OrderByDescending(i => i.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(i => new
+            {
+                i.Id,
+                i.ShareCode,
+                i.Status,
+                i.CreatedAt,
+                i.EventDateTime,
+                ResponseCount = i.Responses.Count,
+                i.EnableQrEntry,
+                i.FirstName,
+                i.SecondName,
+                OwnerEmail = db.Users.Where(u => u.Id == i.UserId).Select(u => u.Email).FirstOrDefault(),
+                OwnerName = db.Users.Where(u => u.Id == i.UserId).Select(u => u.DisplayName).FirstOrDefault(),
+                HasPendingOrder = db.Orders.Any(o => o.InvitationId == i.Id && o.PaymentStatus == "pending"),
+            })
+            .ToListAsync(cancellationToken);
+
+        var galleryCounts = new Dictionary<Guid, int>();
+        if (rows.Count > 0)
+        {
+            try
+            {
+                var ids = rows.Select(r => r.Id).ToArray();
+                var counts = await db.Database
+                    .SqlQueryRaw<GalleryCountRow>(
+                        "select \"Id\" as \"Id\", case when \"GalleryImagesJson\" like '[%' then jsonb_array_length(\"GalleryImagesJson\"::jsonb) else 0 end as \"Count\" " +
+                        "from \"Invitations\" where \"Id\" = any({0})", ids)
+                    .ToListAsync(cancellationToken);
+                galleryCounts = counts.ToDictionary(c => c.Id, c => c.Count);
+            }
+            catch (Exception ex)
+            {
+                // The count is cosmetic -- never let it take the whole list down.
+                logger.LogWarning(ex, "Could not compute gallery counts for the admin invitation list.");
+            }
+        }
+
+        return Ok(new AdminInvitationListDto
+        {
+            TotalCount = totalCount,
+            Items = rows.Select(r => new AdminInvitationSummaryDto
+            {
+                Id = r.Id.ToString(),
+                BookingId = $"ND-{r.Id.ToString("N")[..8].ToUpper()}",
+                ShareCode = r.ShareCode ?? "",
+                Status = r.Status,
+                IsPaid = r.Status is "paid" or "shared",
+                HasPendingOrder = r.HasPendingOrder,
+                CreatedAt = r.CreatedAt,
+                EventDateTime = r.EventDateTime,
+                ResponseCount = r.ResponseCount,
+                GalleryCount = galleryCounts.GetValueOrDefault(r.Id),
+                QrEnabled = r.EnableQrEntry,
+                FirstName = r.FirstName,
+                SecondName = r.SecondName,
+                OwnerEmail = r.OwnerEmail,
+                OwnerName = r.OwnerName,
+            }).ToList(),
+        });
+    }
+
+    private static string EscapeLike(string value) =>
+        value.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_");
+
+    private sealed class GalleryCountRow
+    {
+        public Guid Id { get; set; }
+        public int Count { get; set; }
+    }
+
+    // DELETE /api/invitations/admin/{id}
+    // Permanent delete of any invitation, with a full cleanup so nothing is
+    // left behind to weigh on the database or R2:
+    //   - DB rows that belong to it cascade away (RSVPs, captured photos, QR
+    //     scanners/check-ins, ...); orders and payments are KEPT for the books
+    //     and just lose their link to the invitation (FK is SET NULL);
+    //   - every R2-hosted file it referenced is removed: gallery photos,
+    //     captured photos, thank-you image, gift QR image, wishlist images.
+    // Memory-safe on purpose (a legacy invitation can hold tens of MB of
+    // inline base64): the entity is never loaded -- file URLs are pulled out
+    // by Postgres itself and the row is removed with a set-based DELETE.
+    [HttpDelete("admin/{id:guid}")]
+    [Authorize(Roles = Roles.Admin)]
+    public async Task<IActionResult> AdminDelete(Guid id, CancellationToken cancellationToken)
+    {
+        var single = await db.Invitations.AsNoTracking()
+            .Where(i => i.Id == id)
+            .Select(i => new { i.ThankYouImageUrl, i.GiftQrImageUrl })
+            .FirstOrDefaultAsync(cancellationToken);
+        if (single is null)
+        {
+            return NotFound();
+        }
+
+        var urls = new List<string?> { single.ThankYouImageUrl, single.GiftQrImageUrl };
+
+        urls.AddRange(await db.Database
+            .SqlQueryRaw<string>(
+                "select e as \"Value\" from \"Invitations\" i, " +
+                "jsonb_array_elements_text(case when i.\"GalleryImagesJson\" like '[%' then i.\"GalleryImagesJson\"::jsonb else '[]'::jsonb end) e " +
+                "where i.\"Id\" = {0} and e like 'http%'", id)
+            .ToListAsync(cancellationToken));
+
+        urls.AddRange(await db.Database
+            .SqlQueryRaw<string>(
+                "select coalesce(e->>'imageUrl', e->>'ImageUrl') as \"Value\" from \"Invitations\" i, " +
+                "jsonb_array_elements(case when i.\"GiftWishlistItemsJson\" like '[%' then i.\"GiftWishlistItemsJson\"::jsonb else '[]'::jsonb end) e " +
+                "where i.\"Id\" = {0} and coalesce(e->>'imageUrl', e->>'ImageUrl') like 'http%'", id)
+            .ToListAsync(cancellationToken));
+
+        urls.AddRange(await db.CapturedPhotos.AsNoTracking()
+            .Where(p => p.InvitationId == id)
+            .Select(p => p.PhotoUrl)
+            .ToListAsync(cancellationToken));
+
+        await db.Invitations.Where(i => i.Id == id).ExecuteDeleteAsync(cancellationToken);
+
+        // Best-effort and concurrent (an event can have hundreds of captured
+        // photos); a failed R2 delete must never undo or fail the DB delete.
+        await Task.WhenAll(urls
+            .Where(url => !string.IsNullOrWhiteSpace(url))
+            .Distinct()
+            .Select(async url =>
+            {
+                try { await storage.DeleteAsync(url, CancellationToken.None); }
+                catch (Exception ex) { logger.LogWarning(ex, "Could not delete {Url} from storage after deleting invitation {Id}.", url, id); }
+            }));
+
+        return NoContent();
+    }
+
     // GET /api/invitations/{id}
     // Used by three very different callers, which is why the gate below
     // isn't a blanket [Authorize]: the owner needs this while still
@@ -529,16 +707,21 @@ public class InvitationsController(
         var userId = await GetCurrentUserIdAsync();
         var guestId = userId is null ? GetGuestIdFromCookie() : null;
 
-        if (invitation.UserId is not null)
+        var callerIsAdmin = User.IsInRole(Roles.Admin);
+        if (callerIsAdmin)
         {
-            // Already claimed — only its owner may edit it. Admins can view
-            // and approve/reject (via OrdersController.UpdateStatus) but must
-            // never rewrite a user's own content — this is intentionally not
-            // bypassed for Roles.Admin. Without this, the invitation's own id
-            // (now handed out freely as the shareable public link) would
-            // double as a write token: anyone who received the link could
-            // PUT arbitrary changes — gift IBAN, event date, RSVP settings —
-            // to someone else's already-approved invitation.
+            // Admins may edit any invitation (see the admin "active
+            // invitations" section). Deliberately skips the owner checks and
+            // the claim below, so editing someone's draft never re-assigns it.
+        }
+        else if (invitation.UserId is not null)
+        {
+            // Already claimed — only its owner (or an admin, handled above)
+            // may edit it. Without this, the invitation's own id (now handed
+            // out freely as the shareable public link) would double as a
+            // write token: anyone who received the link could PUT arbitrary
+            // changes — gift IBAN, event date, RSVP settings — to someone
+            // else's already-approved invitation.
             if (invitation.UserId != userId)
             {
                 return Forbid();
@@ -559,7 +742,7 @@ public class InvitationsController(
         // request touches them — in practice, the moment a guest logs in at
         // the studio's payment gate and its next autosave fires. Never
         // reassigns an already-claimed invitation to someone else.
-        if (invitation.UserId is null)
+        if (invitation.UserId is null && !callerIsAdmin)
         {
             invitation.UserId = userId;
         }
@@ -1222,6 +1405,9 @@ public class InvitationsController(
     // directly here rather than passed in, specifically so it's never
     // suppressed just because the caller happens to be authenticated.
     private bool OwnsInvitation(Invitation invitation, Guid? userId) =>
+        // Admins manage every invitation (edit, RSVP/gallery/QR tools, delete) --
+        // the admin "active invitations" section relies on this.
+        User.IsInRole(Roles.Admin) ||
         (userId is not null && invitation.UserId == userId) ||
         (invitation.UserId is null && GetGuestIdFromCookie() is { } guestId && invitation.GuestId == guestId);
 
