@@ -107,6 +107,30 @@ export async function uploadCapturedPhoto(id: string, file: File): Promise<Captu
   return payload as CapturedPhotoDto;
 }
 
+// Owner-only. Uploads one (already client-compressed) gallery photo to R2 and
+// returns its public URL, so galleryImages holds short URLs instead of base64.
+export async function uploadGalleryImage(id: string, file: File): Promise<string> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}/invitations/${id}/gallery-images`, {
+      method: "POST",
+      credentials: "include",
+      body: formData,
+    });
+  } catch (error) {
+    throw new ApiError(error instanceof Error ? error.message : "Network error uploading photo", 0);
+  }
+
+  const payload = await response.json().catch(() => undefined);
+  if (!response.ok) {
+    throw new ApiError(payload?.message ?? response.statusText, response.status, payload);
+  }
+  return (payload as { url: string }).url;
+}
+
 // The caller's own invitation only (session or GuestId cookie, same as
 // listRsvpResponses). Powers the dashboard's GalleryModal "Captured" tab.
 export function listCapturedPhotos(id: string, page: number, pageSize: number) {
