@@ -476,6 +476,58 @@ public class InvitationsController(
         return File(croppedBytes!, "image/jpeg");
     }
 
+    // POST /api/invitations/{id}/gallery-images
+    // Owner-only upload of one gallery photo to R2 (compressed/downscaled by
+    // IFileStorageService), returning its public URL. The studio used to keep
+    // gallery photos as raw base64 data: URLs inside GalleryImagesJson, so a
+    // gallery of phone photos made a single invitation tens of MB -- reading
+    // it back (GetById) blew the 512MB instance's memory and 502'd the whole
+    // API. Storing a short URL per photo instead keeps the row small.
+    //
+    // Deliberately loads only the ownership columns (never the full row), so
+    // uploading a photo to an already-bloated legacy invitation can't itself
+    // trigger the problem this endpoint exists to prevent.
+    [HttpPost("{id:guid}/gallery-images")]
+    public async Task<ActionResult<object>> UploadGalleryImage(
+        Guid id,
+        IFormFile file,
+        CancellationToken cancellationToken)
+    {
+        var owner = await db.Invitations
+            .AsNoTracking()
+            .Where(i => i.Id == id)
+            .Select(i => new Invitation { Id = i.Id, UserId = i.UserId, GuestId = i.GuestId })
+            .FirstOrDefaultAsync(cancellationToken);
+        if (owner is null)
+        {
+            return NotFound();
+        }
+
+        var userId = await GetCurrentUserIdAsync();
+        if (!OwnsInvitation(owner, userId))
+        {
+            return Forbid();
+        }
+
+        if (file is null || file.Length == 0)
+        {
+            return BadRequest(new { message = "No file uploaded." });
+        }
+        if (file.Length > MaxGalleryImageBytes)
+        {
+            return BadRequest(new { message = "Image must be 20MB or smaller." });
+        }
+        if (!AllowedCapturedPhotoContentTypes.TryGetValue(file.ContentType, out var extension))
+        {
+            return BadRequest(new { message = "Image must be a JPG, PNG, or WebP file." });
+        }
+
+        var url = await storage.UploadAsync(file, "invitation-gallery", extension, $"{Request.Scheme}://{Request.Host}", cancellationToken);
+        return Ok(new { url });
+    }
+
+    private const long MaxGalleryImageBytes = 20 * 1024 * 1024;
+
     // GET /api/invitations/{id}
     // Used by three very different callers, which is why the gate below
     // isn't a blanket [Authorize]: the owner needs this while still

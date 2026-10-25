@@ -4,6 +4,7 @@ import { useRef } from "react";
 import { ImageIcon, PlusIcon, TrashIcon } from "@/components/icons";
 import { HintBox } from "@/components/studio/fields/HintBox";
 import { useLanguage } from "@/context/LanguageContext";
+import { prepareGalleryImage } from "@/lib/galleryUpload";
 import type { InvitationDetail } from "@/types/studio";
 
 const MAX_IMAGES = 6;
@@ -20,15 +21,6 @@ const COPY = {
     add: "Add",
   },
 };
-
-function readAsDataUrl(file: File) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
-  });
-}
 
 export function Step10Gallery({
   value,
@@ -52,8 +44,8 @@ export function Step10Gallery({
     if (files.length === 0) return;
 
     const remainingSlots = MAX_IMAGES - images.length;
-    const dataUrls = await Promise.all(files.slice(0, remainingSlots).map(readAsDataUrl));
-    onChange({ galleryImages: [...images, ...dataUrls] });
+    const added = await Promise.all(files.slice(0, remainingSlots).map((file) => prepareGalleryImage(value.id, file)));
+    onChange({ galleryImages: [...images, ...added] });
   }
 
   return (
