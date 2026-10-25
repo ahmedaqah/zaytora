@@ -327,7 +327,7 @@ export default function AdminReviewsPage() {
         )}
 
         {reviews.length > 0 && (
-          <div className="mt-4">
+          <div className="contents">
             <Pagination page={page} pageSize={PAGE_SIZE} totalCount={totalCount} onPageChange={setPage} language={language} />
           </div>
         )}

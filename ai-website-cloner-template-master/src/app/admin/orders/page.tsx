@@ -380,7 +380,7 @@ export default function AdminOrdersPage() {
         )}
 
         {!loading && orders.length > 0 && (
-          <div className="mt-4">
+          <div className="contents">
             <Pagination page={page} pageSize={PAGE_SIZE} totalCount={totalCount} onPageChange={setPage} language={language} />
           </div>
         )}

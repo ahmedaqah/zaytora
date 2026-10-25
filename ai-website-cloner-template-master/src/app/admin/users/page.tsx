@@ -291,13 +291,13 @@ export default function AdminUsersPage() {
             <table className="w-full min-w-[1080px] table-fixed text-start text-sm">
               <colgroup>
                 <col className="w-[5%]" />
-                <col className="w-[15%]" />
-                <col className="w-[18%]" />
-                <col className="w-[9%]" />
                 <col className="w-[14%]" />
+                <col className="w-[16%]" />
+                <col className="w-[15%]" />
+                <col className="w-[13%]" />
                 <col className="w-[11%]" />
                 <col className="w-[9%]" />
-                <col className="w-[19%]" />
+                <col className="w-[17%]" />
               </colgroup>
               <thead>
                 <tr className="border-b border-border text-xs uppercase tracking-wide text-muted-foreground">
@@ -346,7 +346,7 @@ export default function AdminUsersPage() {
                         </span>
                       </td>
                       <td className="py-3 pe-3 text-left text-muted-foreground">
-                        <span className="block truncate" dir="ltr">
+                        <span className="block whitespace-nowrap" dir="ltr" title={u.phoneNumber ?? undefined}>
                           {u.phoneNumber ?? "—"}
                         </span>
                       </td>
@@ -435,7 +435,7 @@ export default function AdminUsersPage() {
         )}
 
         {users.length > 0 && (
-          <div className="mt-4">
+          <div className="contents">
             <Pagination page={page} pageSize={PAGE_SIZE} totalCount={totalCount} onPageChange={setPage} language={language} />
           </div>
         )}

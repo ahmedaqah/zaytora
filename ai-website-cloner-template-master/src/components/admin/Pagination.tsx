@@ -37,7 +37,9 @@ const COPY = {
 // Shared pager for admin list pages backed by PagedResult<T> —
 // Orders/Partners/Reviews/Users. "Previous" on page 1 wraps to the last page
 // (the newest rows are at the end of these lists), and the "page / total"
-// label opens a picker so you can jump straight to any page.
+// label opens a picker so you can jump straight to any page. The bar is
+// sticky to the bottom of the viewport so the arrows stay under the cursor
+// even when a page is shorter/taller than the previous one.
 export function Pagination({
   page,
   pageSize,
@@ -96,7 +98,7 @@ export function Pagination({
   const NextIcon = language === "ar" ? ChevronLeftIcon : ChevronRightIcon;
 
   return (
-    <div className="flex items-center justify-between gap-3 border-t border-border pt-3 text-xs text-muted-foreground">
+    <div className="sticky bottom-16 z-20 mt-4 flex items-center justify-between gap-3 border-t border-border bg-card pb-2 pt-3 text-xs text-muted-foreground lg:bottom-0">
       <span dir="ltr">{t.of(from, to, totalCount)}</span>
       <div className="flex items-center gap-1.5">
         <button
