@@ -430,7 +430,7 @@ export default function AdminPartnersPage() {
         )}
 
         {approved.length > 0 && (
-          <div className="mt-4">
+          <div className="contents">
             <Pagination page={page} pageSize={PAGE_SIZE} totalCount={approvedTotal} onPageChange={setPage} language={language} />
           </div>
         )}
