@@ -19,8 +19,8 @@ export function AdminMobileNav() {
   const { language } = useLanguage();
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-6 border-t border-border bg-card/95 backdrop-blur lg:hidden">
-      {[...ADMIN_NAV.slice(0, 6), null, ...ADMIN_NAV.slice(6)].map((item) => {
+    <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-7 border-t border-border bg-card/95 backdrop-blur lg:hidden">
+      {[...ADMIN_NAV.slice(0, 7), null, ...ADMIN_NAV.slice(7)].map((item) => {
         // Back-to-site sits first in the second row (bottom corner, same side as the desktop sidebar link).
         if (!item) {
           return (

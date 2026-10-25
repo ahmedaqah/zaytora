@@ -1,6 +1,7 @@
 import { apiClient, ApiError } from "@/lib/api/client";
 import { API_BASE_URL } from "@/lib/api/config";
 import type {
+  AdminInvitationListDto,
   CapturedPhotoDto,
   CapturedPhotosPageDto,
   ClaimInvitationTransferResponse,
@@ -34,6 +35,23 @@ export function listInvitations() {
 
 export function deleteInvitation(id: string) {
   return apiClient.delete<void>(`/invitations/${id}`);
+}
+
+// Admin only -- every customer's invitations (default: just the active ones).
+export function listAdminInvitations(params: { page: number; pageSize: number; search?: string; activeOnly?: boolean }) {
+  const query = new URLSearchParams({
+    page: String(params.page),
+    pageSize: String(params.pageSize),
+    activeOnly: String(params.activeOnly ?? true),
+  });
+  if (params.search) query.set("search", params.search);
+  return apiClient.get<AdminInvitationListDto>(`/invitations/admin?${query.toString()}`);
+}
+
+// Admin only -- permanent delete with full cleanup (RSVPs, photos, stored
+// files). Orders/payments are kept but detached from the invitation.
+export function adminDeleteInvitation(id: string) {
+  return apiClient.delete<void>(`/invitations/admin/${id}`);
 }
 
 // Admin only -- generates a one-time link that hands this invitation off to

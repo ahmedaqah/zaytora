@@ -57,3 +57,18 @@ public class CapturedPhotosPageDto
     public List<CapturedPhotoDto> Items { get; set; } = [];
     public int TotalCount { get; set; }
 }
+
+// GET /api/invitations/admin -- one row of the admin "active invitations" list.
+// Same shape as the customer dashboard's rows (so the same card renders it)
+// plus who owns the invitation.
+public class AdminInvitationSummaryDto : InvitationSummaryDto
+{
+    public string? OwnerEmail { get; set; }
+    public string? OwnerName { get; set; }
+}
+
+public class AdminInvitationListDto
+{
+    public List<AdminInvitationSummaryDto> Items { get; set; } = [];
+    public int TotalCount { get; set; }
+}

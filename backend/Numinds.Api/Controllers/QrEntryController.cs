@@ -251,6 +251,7 @@ public class QrEntryController(
 
         // Same ownership rule as InvitationsController.OwnsInvitation.
         var owns =
+            User.IsInRole(Numinds.Api.Models.Roles.Admin) ||
             (userId is not null && invitation.UserId == userId) ||
             (invitation.UserId is null &&
              Guid.TryParse(Request.Cookies[GuestCookieName], out var guestId) &&

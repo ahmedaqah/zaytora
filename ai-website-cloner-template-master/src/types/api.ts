@@ -342,6 +342,18 @@ export interface InvitationSummaryDto {
   secondName?: string | null;
 }
 
+// GET /api/invitations/admin — the admin "active invitations" list: the same
+// row as InvitationSummaryDto plus who owns it (null email = guest draft).
+export interface AdminInvitationSummaryDto extends InvitationSummaryDto {
+  ownerEmail?: string | null;
+  ownerName?: string | null;
+}
+
+export interface AdminInvitationListDto {
+  items: AdminInvitationSummaryDto[];
+  totalCount: number;
+}
+
 // GET/POST /api/support-messages — the "Contact Us" form and its admin inbox.
 export interface SupportMessageDto {
   id: string;
