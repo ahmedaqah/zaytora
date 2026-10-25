@@ -646,6 +646,7 @@ public class InvitationsController(
 
         if (request.MusicUrl is not null) invitation.MusicUrl = request.MusicUrl;
         if (request.MusicTitle is not null) invitation.MusicTitle = request.MusicTitle;
+        if (request.MusicStartSeconds is not null) invitation.MusicStartSeconds = Math.Max(0, request.MusicStartSeconds.Value);
 
         if (request.EnableGifts is not null) invitation.EnableGifts = request.EnableGifts.Value;
         if (request.GiftIban is not null) invitation.GiftIban = request.GiftIban;
@@ -1291,6 +1292,7 @@ public class InvitationsController(
 
         MusicUrl = invitation.MusicUrl,
         MusicTitle = invitation.MusicTitle,
+        MusicStartSeconds = invitation.MusicStartSeconds,
 
         EnableGifts = invitation.EnableGifts,
         GiftIban = invitation.GiftIban,

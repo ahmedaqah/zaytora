@@ -54,6 +54,11 @@ export function useMusicPlayer(url?: string | null, startSeconds = 0) {
   // changes, so a newly-selected track gets its own start offset applied
   // fresh instead of inheriting "already applied" from the previous one.
   const startAppliedRef = useRef(false);
+  // Latest start offset, readable from long-lived callbacks (the YouTube
+  // onReady closure is created once per video and would otherwise keep the
+  // value from when the player was first built).
+  const startSecondsRef = useRef(startSeconds);
+  startSecondsRef.current = startSeconds;
 
   // A YouTube link can't be handed to <audio src>, so it's played through a
   // background IFrame Player instead — everything else (direct file links,
@@ -152,9 +157,9 @@ export function useMusicPlayer(url?: string | null, startSeconds = 0) {
               event.target.mute();
               if (pendingPlayRef.current) {
                 pendingPlayRef.current = false;
-                if (!startAppliedRef.current && startSeconds > 0) {
+                if (!startAppliedRef.current && startSecondsRef.current > 0) {
                   startAppliedRef.current = true;
-                  event.target.seekTo(startSeconds, true);
+                  event.target.seekTo(startSecondsRef.current, true);
                 }
                 shouldUnmuteRef.current = true;
                 event.target.playVideo();
@@ -235,12 +240,24 @@ export function useMusicPlayer(url?: string | null, startSeconds = 0) {
     // tap (or the modal's play button, whichever fires first) lands the
     // guest directly on the intended moment in the track instead of its
     // beginning.
-    if (!startAppliedRef.current && startSeconds > 0) {
-      startAppliedRef.current = true;
-      if (audioRef.current) audioRef.current.currentTime = startSeconds;
-    }
     const audio = audioRef.current;
     if (!audio) return;
+    if (!startAppliedRef.current && startSeconds > 0) {
+      startAppliedRef.current = true;
+      // Browsers (iOS Safari especially) ignore a currentTime assignment made
+      // before the file's metadata is known, so wait for it when needed.
+      if (audio.readyState >= 1) {
+        audio.currentTime = startSeconds;
+      } else {
+        audio.addEventListener(
+          "loadedmetadata",
+          () => {
+            audio.currentTime = startSeconds;
+          },
+          { once: true }
+        );
+      }
+    }
     // Runs directly inside whatever click handler called it (a real user
     // gesture — the envelope's "OPEN" tap or the modal's play button),
     // which is what satisfies browser autoplay policies. isPlaying itself
