@@ -20,7 +20,19 @@ const FALLBACK_SAMPLE_URL = "/audio/fallback-sample.wav";
 // applied once per track, the first time it actually starts playing, not
 // re-applied on every subsequent pause/resume (a guest resuming from pause
 // should continue from where they left off, not jump back to the offset).
-export function useMusicPlayer(url?: string | null, startSeconds = 0) {
+//
+// `options.lazy`: for the studio only. A YouTube track normally gets its IFrame
+// player built the moment the hook mounts, which on a phone means a full
+// embedded YouTube page held in memory per hook instance (the studio has two:
+// the preview canvas and the music step) -- enough to get the tab killed on an
+// iPhone. With `lazy` the player is only built on the first play()/activate(),
+// so merely having a track selected costs nothing. The public invitation page
+// never passes it, so its behaviour is unchanged.
+export function useMusicPlayer(url?: string | null, startSeconds = 0, options?: { lazy?: boolean }) {
+  const lazy = options?.lazy ?? false;
+  const [activated, setActivated] = useState(!lazy);
+  // play() asked before the lazily-built player existed: replayed once ready.
+  const playOnActivateRef = useRef(false);
   const audioRef = useRef<HTMLAudioElement>(null);
   const youtubeContainerRef = useRef<HTMLDivElement>(null);
   const youtubePlayerRef = useRef<YT.Player | null>(null);
@@ -132,11 +144,15 @@ export function useMusicPlayer(url?: string | null, startSeconds = 0) {
   // YouTube IFrame Player backend — instantiated fresh per video id and torn
   // down on cleanup, since the API has no "just change the src" equivalent.
   useEffect(() => {
-    if (mode !== "youtube" || !youtubeVideoId) return;
+    if (mode !== "youtube" || !youtubeVideoId || !activated) return;
     let cancelled = false;
     let player: YT.Player | null = null;
     playerReadyRef.current = false;
     pendingPlayRef.current = false;
+    if (playOnActivateRef.current) {
+      playOnActivateRef.current = false;
+      pendingPlayRef.current = true;
+    }
 
     loadYouTubeIframeApi()
       .then((YTApi) => {
@@ -197,7 +213,7 @@ export function useMusicPlayer(url?: string | null, startSeconds = 0) {
       youtubePlayerRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, youtubeVideoId]);
+  }, [mode, youtubeVideoId, activated]);
 
   // The IFrame API has no timeupdate event, so the seek bar is kept in sync
   // by polling getCurrentTime() while a YouTube track is actually playing.
@@ -210,8 +226,18 @@ export function useMusicPlayer(url?: string | null, startSeconds = 0) {
     return () => clearInterval(interval);
   }, [mode, isPlaying]);
 
+  // Builds the (lazy) YouTube player without starting playback.
+  function activate() {
+    setActivated(true);
+  }
+
   function play() {
     if (mode === "youtube") {
+      if (!activated) {
+        playOnActivateRef.current = true;
+        setActivated(true);
+        return;
+      }
       // If the player object exists but hasn't fired onReady yet, its API
       // methods (playVideo, seekTo) aren't callable — queue the request
       // instead of throwing; onReady drains it (and applies startSeconds)
@@ -312,6 +338,8 @@ export function useMusicPlayer(url?: string | null, startSeconds = 0) {
     usingFallback,
     loadError,
     canPlay,
+    activated,
+    activate,
     play,
     pause,
     togglePlay,

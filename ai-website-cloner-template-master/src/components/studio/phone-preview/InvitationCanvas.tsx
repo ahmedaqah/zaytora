@@ -943,7 +943,7 @@ export function InvitationCanvas({
   // guest's own musicTitle (if any) with a template's fallback url would
   // mislabel whatever track that url actually plays.
   const resolvedMusicTitle = value.musicUrl ? value.musicTitle : template?.defaultMusicTitle;
-  const music = useMusicPlayer(resolvedMusicUrl, value.musicStartSeconds ?? 0);
+  const music = useMusicPlayer(resolvedMusicUrl, value.musicStartSeconds ?? 0, { lazy: variant !== "standalone" });
   const { audioRef: musicAudioRef, youtubeContainerRef: musicYoutubeContainerRef } = music;
   const standalone = variant === "standalone";
   // Owned here rather than inside EnvelopeCover — it needs to drive the

@@ -10,6 +10,7 @@ const COPY = {
     title: "وقت بدء الموسيقى",
     hint: "اسحب المؤشر لاختيار اللحظة التي تبدأ منها الموسيقى، ثم اضغط «استمع من هنا» للمعاينة.",
     loading: "جارٍ تحميل المقطع…",
+    tapToLoad: "اضغط «استمع من هنا» لتحميل المقطع وتفعيل الشريط.",
     error: "تعذر تحميل المقطع، تأكد من الرابط أو الملف.",
     listen: "استمع من هنا",
     pause: "إيقاف",
@@ -26,6 +27,7 @@ const COPY = {
     title: "Music start time",
     hint: "Drag the handle to pick where the music begins, then press “Listen from here” to preview it.",
     loading: "Loading the track…",
+    tapToLoad: "Press “Listen from here” to load the track and enable the slider.",
     error: "Couldn't load the track — check the link or file.",
     listen: "Listen from here",
     pause: "Pause",
@@ -92,6 +94,12 @@ export function MusicStartPicker({
       player.pause();
       return;
     }
+    // Lazy YouTube player not built yet: play() builds it and starts from the
+    // saved start offset once it is ready.
+    if (!ready) {
+      player.play();
+      return;
+    }
     player.seek(start);
     player.play();
   }
@@ -151,7 +159,7 @@ export function MusicStartPicker({
             />
           </div>
           <div className="flex items-center justify-between text-[11px] tabular-nums text-muted-foreground">
-            <span>{ready ? formatClock(player.currentTime) : t.loading}</span>
+            <span>{ready ? formatClock(player.currentTime) : player.activated ? t.loading : t.tapToLoad}</span>
             <span className="font-medium text-gold">
               {t.startsAt} {formatClock(start)}
             </span>
@@ -164,7 +172,7 @@ export function MusicStartPicker({
         <button
           type="button"
           onClick={toggleListen}
-          disabled={!ready}
+          disabled={!ready && player.activated}
           className="flex items-center gap-1.5 rounded-xl bg-[#C8A24A] px-3.5 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
         >
           {player.isPlaying ? <PauseIcon className="size-3.5" /> : <PlayIcon className="size-3.5" />}
