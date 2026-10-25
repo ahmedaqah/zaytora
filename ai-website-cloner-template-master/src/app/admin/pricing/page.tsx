@@ -218,7 +218,7 @@ export default function AdminPricingPage() {
   const basePriceValue = Number(basePriceInput);
   const qrRateValue = Number(qrRateInput);
   const giftFeeValue = Number(giftFeeInput);
-  const canSave = basePriceValue > 0 && qrRateValue > 0 && giftFeeValue >= 0;
+  const canSave = basePriceValue > 0 && qrRateInput.trim() !== "" && Number.isFinite(qrRateValue) && qrRateValue >= 0 && giftFeeValue >= 0;
 
   async function handleSave() {
     if (!canSave || !pricing) return;
