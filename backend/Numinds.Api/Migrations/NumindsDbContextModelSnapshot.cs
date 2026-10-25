@@ -545,6 +545,9 @@ namespace Numinds.Api.Migrations
                     b.Property<string>("Language")
                         .HasColumnType("text");
 
+                    b.Property<int?>("MusicStartSeconds")
+                        .HasColumnType("integer");
+
                     b.Property<string>("MusicTitle")
                         .HasColumnType("text");
 

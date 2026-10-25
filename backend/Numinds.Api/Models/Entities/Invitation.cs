@@ -144,6 +144,8 @@ public class Invitation
     // Step 13 — Music
     public string? MusicUrl { get; set; }
     public string? MusicTitle { get; set; }
+    // Where the track begins playing, in whole seconds (0/null = from the start).
+    public int? MusicStartSeconds { get; set; }
 
     // Step 14 — Gift
     public bool EnableGifts { get; set; }

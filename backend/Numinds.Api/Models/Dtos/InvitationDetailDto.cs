@@ -91,6 +91,7 @@ public class InvitationDetailDto
 
     public string? MusicUrl { get; set; }
     public string? MusicTitle { get; set; }
+    public int? MusicStartSeconds { get; set; }
 
     public bool EnableGifts { get; set; }
     public string? GiftIban { get; set; }

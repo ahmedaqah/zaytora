@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { PRESET_TRACKS, trackLabel, type PresetTrack } from "@/lib/musicLibrary";
 import { listActiveMusicSuggestions } from "@/lib/services/musicSuggestions.service";
 import { useMusicPlayer } from "@/components/studio/phone-preview/useMusicPlayer";
+import { MusicStartPicker } from "./MusicStartPicker";
 import { useLanguage } from "@/context/LanguageContext";
 import type { InvitationDetail } from "@/types/studio";
 
@@ -53,19 +54,6 @@ const COPY = {
     viaYoutube: "Playing via YouTube",
   },
 };
-
-function secondsToHms(total: number) {
-  const clamped = Math.max(0, Math.floor(total || 0));
-  return {
-    h: Math.floor(clamped / 3600),
-    m: Math.floor((clamped % 3600) / 60),
-    s: clamped % 60,
-  };
-}
-
-function hmsToSeconds(h: number, m: number, s: number) {
-  return Math.max(0, h) * 3600 + Math.max(0, m) * 60 + Math.max(0, s);
-}
 
 export function Step13Music({
   value,
@@ -113,15 +101,17 @@ export function Step13Music({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const overrideInputRef = useRef<HTMLInputElement>(null);
 
-  const { h, m, s } = secondsToHms(value.musicStartSeconds ?? 0);
-
   function trackUrl(track: PresetTrack) {
     return overrides[track.id] ?? track.url;
   }
 
   const previewTrack = libraryTracks.find((track) => track.id === previewTrackId) ?? null;
   const previewUrl = previewTrack ? trackUrl(previewTrack) : null;
-  const preview = useMusicPlayer(previewUrl);
+  // One player serves both the library rows and the start-time picker: it
+  // plays the track being previewed, or else the one currently chosen for the
+  // invitation (selecting/typing a track keeps the two in sync below).
+  const playerUrl = previewUrl ?? value.musicUrl ?? null;
+  const preview = useMusicPlayer(playerUrl);
   // Rows can't call preview.play() the instant they're clicked — for a
   // YouTube-backed track the IFrame Player is still being created
   // asynchronously at that point, so play() would land on a null ref and do
@@ -139,7 +129,17 @@ export function Step13Music({
   }, [previewUrl, preview.duration]);
 
   function selectTrack(track: PresetTrack) {
-    onChange({ musicUrl: trackUrl(track), musicTitle: trackLabel(track) });
+    // Point the shared player at the chosen track (without auto-playing it) so
+    // the start-time picker below controls exactly this track.
+    autoplayedUrlRef.current = trackUrl(track);
+    setPreviewTrackId(track.id);
+    const changed = value.musicUrl !== trackUrl(track);
+    onChange({
+      musicUrl: trackUrl(track),
+      musicTitle: trackLabel(track),
+      // A start point only makes sense for the track it was picked on.
+      ...(changed ? { musicStartSeconds: 0 } : {}),
+    });
   }
 
   function togglePreview(track: PresetTrack) {
@@ -179,11 +179,6 @@ export function Step13Music({
     }
   }
 
-  function updateStart(next: Partial<{ h: number; m: number; s: number }>) {
-    const merged = { h, m, s, ...next };
-    onChange({ musicStartSeconds: hmsToSeconds(merged.h, merged.m, merged.s) });
-  }
-
   async function handleFileSelected(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = "";
@@ -194,7 +189,8 @@ export function Step13Music({
       reader.onerror = () => reject(reader.error);
       reader.readAsDataURL(file);
     });
-    onChange({ musicUrl: dataUrl, musicTitle: value.musicTitle || file.name.replace(/\.[^.]+$/, "") });
+    setPreviewTrackId(null);
+    onChange({ musicUrl: dataUrl, musicTitle: value.musicTitle || file.name.replace(/\.[^.]+$/, ""), musicStartSeconds: 0 });
   }
 
   function removeMusic() {
@@ -337,50 +333,22 @@ export function Step13Music({
           <TextField
             value={value.musicUrl ?? ""}
             placeholder="https://youtube.com/watch?v=..."
-            onChange={(musicUrl) => onChange({ musicUrl })}
+            onChange={(musicUrl) => {
+              setPreviewTrackId(null);
+              onChange({ musicUrl });
+            }}
           />
         )}
       </div>
 
       {/* Start time */}
-      <div className="space-y-2 border-t border-border pt-4">
-        <p className="text-sm text-body-foreground">{t.startTime}</p>
-        <div className="grid grid-cols-3 gap-2">
-          <div>
-            <input
-              type="number"
-              min={0}
-              value={h}
-              onChange={(event) => updateStart({ h: Number(event.target.value) })}
-              className="w-full rounded-xl border border-border bg-background/5 px-3 py-2 text-center text-sm text-foreground outline-none focus:border-gold"
-            />
-            <p className="mt-1 text-center text-[11px] text-muted-foreground">{t.hours}</p>
-          </div>
-          <div>
-            <input
-              type="number"
-              min={0}
-              max={59}
-              value={m}
-              onChange={(event) => updateStart({ m: Number(event.target.value) })}
-              className="w-full rounded-xl border border-border bg-background/5 px-3 py-2 text-center text-sm text-foreground outline-none focus:border-gold"
-            />
-            <p className="mt-1 text-center text-[11px] text-muted-foreground">{t.minutes}</p>
-          </div>
-          <div>
-            <input
-              type="number"
-              min={0}
-              max={59}
-              value={s}
-              onChange={(event) => updateStart({ s: Number(event.target.value) })}
-              className="w-full rounded-xl border border-border bg-background/5 px-3 py-2 text-center text-sm text-foreground outline-none focus:border-gold"
-            />
-            <p className="mt-1 text-center text-[11px] text-muted-foreground">{t.seconds}</p>
-          </div>
-        </div>
-        <p className="text-xs text-muted-foreground">{t.startHint(value.musicStartSeconds ?? 0)}</p>
-      </div>
+      {value.musicUrl && (
+        <MusicStartPicker
+          player={preview}
+          startSeconds={value.musicStartSeconds ?? 0}
+          onChange={(musicStartSeconds) => onChange({ musicStartSeconds })}
+        />
+      )}
 
       {value.musicUrl && (
         <button
