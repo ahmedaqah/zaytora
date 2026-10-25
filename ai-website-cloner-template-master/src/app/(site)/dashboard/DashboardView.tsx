@@ -41,6 +41,7 @@ import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
 import { RsvpResponsesModal } from "./RsvpResponsesModal";
 import { GalleryModal } from "./GalleryModal";
 import { QrEntryModal } from "./QrEntryModal";
+import { prepareGalleryImage } from "@/lib/galleryUpload";
 
 interface BookingRow {
   id: string;
@@ -560,17 +561,7 @@ export function DashboardView({ adminMode = false }: { adminMode?: boolean } = {
     if (!files || files.length === 0) return;
 
     try {
-      const dataUrls = await Promise.all(
-        Array.from(files).map(
-          (file) =>
-            new Promise<string>((resolve, reject) => {
-              const reader = new FileReader();
-              reader.onload = () => resolve(reader.result as string);
-              reader.onerror = () => reject(reader.error);
-              reader.readAsDataURL(file);
-            })
-        )
-      );
+      const dataUrls = await Promise.all(Array.from(files).map((file) => prepareGalleryImage(row.id, file)));
 
       const current = await getInvitation(row.id);
       const merged = [...current.galleryImages, ...dataUrls];
