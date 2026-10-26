@@ -554,6 +554,7 @@
     /* 4 schedule */
     F.appendChild(section('4) برنامج الحفل', [
       check('إظهار البرنامج', 'schedule.enabled'), text('العنوان', 'schedule.title'), text('تلميح تحت البرنامج', 'schedule.tip'),
+      sel('شكل الوردات على الخط', 'schedule.roseMode', [['bullets', 'الافتراضي: وردات ثابتة بجانب الفقرات المعلَّمة'], ['glide', 'وردة واحدة تنزل وتنزلق إلى كل فقرة مع التمرير']]),
       repeater('schedule.items', function (it, cb) {
         var rose = el('input', { type: 'checkbox' }); rose.checked = !!it.rose; rose.addEventListener('input', function () { it.rose = rose.checked; cb(); });
         return [el('div', { class: 'g2' }, [itemText(it, 'time', 'الوقت', cb), itemText(it, 'title', 'الفقرة', cb)]), itemText(it, 'detail', 'التفاصيل عند الضغط (اختياري)', cb, true),
@@ -582,6 +583,10 @@
     /* 7 rsvp */
     F.appendChild(section('7) تأكيد الحضور', [
       check('إظهار نموذج تأكيد الحضور', 'rsvp.enabled'),
+      el('b', { text: 'إخفاء عناصر من القسم (كل عنصر على حدة)' }),
+      check('إخفاء عنوان القسم', 'rsvp.hideTitle'), check('إخفاء النص التمهيدي', 'rsvp.hideIntro'), check('إخفاء خانة الاسم', 'rsvp.hideName'),
+      check('إخفاء عبارة «هل ستحضر؟» (مع إبقاء الخيارين)', 'rsvp.hideAttendLabel'), check('إخفاء خيارَي الحضور والاعتذار', 'rsvp.hideAttend'),
+      check('إخفاء «كلمة لأصحاب الدعوة»', 'rsvp.hideNote'),
       text('رقم واتساب لاستقبال الردود', 'rsvp.whatsapp', 'بالصيغة الدولية مع الرمز، مثال: +962791234567. بدونه لن يصلك الرد!', { dir: 'ltr', inputmode: 'tel' }),
       text('رقم واتساب إضافي (اختياري)', 'rsvp.whatsapp2', 'عند إدخاله يظهر للضيف زران لإرسال الرد لأي من الرقمين.', { dir: 'ltr', inputmode: 'tel' }),
       check('إظهار خانة عدد الحضور (أزل العلامة لحذفها من النموذج)', 'rsvp.showGuests'),
@@ -591,8 +596,11 @@
     ]));
 
     /* 8 closing */
+    var CLs = state.cfg.closing; if (CLs.textScale == null) CLs.textScale = 1; if (CLs.textX == null) CLs.textX = 0; if (CLs.textY == null) CLs.textY = 0;
     F.appendChild(section('8) الختام', [
-      text('سطر لاتيني', 'closing.latin'), text('عبارة الختام', 'closing.text'), text('التوقيع (الأسماء)', 'closing.sign'), text('نص أسفل الصفحة', 'footer', 'اختياري. شعار «MADE BY ZAYTORA» يظهر دائماً تحته.'),
+      text('سطر لاتيني', 'closing.latin'), text('عبارة الختام', 'closing.text'), text('التوقيع (الأسماء)', 'closing.sign'), el('b', { text: 'حجم نص الختام ومكانه' }),
+      slider('حجم النص', CLs, 'textScale', 0.4, 2.5, 0.05, '', function () { schedule(); }), slider('يمين (+) / يسار (−)', CLs, 'textX', -100, 100, 1, '', function () { schedule(); }), slider('أسفل (+) / أعلى (−)', CLs, 'textY', -100, 100, 1, '', function () { schedule(); }),
+      text('نص أسفل الصفحة', 'footer', 'اختياري. شعار «MADE BY ZAYTORA» يظهر دائماً تحته.'),
       el('b', { text: 'بطاقة الختام (الوضع الملكي)' }),
       check('عرض بطاقة الختام بدل ورقة الختام', 'closing.card.enabled'),
       el('div', { class: 'g2' }, [text('الاسم الأول (لاتيني)', 'closing.card.name1', '', { dir: 'ltr' }), text('الاسم الثاني (لاتيني)', 'closing.card.name2', '', { dir: 'ltr' })]),
