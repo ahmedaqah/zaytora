@@ -26,7 +26,7 @@
     },
     event: { start: '', end: '', utcOffset: '+00:00' },
     countdown: { enabled: true, title: 'يبدأ الاحتفال بعد', labels: ['يوم', 'ساعة', 'دقيقة', 'ثانية'] },
-    schedule: { enabled: true, title: 'موعد الحفل', tip: 'اضغط على أي فقرة لمعرفة التفاصيل', items: [] },
+    schedule: { enabled: true, title: 'موعد الحفل', tip: 'اضغط على أي فقرة لمعرفة التفاصيل', roseMode: 'bullets', items: [] },
     location: { enabled: true, title: 'الموقع', venue: '', venueLang: '', venueEn: '', address: '', mapUrl: '', mapLabel: 'افتح الخريطة' },
     notes: { enabled: true, title: 'تعليمات خاصة', items: [] },
     rsvp: {
@@ -37,9 +37,10 @@
       thanksNo: 'شكراً {name}، سنفتقدك ونقدّر ردّك.', thanksHint: 'رسالتك جاهزة في واتساب، اضغط «إرسال» هناك لتصلنا.',
       openWhatsapp: 'افتح واتساب', messageHeader: 'تأكيد حضور — {occasion} {names}',
       msgName: 'الاسم', msgAttend: 'الحضور', msgYes: 'سأحضر', msgNo: 'أعتذر عن الحضور',
-      msgGuests: 'عدد الحضور', msgNote: 'كلمة'
+      msgGuests: 'عدد الحضور', msgNote: 'كلمة',
+      hideTitle: false, hideIntro: false, hideName: false, hideAttendLabel: false, hideAttend: false, hideNote: false
     },
-    closing: { latin: '', text: '', sign: '', card: { enabled: false, frame: '', letter: '', letterX: 50, letterY: 21.6, letterSize: 1, img: '', imgX: 50, imgY: 21.6, imgW: 22, name1: '', name2: '', amp: '&', date: '', color: '#a8832f' } },
+    closing: { latin: '', text: '', sign: '', textScale: 1, textX: 0, textY: 0, card: { enabled: false, frame: '', letter: '', letterX: 50, letterY: 21.6, letterSize: 1, img: '', imgX: 50, imgY: 21.6, imgW: 22, name1: '', name2: '', amp: '&', date: '', color: '#a8832f' } },
     footer: '',
     layout: { mode: 'classic' },
     royal: {
@@ -305,8 +306,30 @@
     return html.replace(/<section class="rsec"[\s\S]*?<\/section>/g, function (m) { return '<div class="r-card">' + layers() + '<div class="r-cin">' + m + '</div></div>'; });
   }
 
+
+  /* RSVP form fields: every element can be hidden on its own (rsvp.hide*). With nothing hidden the markup is the original. */
+  function rsvpFormHtml(R, opt) {
+    var h = '';
+    if (!R.hideName) h += '<div><label for="name">' + esc(R.nameLabel) + '</label><input type="text" id="name" name="name" autocomplete="name" required></div>';
+    if (!R.hideAttend) {
+      h += '<div>' + (R.hideAttendLabel ? '' : '<span class="lbl" id="att-l">' + esc(R.attendLabel) + '</span>') +
+        '<div class="choice" role="radiogroup"' + (R.hideAttendLabel ? ' aria-label="' + esc(R.attendLabel) + '"' : ' aria-labelledby="att-l"') + '>' +
+        '<input type="radio" name="att" id="yes" value="yes" checked><label for="yes">' + esc(R.yesLabel) + '</label>' +
+        '<input type="radio" name="att" id="no" value="no"><label for="no">' + esc(R.noLabel) + '</label></div></div>';
+    }
+    if (R.showGuests !== false) h += '<div id="guestsWrap"><label for="guests">' + esc(R.guestsLabel) + '</label><select id="guests" name="guests">' + opt + '</select></div>';
+    if (!R.hideNote) h += '<div><label for="msg">' + esc(R.noteLabel) + '</label><textarea id="msg" rows="3"></textarea></div>';
+    return h + '<button class="btn gold" type="submit" style="align-self:center">' + esc(R.button) + '</button>' +
+      '<p id="err" role="alert" style="color:#8a2b1a;text-align:center;font-size:17px" hidden>' + esc(R.nameError) + '</p>';
+  }
+  /* closing text size / position (closing.textScale / textX / textY); undefined or default = untouched */
+  function closingTx(CL) {
+    var sc = num(CL.textScale, 1, 0.3, 3), x = num(CL.textX, 0, -100, 100), y = num(CL.textY, 0, -100, 100);
+    return { on: sc !== 1 || x !== 0 || y !== 0, sc: sc, x: x, y: y };
+  }
+
   /* closing card: frame image + monogram letter, two Latin names, date. Names shrink as they get longer. */
-  function cardHtml(K, FL, start, dateText) {
+  function cardHtml(K, FL, start, dateText, CLX) {
     var rgb = hex2rgb(K.color) || [168, 131, 47];
     var g = 'linear-gradient(180deg,' + css(mix(rgb, [255, 255, 255], 0.3)) + ',' + css(rgb) + ' 55%,' + css(mix(rgb, [0, 0, 0], 0.28)) + ')';
     var frame = K.frame ? resolve(K.frame) : TPL + 'img/card-frame.webp';
@@ -318,7 +341,8 @@
     if (K.img) mono += '<img class="cc-mi" src="' + esc(resolve(K.img)) + '" alt="" draggable="false" style="' + pos(K.imgX, K.imgY, 50, 21.6) + ';width:' + num(K.imgW, 22, 3, 100) + 'cqw">';
     var amp = (K.name1 && K.name2) ? '<span class="cc-amp">' + esc(K.amp || '&') + '</span>' : '';
     var d = String(K.date || '').trim();
-    return '<div class="ccard" style="--cg:' + g + '"><img class="cc-fr" src="' + esc(frame) + '" alt="" draggable="false">' + mono +
+    var T = closingTx(CLX || {});
+    return '<div class="ccard" style="--cg:' + g + (T.on ? ';--ctx:' + T.x + 'cqw;--cty:' + T.y + 'cqw;--csc:' + T.sc : '') + '"><img class="cc-fr" src="' + esc(frame) + '" alt="" draggable="false">' + mono +
       '<div class="cc-names">' + nm(K.name1) + amp + nm(K.name2) + '</div>' + (d ? '<span class="cc-d">' + esc(d) + '</span>' : '') + '</div>';
   }
 
@@ -442,9 +466,9 @@
     }
     var items = c.schedule.items.filter(function (it) { return it && (it.title || it.time); });
     if (c.schedule.enabled && items.length) {
-      h += swSec('schedule', kinds.schedule, c.schedule.title, ['rz-tr', 'rz-bl'], swTitle('schedule', c.schedule.title) + '<ul class="tl">' + items.map(function (it) {
+      h += swSec('schedule', kinds.schedule, c.schedule.title, ['rz-tr', 'rz-bl'], swTitle('schedule', c.schedule.title) + '<ul class="tl' + (c.schedule.roseMode === 'glide' ? ' glide-on' : '') + '">' + items.map(function (it) {
         var d = !!it.detail;
-        return '<li' + (it.rose ? ' class="rose"' : '') + '><span class="t">' + esc(it.time) + '</span><button class="e' + (d ? '' : ' nd') + '" type="button"' + (d ? ' aria-expanded="false"' : ' tabindex="-1"') + '><span class="nm">' + esc(it.title) + '</span>' +
+        return '<li' + (it.rose && c.schedule.roseMode !== 'glide' ? ' class="rose"' : '') + '><span class="t">' + esc(it.time) + '</span><button class="e' + (d ? '' : ' nd') + '" type="button"' + (d ? ' aria-expanded="false"' : ' tabindex="-1"') + '><span class="nm">' + esc(it.title) + '</span>' +
           (d ? '<span class="dt"><span>' + nl(it.detail) + '</span></span>' : '') + '</button></li>';
       }).join('') + '</ul>' + (items.some(function (it) { return it.detail; }) && c.schedule.tip ? '<p class="tip">' + esc(c.schedule.tip) + '</p>' : '') + '<!--SWAN-->', FL, CP);
     }
@@ -464,21 +488,13 @@
     if (R2.enabled) {
       var max = Math.max(1, Math.min(30, parseInt(R2.maxGuests, 10) || 6)), opt = '';
       for (var i = 1; i <= max; i++) opt += '<option>' + i + '</option>';
-      h += swSec('rsvp', kinds.rsvp, R2.title, ['rz-tl'], swTitle('rsvp', R2.title) + (R2.intro ? '<p class="note">' + nl(R2.intro) + '</p>' : '') +
-        '<form id="rsvp" novalidate>' +
-        '<div><label for="name">' + esc(R2.nameLabel) + '</label><input type="text" id="name" name="name" autocomplete="name" required></div>' +
-        '<div><span class="lbl" id="att-l">' + esc(R2.attendLabel) + '</span><div class="choice" role="radiogroup" aria-labelledby="att-l">' +
-        '<input type="radio" name="att" id="yes" value="yes" checked><label for="yes">' + esc(R2.yesLabel) + '</label>' +
-        '<input type="radio" name="att" id="no" value="no"><label for="no">' + esc(R2.noLabel) + '</label></div></div>' +
-        (R2.showGuests !== false ? '<div id="guestsWrap"><label for="guests">' + esc(R2.guestsLabel) + '</label><select id="guests" name="guests">' + opt + '</select></div>' : '') +
-        '<div><label for="msg">' + esc(R2.noteLabel) + '</label><textarea id="msg" rows="3"></textarea></div>' +
-        '<button class="btn gold" type="submit" style="align-self:center">' + esc(R2.button) + '</button>' +
-        '<p id="err" role="alert" style="color:#8a2b1a;text-align:center;font-size:17px" hidden>' + esc(R2.nameError) + '</p></form>' +
+      h += swSec('rsvp', kinds.rsvp, R2.title, ['rz-tl'], (R2.hideTitle ? '' : swTitle('rsvp', R2.title)) + (R2.intro && !R2.hideIntro ? '<p class="note">' + nl(R2.intro) + '</p>' : '') +
+        '<form id="rsvp" novalidate>' + rsvpFormHtml(R2, opt) + '</form>' +
         '<p class="thanks" id="thanks" hidden></p>' +
         '<div class="cta" id="cta" hidden><p>' + esc(c.ui.ctaText) + '</p><a class="credit" href="https://www.zaytorainvites.com/" target="_blank" rel="noopener">MADE BY ZAYTORA</a></div><!--SWAN-->', FL, CP);
     }
     var CL = c.closing, names = c.hero.name1 + (c.hero.name2 ? ' ' + c.hero.name2 : '');
-    h += '<section class="paper sec-closing" aria-label="' + esc(CL.sign || names) + '">' + cardHtml(CL.card && CL.card.enabled ? CL.card : { name1: c.hero.name1, name2: c.hero.name2, amp: '&', date: '' }, FL, start, dateText) + '</section>';
+    h += '<section class="paper sec-closing" aria-label="' + esc(CL.sign || names) + '">' + cardHtml(CL.card && CL.card.enabled ? CL.card : { name1: c.hero.name1, name2: c.hero.name2, amp: '&', date: '' }, FL, start, dateText, CL) + '</section>';
     return h;
   }
   function swansShare(c, names) {
@@ -591,9 +607,9 @@
     /* schedule */
     var items = c.schedule.items.filter(function (it) { return it && (it.title || it.time); });
     if (c.schedule.enabled && items.length) {
-      h += '<section class="' + SEC + '" aria-label="' + esc(c.schedule.title) + '">' + decoTop('schedule', FL) + title(c.schedule.title) + '<ul class="tl">' +
+      h += '<section class="' + SEC + '" aria-label="' + esc(c.schedule.title) + '">' + decoTop('schedule', FL) + title(c.schedule.title) + '<ul class="tl' + (c.schedule.roseMode === 'glide' ? ' glide-on' : '') + '">' +
         items.map(function (it) {
-          return '<li' + (it.rose ? ' class="rose"' : '') + '><span class="t">' + esc(it.time) + '</span><button class="e" type="button" aria-expanded="false"><span class="nm">' + esc(it.title) + '</span>' +
+          return '<li' + (it.rose && c.schedule.roseMode !== 'glide' ? ' class="rose"' : '') + '><span class="t">' + esc(it.time) + '</span><button class="e" type="button" aria-expanded="false"><span class="nm">' + esc(it.title) + '</span>' +
             (it.detail ? '<span class="dt"><span>' + nl(it.detail) + '</span></span>' : '') + '</button></li>';
         }).join('') + '</ul>' +
         (items.some(function (it) { return it.detail; }) && c.schedule.tip ? '<p class="tip">' + esc(c.schedule.tip) + '</p>' : '') + decoBottom('schedule') + '</section>';
@@ -623,16 +639,8 @@
     if (R.enabled) {
       var max = Math.max(1, Math.min(30, parseInt(R.maxGuests, 10) || 6)), opt = '';
       for (var i = 1; i <= max; i++) opt += '<option>' + i + '</option>';
-      h += '<section class="' + SEC + '" aria-label="' + esc(R.title) + '">' + decoTop('rsvp', FL) + title(R.title) + (R.intro ? '<p class="note">' + nl(R.intro) + '</p>' : '') +
-        '<form id="rsvp" novalidate>' +
-        '<div><label for="name">' + esc(R.nameLabel) + '</label><input type="text" id="name" name="name" autocomplete="name" required></div>' +
-        '<div><span class="lbl" id="att-l">' + esc(R.attendLabel) + '</span><div class="choice" role="radiogroup" aria-labelledby="att-l">' +
-        '<input type="radio" name="att" id="yes" value="yes" checked><label for="yes">' + esc(R.yesLabel) + '</label>' +
-        '<input type="radio" name="att" id="no" value="no"><label for="no">' + esc(R.noLabel) + '</label></div></div>' +
-        (R.showGuests !== false ? '<div id="guestsWrap"><label for="guests">' + esc(R.guestsLabel) + '</label><select id="guests" name="guests">' + opt + '</select></div>' : '') +
-        '<div><label for="msg">' + esc(R.noteLabel) + '</label><textarea id="msg" rows="3"></textarea></div>' +
-        '<button class="btn gold" type="submit" style="align-self:center">' + esc(R.button) + '</button>' +
-        '<p id="err" role="alert" style="color:#8a2b1a;text-align:center;font-size:17px" hidden>' + esc(R.nameError) + '</p></form>' +
+      h += '<section class="' + SEC + '" aria-label="' + esc(R.title) + '">' + decoTop('rsvp', FL) + (R.hideTitle ? '' : title(R.title)) + (R.intro && !R.hideIntro ? '<p class="note">' + nl(R.intro) + '</p>' : '') +
+        '<form id="rsvp" novalidate>' + rsvpFormHtml(R, opt) + '</form>' +
         '<p class="thanks" id="thanks" hidden></p>' +
         '<div class="cta" id="cta" hidden><p>' + esc(c.ui.ctaText) + '</p><a class="credit" href="https://www.zaytorainvites.com/" target="_blank" rel="noopener">MADE BY ZAYTORA</a></div>' + decoBottom('rsvp') + '</section>';
     }
@@ -641,12 +649,15 @@
     var CL = c.closing;
     if (royal && CL.card && CL.card.enabled) {
       /* the closing card stands on its own (no paper behind it): a frame picture with live text on top */
-      h += '<section class="rsec rsec-card" aria-label="' + esc(CL.sign || names) + '">' + cardHtml(CL.card, FL, start, dateText) + '</section>';
+      h += '<section class="rsec rsec-card" aria-label="' + esc(CL.sign || names) + '">' + cardHtml(CL.card, FL, start, dateText, CL) + '</section>';
     } else
     h += '<section class="' + SEC + '" aria-label="' + esc(CL.sign || names) + '">' + decoTop('closing', FL) + fl('fl-bl', 'f-bl-big.webp', 560, 657) + fl('fl-br', 'f-br.webp', 437, 659) +
-      (CL.latin ? '<p class="latin" style="margin-top:6px">' + esc(CL.latin) + '</p>' : '') +
-      (CL.text ? '<p class="quote" style="font-size:30px">' + esc(CL.text) + '</p>' : '') +
-      (CL.sign ? '<p class="sign">' + esc(CL.sign) + '</p>' : '') + decoBottom('closing') + '<div class="closing-space"></div></section>';
+      (function () {
+        var T = closingTx(CL), inner = (CL.latin ? '<p class="latin" style="margin-top:6px">' + esc(CL.latin) + '</p>' : '') +
+          (CL.text ? '<p class="quote" style="font-size:30px">' + esc(CL.text) + '</p>' : '') +
+          (CL.sign ? '<p class="sign">' + esc(CL.sign) + '</p>' : '');
+        return T.on && inner ? '<div class="cl-txt" style="--ctx:' + T.x + ';--cty:' + T.y + ';--csc:' + T.sc + '">' + inner + '</div>' : inner;
+      })() + decoBottom('closing') + '<div class="closing-space"></div></section>';
     if (royal) { if (paperStyle(c.royal) !== 'columns') h = h.slice(0, secAt) + cardify(h.slice(secAt)); h += sheetClose(c); }
     }
     /* "MADE BY ZAYTORA" always closes the page and links to the site's home page. It does not depend on the stored
@@ -849,6 +860,8 @@
     if (tl) {
       var lis = [].slice.call(tl.querySelectorAll('li'));
       var fill = document.createElement('div'); fill.className = 'fill'; tl.appendChild(fill);
+      var glider = null, gIdx = -2, gTimer = 0;
+      if (tl.classList.contains('glide-on')) { glider = document.createElement('i'); glider.className = 'glider'; glider.setAttribute('aria-hidden', 'true'); tl.appendChild(glider); }
       lis.forEach(function (li) {
         var b = li.querySelector('.e');
         if (b.classList.contains('nd')) return;
@@ -856,6 +869,7 @@
           var open = b.getAttribute('aria-expanded') === 'true';
           lis.forEach(function (o) { o.classList.remove('open'); o.querySelector('.e').setAttribute('aria-expanded', 'false'); });
           if (!open && li.querySelector('.dt')) { li.classList.add('open'); b.setAttribute('aria-expanded', 'true'); }
+          if (glider) { setTimeout(function () { sched(); }, 480); }
         }
         on(b, 'click', toggle); on(li.querySelector('.t'), 'click', toggle);
       });
@@ -864,7 +878,17 @@
         raf = 0;
         var r = tl.getBoundingClientRect(), y = window.innerHeight * 0.62;
         fill.style.height = Math.max(0, Math.min(r.height - 20, y - r.top - 10)) + 'px';
-        lis.forEach(function (li) { var lr = li.getBoundingClientRect(); li.classList.toggle('lit', lr.top + lr.height / 2 < y); });
+        var last = -1;
+        lis.forEach(function (li, n) { var lr = li.getBoundingClientRect(), lit = lr.top + lr.height / 2 < y; li.classList.toggle('lit', lit); if (lit) last = n; });
+        /* single rose: glides down to the item the reader has reached, with a little sway while it travels */
+        if (glider && lis.length) {
+          var k = Math.max(0, last), li = lis[k];
+          glider.style.top = (li.offsetTop + li.offsetHeight / 2 - glider.offsetHeight / 2) + 'px';
+          if (k !== gIdx) {
+            if (gIdx !== -2) { glider.classList.add('moving'); clearTimeout(gTimer); gTimer = setTimeout(function () { glider.classList.remove('moving'); }, 650); }
+            gIdx = k;
+          }
+        }
       };
       var sched = function () { if (!raf) raf = requestAnimationFrame(upd); };
       on(window, 'scroll', sched, { passive: true }); on(window, 'resize', sched); upd();
@@ -885,23 +909,25 @@
     var form = $('rsvp');
     if (form) {
       var R = c.rsvp, gw = $('guestsWrap');
-      on(form, 'change', function () { if (gw) gw.hidden = form.att.value === 'no'; });
+      on(form, 'change', function () { if (gw && form.att) gw.hidden = form.att.value === 'no'; });
       on(form, 'submit', function (e) {
         e.preventDefault();
-        var n = $('name').value.trim(), err = $('err');
-        if (!n) { err.hidden = false; $('name').focus(); return; }
+        var nameEl = $('name'), n = nameEl ? nameEl.value.trim() : '', err = $('err');
+        if (nameEl && !n) { err.hidden = false; nameEl.focus(); return; }
         err.hidden = true;
-        var yes = form.att.value === 'yes';
-        var lines = [fmt(R.messageHeader, { occasion: c.hero.occasion, names: ctx.names }).trim(), R.msgName + ': ' + n, R.msgAttend + ': ' + (yes ? R.msgYes : R.msgNo)];
+        var yes = !form.att || form.att.value === 'yes';
+        var lines = [fmt(R.messageHeader, { occasion: c.hero.occasion, names: ctx.names }).trim()];
+        if (nameEl) lines.push(R.msgName + ': ' + n);
+        if (form.att) lines.push(R.msgAttend + ': ' + (yes ? R.msgYes : R.msgNo));
         if (yes && $('guests')) lines.push(R.msgGuests + ': ' + $('guests').value);
-        var note = $('msg').value.trim();
+        var noteEl = $('msg'), note = noteEl ? noteEl.value.trim() : '';
         if (note) lines.push(R.msgNote + ': ' + note);
         var msg = encodeURIComponent(lines.join('\n'));
         var urls = [R.whatsapp, R.whatsapp2].map(function (v) { return String(v || '').replace(/\D/g, ''); }).filter(Boolean).map(function (d) { return 'https://wa.me/' + d + '?text=' + msg; });
         var url = urls[0] || '';
         var th = $('thanks'); th.textContent = '';
         var t1 = document.createElement('span'); t1.style.display = 'block';
-        t1.textContent = fmt(yes ? R.thanksYes : R.thanksNo, { name: n });
+        t1.textContent = fmt(yes ? R.thanksYes : R.thanksNo, { name: n }).replace(/\s+([،,.])/g, '$1').trim();
         th.appendChild(t1);
         if (urls.length) {
           var t2 = document.createElement('span'); t2.style.cssText = 'display:block;font-family:var(--body);font-size:19px;margin-top:6px';

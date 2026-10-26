@@ -361,3 +361,13 @@ main.royal{max-width:520px;padding-block:0 28px;gap:0;overflow-x:clip}
 .cc-n{font-family:'Great Vibes','Snell Roundhand','Apple Chancery',cursive;font-size:calc(21cqw*var(--k,1));line-height:1.25;background:var(--cg);-webkit-background-clip:text;background-clip:text;color:transparent;padding-inline:.12em}
 .cc-amp{font-family:var(--latin);font-size:8cqw;line-height:1;background:var(--cg);-webkit-background-clip:text;background-clip:text;color:transparent}
 .cc-d{top:68.9%;font-family:var(--latin);font-size:4.3cqw;letter-spacing:.3em;background:var(--cg);-webkit-background-clip:text;background-clip:text;color:transparent;padding-inline-start:.3em}
+
+/* single gliding rose (schedule.roseMode = glide): one rose follows the reader down the timeline */
+.tl .glider{position:absolute;left:50%;top:0;width:var(--gs,34px);height:var(--gs,34px);margin-left:calc(var(--gs,34px)/-2);background:url(/invites/_template/img/rose.webp) center/contain no-repeat;pointer-events:none;z-index:2;filter:drop-shadow(0 2px 3px rgba(60,30,10,.3));transition:top .9s cubic-bezier(.34,1.25,.5,1),rotate .45s ease,scale .45s ease}
+.tl .glider.moving{rotate:24deg;scale:1.18}
+/* closing text size / position */
+.cl-txt{display:flex;flex-direction:column;align-items:center;width:100%;transform:translate(calc(var(--ctx,0)*min(1vw,4.8px)),calc(var(--cty,0)*min(1vw,4.8px))) scale(var(--csc,1))}
+.ccard{--ctx:0cqw;--cty:0cqw;--csc:1}
+.ccard .cc-names{transform:translate(var(--ctx),calc(-50% + var(--cty))) scale(var(--csc))}
+.ccard .cc-d{transform:translate(calc(-50% + var(--ctx)),calc(-50% + var(--cty))) scale(var(--csc))}
+@media (prefers-reduced-motion:reduce){.tl .glider{transition:none!important}}

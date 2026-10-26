@@ -361,3 +361,6 @@ body.swans .cell{padding-block:8px 4px}
 body.swans .cell b{direction:rtl}
 body.swans .cell span{display:inline;margin:0}
 body.swans .r-mid{display:block;padding:0;grid-column:auto}
+
+body.swans section.sec-schedule .tl .glider{--gs:26px}
+@media(max-width:600px){body.swans section.sec-schedule .tl .glider{--gs:22px}}
