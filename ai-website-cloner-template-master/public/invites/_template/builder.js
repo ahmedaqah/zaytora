@@ -885,6 +885,12 @@
     var draft = null; try { draft = JSON.parse(localStorage.getItem(DRAFT) || 'null'); } catch (e) { /* ignore */ }
     if (draft && draft.cfg) { state.slug = draft.slug || ''; state.cfg = sanitize(deepMerge(clone(sample), draft.cfg)); } else { state.cfg = clone(sample); }
     buildForm(); pushPreview();
-    if (window.parent !== window) window.parent.postMessage({ type: 'zaytora-builder-hello' }, location.origin);
+    /* Ask the hosting admin page to send the invitation being edited. The host page may not be listening yet when the
+       builder finishes loading (a cached builder starts fast), so the greeting is repeated until the host answers. */
+    if (window.parent !== window) {
+      var hello = function () { window.parent.postMessage({ type: 'zaytora-builder-hello' }, location.origin); }, tries = 0;
+      hello();
+      var helloTimer = setInterval(function () { if (host || ++tries > 30) clearInterval(helloTimer); else hello(); }, 400);
+    }
   }).catch(function () { status('تعذّر تحميل النموذج.', true); });
 })();
