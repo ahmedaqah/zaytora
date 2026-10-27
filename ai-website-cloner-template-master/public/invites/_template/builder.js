@@ -34,9 +34,19 @@
     if (Array.isArray(o)) o.forEach(function (v, i) { if (typeof v === 'string') o[i] = fn(v); else eachString(v, fn); });
     else if (o && typeof o === 'object') Object.keys(o).forEach(function (k) { var v = o[k]; if (typeof v === 'string') o[k] = fn(v); else eachString(v, fn); });
   }
+  /* Files saved earlier live on the storage domain, which sends no CORS headers: a browser then refuses to use them
+     as fonts or to draw them on a canvas. The site relays them from its own origin (src/app/invite-media). */
+  function viaSite(u) {
+    if (typeof u !== 'string' || !/^https:\/\//i.test(u)) return u;
+    try { if (new URL(u).origin === location.origin) return u; } catch (e) { return u; }
+    return '/invite-media?u=' + encodeURIComponent(u);
+  }
   function previewCfg() {
     var c = clone(state.cfg);
     eachString(c, function (v) { return urls[v] || v; });
+    /* fonts only work through the relay */
+    if (c.media && c.media.customFont) c.media.customFont = viaSite(c.media.customFont);
+    if (c.royal && Array.isArray(c.royal.customFonts)) c.royal.customFonts.forEach(function (f) { if (f && f.src) f.src = viaSite(f.src); });
     return c;
   }
   function pushPreview(replay) {
@@ -684,7 +694,7 @@
     if (c.hero.dateText) return c.hero.dateText;
     var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(c.event.start || ''); return m ? m[3] + ' · ' + m[2] + ' · ' + m[1] : '';
   }
-  function loadImg(src) { return new Promise(function (res) { var i = new Image(); i.crossOrigin = 'anonymous'; i.onload = function () { res(i); }; i.onerror = function () { res(null); }; i.src = src; }); }
+  function loadImg(src) { return new Promise(function (res) { var i = new Image(); i.crossOrigin = 'anonymous'; i.onload = function () { res(i); }; i.onerror = function () { res(null); }; i.src = viaSite(src); }); }
   /* Link-preview image: the middle band of the cover (full width, 1200x630) with the title at the bottom,
      the same look as the hand-built /invites/kamal preview. Falls back to the page background, then plain paper. */
   function makeOg(c, coverSrc) {
