@@ -23,6 +23,10 @@ const COPY = {
     guestCount: "عدد الضيوف",
     guestCountHint: "تلميح: أدخل العدد المتوقع من الضيوف (مثال: 50 أو أكثر).",
     perGuest: (price: string) => `$${price} / ضيف`,
+    qrPosition: "مكان الرمز في الدعوة",
+    qrPositionTop: "أعلى الدعوة",
+    qrPositionDetails: "بعد تفاصيل الحدث",
+    qrPositionBottom: "في آخر الدعوة",
     confirmationNotice: "يظهر رمز QR واحد في دعوة كل ضيف. وبعد الدفع تولّد من لوحة التحكم رابطاً لكل ماسح يرسله لموظف الاستقبال، فيصوّر الرمز ويكتب اسم الضيف ويؤكد حضوره.",
     scannerSetup: "إعداد الماسح",
     scannerSetupDescription: "أدخل عدد الموظفين الذين سيتولون تسجيل دخول الضيوف. عدد الماسحين (الحد الأقصى 4)",
@@ -35,6 +39,10 @@ const COPY = {
     guestCount: "Guest count",
     guestCountHint: "Tip: enter the expected number of guests (e.g. 50 or more).",
     perGuest: (price: string) => `$${price}/guest`,
+    qrPosition: "QR code position in the invitation",
+    qrPositionTop: "Top of the invitation",
+    qrPositionDetails: "After the event details",
+    qrPositionBottom: "End of the invitation",
     confirmationNotice: "One QR code appears in every guest's invitation. After payment, generate a scanner link per door staff member from your dashboard; they scan the code, type the guest's name and confirm arrival.",
     scannerSetup: "Scanner setup",
     scannerSetupDescription: "Enter the number of staff who'll be checking in guests. Scanner count (max 4)",
@@ -114,6 +122,34 @@ export function Step16QrEntry({
             <div className="rounded-xl border border-border p-3 text-center">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">GBP</p>
               <p className="mt-4 text-sm font-semibold text-foreground">£{money(totalGbp)}</p>
+            </div>
+          </div>
+
+          {/* Where the guest QR sits in the invitation */}
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-foreground">{t.qrPosition}</p>
+            <div className="grid grid-cols-3 gap-2">
+              {(
+                [
+                  ["top", t.qrPositionTop],
+                  ["details", t.qrPositionDetails],
+                  ["bottom", t.qrPositionBottom],
+                ] as const
+              ).map(([position, label]) => (
+                <button
+                  key={position}
+                  type="button"
+                  onClick={() => onChange({ qrPosition: position })}
+                  className={cn(
+                    "rounded-xl border px-2 py-2.5 text-xs font-medium transition-colors",
+                    (value.qrPosition ?? "top") === position
+                      ? "border-gold bg-gold/10 text-gold"
+                      : "border-border text-muted-foreground hover:border-gold/40"
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
           </div>
 

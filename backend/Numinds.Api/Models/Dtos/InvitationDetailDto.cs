@@ -63,6 +63,12 @@ public class InvitationDetailDto
     public string? EventRulesTextColor { get; set; }
     public string? DateMonthStyle { get; set; }
     public string? TimeFormat { get; set; }
+    public string? CountdownNumberFont { get; set; }
+    public string? CountdownNumberTextColor { get; set; }
+    public int? CountdownNumberFontSize { get; set; }
+    public string? CountdownLabelFont { get; set; }
+    public string? CountdownLabelTextColor { get; set; }
+    public int? CountdownLabelFontSize { get; set; }
     public string? WeekdayFont { get; set; }
     public string? WeekdayTextColor { get; set; }
     public int? WeekdayFontSize { get; set; }
@@ -110,6 +116,7 @@ public class InvitationDetailDto
     public bool EnableQrEntry { get; set; }
     public int? QrGuestCount { get; set; }
     public int? QrScannerCount { get; set; }
+    public string? QrPosition { get; set; }
     public DateTime? QrScanStart { get; set; }
     public DateTime? QrScanEnd { get; set; }
 

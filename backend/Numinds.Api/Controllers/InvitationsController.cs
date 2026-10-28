@@ -891,6 +891,12 @@ public class InvitationsController(
         if (request.EventRulesTextColor is not null) invitation.EventRulesTextColor = NormalizeColor(request.EventRulesTextColor);
         if (request.DateMonthStyle is not null) invitation.DateMonthStyle = request.DateMonthStyle == "levant" ? "levant" : string.Empty;
         if (request.TimeFormat is not null) invitation.TimeFormat = (request.TimeFormat is "12" or "24") ? request.TimeFormat : string.Empty;
+        if (request.CountdownNumberFont is not null) invitation.CountdownNumberFont = request.CountdownNumberFont;
+        if (request.CountdownNumberTextColor is not null) invitation.CountdownNumberTextColor = NormalizeColor(request.CountdownNumberTextColor);
+        if (request.CountdownNumberFontSize is not null) invitation.CountdownNumberFontSize = request.CountdownNumberFontSize;
+        if (request.CountdownLabelFont is not null) invitation.CountdownLabelFont = request.CountdownLabelFont;
+        if (request.CountdownLabelTextColor is not null) invitation.CountdownLabelTextColor = NormalizeColor(request.CountdownLabelTextColor);
+        if (request.CountdownLabelFontSize is not null) invitation.CountdownLabelFontSize = request.CountdownLabelFontSize;
         if (request.WeekdayFont is not null) invitation.WeekdayFont = request.WeekdayFont;
         if (request.WeekdayTextColor is not null) invitation.WeekdayTextColor = NormalizeColor(request.WeekdayTextColor);
         if (request.WeekdayFontSize is not null) invitation.WeekdayFontSize = request.WeekdayFontSize;
@@ -938,6 +944,10 @@ public class InvitationsController(
         if (request.EnableQrEntry is not null) invitation.EnableQrEntry = request.EnableQrEntry.Value;
         if (request.QrGuestCount is not null) invitation.QrGuestCount = request.QrGuestCount;
         if (request.QrScannerCount is not null) invitation.QrScannerCount = request.QrScannerCount;
+        if (request.QrPosition is not null)
+        {
+            invitation.QrPosition = request.QrPosition is "details" or "bottom" ? request.QrPosition : null;
+        }
         // Same wall-clock-not-real-UTC handling as EventDateTime above.
         if (request.QrScanStart is not null)
         {
@@ -1540,6 +1550,12 @@ public class InvitationsController(
         EventRulesTextColor = invitation.EventRulesTextColor,
         DateMonthStyle = invitation.DateMonthStyle,
         TimeFormat = invitation.TimeFormat,
+        CountdownNumberFont = invitation.CountdownNumberFont,
+        CountdownNumberTextColor = invitation.CountdownNumberTextColor,
+        CountdownNumberFontSize = invitation.CountdownNumberFontSize,
+        CountdownLabelFont = invitation.CountdownLabelFont,
+        CountdownLabelTextColor = invitation.CountdownLabelTextColor,
+        CountdownLabelFontSize = invitation.CountdownLabelFontSize,
         WeekdayFont = invitation.WeekdayFont,
         WeekdayTextColor = invitation.WeekdayTextColor,
         WeekdayFontSize = invitation.WeekdayFontSize,
@@ -1587,6 +1603,7 @@ public class InvitationsController(
         EnableQrEntry = invitation.EnableQrEntry,
         QrGuestCount = invitation.QrGuestCount,
         QrScannerCount = invitation.QrScannerCount,
+        QrPosition = invitation.QrPosition,
         QrScanStart = invitation.QrScanStart,
         QrScanEnd = invitation.QrScanEnd,
 

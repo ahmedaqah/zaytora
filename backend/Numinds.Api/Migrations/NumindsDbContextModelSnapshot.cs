@@ -626,6 +626,24 @@ namespace Numinds.Api.Migrations
                     b.Property<string>("TimeFormat")
                         .HasColumnType("text");
 
+                    b.Property<string>("CountdownNumberFont")
+                        .HasColumnType("text");
+
+                    b.Property<string>("CountdownNumberTextColor")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("CountdownNumberFontSize")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("CountdownLabelFont")
+                        .HasColumnType("text");
+
+                    b.Property<string>("CountdownLabelTextColor")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("CountdownLabelFontSize")
+                        .HasColumnType("integer");
+
                     b.Property<string>("WeekdayFont")
                         .HasColumnType("text");
 
@@ -650,6 +668,9 @@ namespace Numinds.Api.Migrations
 
                     b.Property<int?>("QrGuestCount")
                         .HasColumnType("integer");
+
+                    b.Property<string>("QrPosition")
+                        .HasColumnType("text");
 
                     b.Property<DateTime?>("QrScanEnd")
                         .HasColumnType("timestamp with time zone");
