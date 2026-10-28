@@ -40,7 +40,7 @@
       msgGuests: 'عدد الحضور', msgNote: 'كلمة',
       hideTitle: false, hideIntro: false, hideName: false, hideAttendLabel: false, hideAttend: false, hideNote: false
     },
-    closing: { latin: '', text: '', sign: '', textScale: 1, textX: 0, textY: 0, card: { enabled: false, frame: '', letter: '', letterX: 50, letterY: 21.6, letterSize: 1, img: '', imgX: 50, imgY: 21.6, imgW: 22, name1: '', name2: '', amp: '&', date: '', color: '#a8832f' } },
+    closing: { latin: '', text: '', sign: '', textScale: 1, textX: 0, textY: 0, card: { enabled: false, font: '', frame: '', letter: '', letterX: 50, letterY: 21.6, letterSize: 1, img: '', imgX: 50, imgY: 21.6, imgW: 22, name1: '', name2: '', amp: '&', date: '', color: '#a8832f' } },
     footer: '',
     layout: { mode: 'classic' },
     royal: {
@@ -52,7 +52,7 @@
       scales: { bismillah: 1, invite: 1, middle: 1, family: 1, names: 1 },
       colors: { text: '#4a3b30', names: '#2a1d15' },
       anim: { type: 'rise', duration: 1.8, gap: 0.55, delay: 0.5 },
-      paperOpacity: 1, paperStyle: 'columns', customFonts: [], useImages: true, day: '', papers: {},
+      paperOpacity: 1, paperStyle: 'columns', customFonts: [], useImages: true, day: '', dayScale: 1, dayX: 0, dayY: 0, papers: {},
       customPaper: { top: '', mid: '', bot: '', t: 48.8, b: 46.5, mt: 54.7, padX: 18, padY: 17 },
       veil: { on: false, color: '#120608', top: 0.42, mid: 0.22, bot: 0.38 },
       deco: {
@@ -77,6 +77,7 @@
     mirza: "'Mirza','Amiri',serif",
     reem: "'Reem Kufi','Amiri',sans-serif",
     cinzel: "'Cinzel','Georgia',serif",
+    cormorant: "'Cormorant Garamond','Georgia',serif",
     custom: "'ZInvCustom','Katibeh','Amiri',serif"
   };
   var ROYAL = false;
@@ -328,12 +329,20 @@
     return { on: sc !== 1 || x !== 0 || y !== 0, sc: sc, x: x, y: y };
   }
 
+  /* the weekday above the date: size and exact position (dayScale / dayX / dayY); untouched when all are default */
+  function dayStyle(R) {
+    var sc = num(R.dayScale, 1, 0.4, 4), x = num(R.dayX, 0, -60, 60), y = num(R.dayY, 0, -40, 40);
+    if (sc === 1 && x === 0 && y === 0) return '';
+    return ' style="font-size:' + swPx(5 * sc) + (x || y ? ';transform:translate(' + swPx(x) + ',' + swPx(y) + ')' : '') + '"';
+  }
+
   /* closing card: frame image + monogram letter, two Latin names, date. Names shrink as they get longer. */
   function cardHtml(K, FL, start, dateText, CLX) {
     var rgb = hex2rgb(K.color) || [168, 131, 47];
     var g = 'linear-gradient(180deg,' + css(mix(rgb, [255, 255, 255], 0.3)) + ',' + css(rgb) + ' 55%,' + css(mix(rgb, [0, 0, 0], 0.28)) + ')';
     var frame = K.frame ? resolve(K.frame) : TPL + 'img/card-frame.webp';
-    function nm(t) { var n = String(t || '').trim(); if (!n) return ''; var k = n.length <= 8 ? 1 : Math.max(0.5, 8 / n.length); return '<span class="cc-n" style="--k:' + k.toFixed(3) + '">' + esc(n) + '</span>'; }
+    var nameFont = K.font ? ';font-family:' + fontOf(K.font) : '';
+    function nm(t) { var n = String(t || '').trim(); if (!n) return ''; var k = n.length <= 8 ? 1 : Math.max(0.5, 8 / n.length); return '<span class="cc-n" style="--k:' + k.toFixed(3) + nameFont + '">' + esc(n) + '</span>'; }
     /* the top letter is optional (empty = none); it can also be a picture. Both can be moved and resized. */
     var L = String(K.letter || '').trim().slice(0, 3);
     var pos = function (x, y, dx, dy) { return 'left:' + num(x, dx, 0, 100) + '%;top:' + num(y, dy, 0, 100) + '%'; };
@@ -393,7 +402,7 @@
     }).join('');
     h += '<div class="r-cols2 a" style="--i:4;gap:2cqw">' + cols2 + '</div>';
     if (R.showDate !== false && (dateText || R.day)) {
-      h += '<div class="r-date2 a" style="--i:5;margin-top:6cqw">' + (R.day ? '<div class="r-day">' + esc(R.day) + '</div>' : '') + '<div class="r-dt" style="font-size:' + swPx(9) + '">' + esc(dateText) + '</div></div>';
+      h += '<div class="r-date2 a" style="--i:5;margin-top:6cqw">' + (R.day ? '<div class="r-day"' + dayStyle(R) + '>' + esc(R.day) + '</div>' : '') + '<div class="r-dt" style="font-size:' + swPx(9) + '">' + esc(dateText) + '</div></div>';
     }
     var map = { rise: ['rise', 'up'], drop: ['rise', 'down'], slide: ['rise', 'left'], fade: ['fade'], zoom: ['soft'], blur: ['soft'], soft: ['soft'] };
     var m = map[A.type] || map.soft, dist = 18, tx = '0', ty = '0', sc = 1, bl = '0px';

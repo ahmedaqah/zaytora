@@ -207,10 +207,13 @@
     var mine = ((state.cfg.royal && state.cfg.royal.customFonts) || []).map(function (f) { return ['cf:' + f.id, (f.name || 'خط مرفوع') + ' (مرفوع)']; });
     return FONT_OPTS.concat(mine);
   }
+  /* the closing card's Latin names: "" = the design's own script font; otherwise a Latin font or one you uploaded */
+  var CARD_FONT = 'closing.card.font';
   function fillFontSel(s, path) {
-    var cur = get(state.cfg, path) || 'katibeh', opts = fontOptions();
+    var card = path === CARD_FONT, cur = get(state.cfg, path) || (card ? '' : 'katibeh');
+    var opts = card ? [['', 'الافتراضي (خط الكتابة اللاتيني الأصلي)'], ['cinzel', 'Cinzel (كلاسيكي)'], ['cormorant', 'Cormorant (أنيق)']].concat(fontOptions().filter(function (o) { return /^cf:/.test(o[0]); })) : fontOptions();
     s.innerHTML = ''; opts.forEach(function (o) { s.appendChild(el('option', { value: o[0], text: o[1] })); });
-    if (!opts.some(function (o) { return o[0] === cur; }) && cur !== 'custom') { cur = 'katibeh'; set(state.cfg, path, cur); }
+    if (!opts.some(function (o) { return o[0] === cur; }) && cur !== 'custom') { cur = card ? '' : 'katibeh'; set(state.cfg, path, cur); }
     if (cur === 'custom') s.appendChild(el('option', { value: 'custom', text: 'الخط المرفوع القديم' }));
     s.value = cur;
   }
@@ -437,6 +440,7 @@
         el('div', { class: 'g2' }, [text('الصلة (نجله / ابنته…)', 'royal.' + side + '.rel'), text('الاسم الكبير', 'royal.' + side + '.name', 'فارغ = الاسم الأول/الثاني من القسم 2')]),
         area('نص إضافي تحت الصلة وفوق الاسم (اختياري)', 'royal.' + side + '.extra', '', 2)]);
     };
+    var RY = state.cfg.royal; if (RY.dayScale == null) RY.dayScale = 1; if (RY.dayX == null) RY.dayX = 0; if (RY.dayY == null) RY.dayY = 0;
     var replay = el('button', { type: 'button', text: '▶ إعادة تشغيل الحركة في المعاينة' });
     replay.addEventListener('click', function () { $('skip-cover').checked = true; pushPreview(true); });
     var wrapEl = el('div', { id: 'royal-panels' }, [
@@ -446,6 +450,9 @@
         fam('right', 'العمود الأيمن (العريس عادةً)'), fam('left', 'العمود الأيسر (العروس عادةً)'),
         check('إظهار التاريخ أسفل الأسماء', 'royal.showDate'),
         SWANS ? text('اليوم فوق التاريخ (مثال: الخميس)', 'royal.day') : null,
+        SWANS ? slider('حجم اليوم', state.cfg.royal, 'dayScale', 0.4, 4, 0.05, '', function () { schedule(); }) : null,
+        SWANS ? slider('مكان اليوم: يمين (+) / يسار (−)', state.cfg.royal, 'dayX', -60, 60, 1, '', function () { schedule(); }) : null,
+        SWANS ? slider('مكان اليوم: أسفل (+) / أعلى (−)', state.cfg.royal, 'dayY', -40, 40, 1, '', function () { schedule(); }) : null,
         SWANS ? check('استخدام صور الخط الأصلية للعبارات الثابتة (بسم الله، السيد، نجله، ابنته) — عند تغيير النص تتحول لنص بالخط المختار', 'royal.useImages') : null
       ], true),
       section('الوضع الملكي — الخطوط والألوان', [
@@ -616,6 +623,8 @@
       el('div', { class: 'g2' }, [text('الاسم الأول (لاتيني)', 'closing.card.name1', '', { dir: 'ltr' }), text('الاسم الثاني (لاتيني)', 'closing.card.name2', '', { dir: 'ltr' })]),
       el('div', { class: 'g2' }, [text('الحرف أعلى البطاقة', 'closing.card.letter', 'فارغ = بدون حرف'), text('التاريخ على البطاقة', 'closing.card.date', 'مثال: 20 MAY 2027', { dir: 'ltr' })]),
       color('لون النصوص على البطاقة', 'closing.card.color'),
+      fontSel('خط اسمَي العروسين (لاتيني)', CARD_FONT),
+      el('p', { class: 'hint', text: 'لرفع خط جديد استخدم «إضافة خط جديد» في قسم الخطوط أعلاه، ثم اختره هنا.' }),
       slider('حجم الحرف', state.cfg.closing.card, 'letterSize', 0.3, 3, 0.05, '', function () { schedule(); }), slider('مكان الحرف أفقياً (%)', state.cfg.closing.card, 'letterX', 0, 100, 1, '', function () { schedule(); }), slider('مكان الحرف عمودياً (%)', state.cfg.closing.card, 'letterY', 0, 100, 1, '', function () { schedule(); }),
       assetField('حرف كصورة (بدل الحرف النصي أو معه)', 'closing.card.img', 'PNG أو WebP شفاف، مثل حرف بخط الثلث. يظهر أعلى البطاقة.'),
       slider('عرض صورة الحرف', state.cfg.closing.card, 'imgW', 3, 100, 1, '', function () { schedule(); }), slider('مكان صورة الحرف أفقياً (%)', state.cfg.closing.card, 'imgX', 0, 100, 1, '', function () { schedule(); }), slider('مكان صورة الحرف عمودياً (%)', state.cfg.closing.card, 'imgY', 0, 100, 1, '', function () { schedule(); }),
