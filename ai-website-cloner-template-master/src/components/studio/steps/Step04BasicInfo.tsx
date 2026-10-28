@@ -8,7 +8,7 @@ import { FontSelect } from "@/components/studio/fields/FontSelect";
 import { FontSizeStepper } from "@/components/studio/fields/FontSizeStepper";
 import { ToggleField } from "@/components/studio/fields/ToggleField";
 import { SectionTypographyFields } from "@/components/studio/fields/SectionTypographyFields";
-import { PlusIcon, TrashIcon } from "@/components/icons";
+import { ChevronDownIcon, PlusIcon, TrashIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/context/LanguageContext";
 import { listActiveThankYouSuggestions } from "@/lib/services/thankYouSuggestions.service";
@@ -48,6 +48,7 @@ const COPY = {
     timeFormat24: "24 ساعة",
     weekdayFont: "خط اليوم (مثل الخميس)",
     dateFont: "خط التاريخ (مثل نوفمبر 19)",
+    countdownSection: "تخصيص العد التنازلي",
     countdownFont: "خط العد التنازلي (الأرقام والكلمات)",
     eventEndTime: "وقت الانتهاء",
     detectedTimezone: (tz: string) => `المنطقة الزمنية المكتشفة: ${tz}`,
@@ -92,6 +93,7 @@ const COPY = {
     timeFormat24: "24-hour",
     weekdayFont: "Weekday font (e.g. Thursday)",
     dateFont: "Date font (e.g. November 19)",
+    countdownSection: "Customize the countdown",
     countdownFont: "Countdown font (numbers and words)",
     eventEndTime: "End time",
     detectedTimezone: (tz: string) => `Detected timezone: ${tz}`,
@@ -105,6 +107,25 @@ const COPY = {
     suggestionsEmpty: "No suggestions available yet.",
   },
 };
+
+// Collapsible block: its content shows only while open (closed by default).
+function CollapsibleSection({ title, children }: { title: string; children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="rounded-xl border border-border">
+      <button
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        aria-expanded={open}
+        className="flex w-full items-center justify-between gap-2 px-3.5 py-3 text-sm font-medium text-foreground"
+      >
+        <span>{title}</span>
+        <ChevronDownIcon className={cn("size-4 shrink-0 text-muted-foreground transition-transform", open && "rotate-180")} />
+      </button>
+      {open && <div className="border-t border-border p-3.5">{children}</div>}
+    </div>
+  );
+}
 
 function toDateTimeLocal(value?: string | null) {
   if (!value) return "";
@@ -471,15 +492,17 @@ export function Step04BasicInfo({
         onSize={(dateFontSize) => onChange({ dateFontSize })}
         onColor={(dateTextColor) => onChange({ dateTextColor })}
       />
-      <SectionTypographyFields
-        fontLabel={t.countdownFont}
-        font={value.countdownNumberFont}
-        size={value.countdownNumberFontSize}
-        color={value.countdownNumberTextColor}
-        onFont={(countdownNumberFont) => onChange({ countdownNumberFont })}
-        onSize={(countdownNumberFontSize) => onChange({ countdownNumberFontSize })}
-        onColor={(countdownNumberTextColor) => onChange({ countdownNumberTextColor })}
-      />
+      <CollapsibleSection title={t.countdownSection}>
+        <SectionTypographyFields
+          fontLabel={t.countdownFont}
+          font={value.countdownNumberFont}
+          size={value.countdownNumberFontSize}
+          color={value.countdownNumberTextColor}
+          onFont={(countdownNumberFont) => onChange({ countdownNumberFont })}
+          onSize={(countdownNumberFontSize) => onChange({ countdownNumberFontSize })}
+          onColor={(countdownNumberTextColor) => onChange({ countdownNumberTextColor })}
+        />
+      </CollapsibleSection>
 
       <div>
         <div className="mb-3 flex items-center gap-1 rounded-full border border-border bg-background/5 p-1">
