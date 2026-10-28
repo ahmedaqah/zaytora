@@ -110,6 +110,13 @@ public class Invitation
     // calendar card's weekday/date typography, and the optional extra line under the personal message.
     public string? DateMonthStyle { get; set; }
     public string? TimeFormat { get; set; }
+    // Countdown widget typography: the numbers and the words under them (font class / percent scale / "#rrggbb"; empty = template default).
+    public string? CountdownNumberFont { get; set; }
+    public string? CountdownNumberTextColor { get; set; }
+    public int? CountdownNumberFontSize { get; set; }
+    public string? CountdownLabelFont { get; set; }
+    public string? CountdownLabelTextColor { get; set; }
+    public int? CountdownLabelFontSize { get; set; }
     public string? WeekdayFont { get; set; }
     public string? WeekdayTextColor { get; set; }
     public int? WeekdayFontSize { get; set; }
@@ -174,6 +181,8 @@ public class Invitation
     public bool EnableQrEntry { get; set; }
     public int? QrGuestCount { get; set; }
     public int? QrScannerCount { get; set; }
+    // Where the guest QR sits in the invitation: "top" (default, null) | "details" | "bottom".
+    public string? QrPosition { get; set; }
     // Same "wall-clock reading, no real timezone" convention as
     // EventDateTime above (see InvitationsController.Update) — tagged
     // DateTimeKind.Utc only to satisfy Npgsql's timestamptz column type,

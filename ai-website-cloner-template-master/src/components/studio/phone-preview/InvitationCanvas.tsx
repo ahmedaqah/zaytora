@@ -1071,6 +1071,18 @@ export function InvitationCanvas({
   const labels = NAV_LABELS[language];
   const canvas = CANVAS_LABELS[language];
   const countdownLabels = COUNTDOWN_LABELS[language];
+  // The countdown grid's own `.map(([value, label]) => ...)` shadows `value`, so its typography is read out here.
+  const cd = {
+    numberFont: value.countdownNumberFont,
+    numberSize: value.countdownNumberFontSize,
+    numberColor: value.countdownNumberTextColor,
+    labelFont: value.countdownLabelFont,
+    labelSize: value.countdownLabelFontSize,
+    labelColor: value.countdownLabelTextColor,
+  };
+  // Where the guest QR sits (see InvitationDetail.qrPosition); anything unknown keeps the original spot under the hero.
+  const qrPlace = value.qrPosition === "details" || value.qrPosition === "bottom" ? value.qrPosition : "top";
+  const qrLabel = language === "en" ? "Show this code at the entrance" : "أبرز هذا الرمز عند الدخول";
   const countdownStartedMessage = COUNTDOWN_STARTED_MESSAGE[language];
 
   const names = [value.firstName, value.invitationType === "couple" ? value.secondName : null]
@@ -1560,12 +1572,12 @@ export function InvitationCanvas({
                 </motion.p>
               )
             )}
-            {!templatePreviewMode && value.enableQrEntry && (
+            {!templatePreviewMode && value.enableQrEntry && qrPlace === "top" && (
               <motion.div {...heroFade(5)}>
                 {value.shareCode && (
                   <GuestQrCode
                     shareCode={value.shareCode}
-                    label={language === "en" ? "Show this code at the entrance" : "أبرز هذا الرمز عند الدخول"}
+                    label={qrLabel}
                     className={cn("mt-3", TONE.muted)}
                   />
                 )}
@@ -1649,6 +1661,12 @@ export function InvitationCanvas({
             </motion.div>
           )}
 
+          {value.enableQrEntry && qrPlace === "details" && value.shareCode && (
+            <motion.div {...sectionReveal}>
+              <GuestQrCode shareCode={value.shareCode} label={qrLabel} className={TONE.muted} />
+            </motion.div>
+          )}
+
           {/* Accommodation — not part of the reference's own flow (it has no
               lodging section), but a real toggle this app supports beyond
               pure fidelity-cloning, so it stays, placed next to the venue
@@ -1724,8 +1742,18 @@ export function InvitationCanvas({
                         key={label}
                         className="rounded-xl border border-[var(--tpl-card-border)] bg-[var(--tpl-chip-bg)] p-3 text-center"
                       >
-                        <p className={cn("text-base font-medium", TONE.strong)}>{value}</p>
-                        <p className={cn("mt-0.5 text-[10px]", TONE.muted)}>{label}</p>
+                        <p
+                          className={cn("text-base font-medium", TONE.strong, cd.numberFont)}
+                          style={{ ...fontSizeStyle(1, cd.numberSize), ...textColorStyle(cd.numberColor) }}
+                        >
+                          {value}
+                        </p>
+                        <p
+                          className={cn("mt-0.5 text-[10px]", TONE.muted, cd.labelFont)}
+                          style={{ ...fontSizeStyle(0.625, cd.labelSize), ...textColorStyle(cd.labelColor) }}
+                        >
+                          {label}
+                        </p>
                       </div>
                     ))}
                   </div>
@@ -1940,6 +1968,12 @@ export function InvitationCanvas({
                 </motion.div>
               )}
             </div>
+          )}
+
+          {value.enableQrEntry && qrPlace === "bottom" && value.shareCode && (
+            <motion.div {...sectionReveal}>
+              <GuestQrCode shareCode={value.shareCode} label={qrLabel} className={TONE.muted} />
+            </motion.div>
           )}
 
           {/* Closing footer — names, short date, and the Numinds mark that

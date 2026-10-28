@@ -96,6 +96,13 @@ export interface InvitationDetail {
   dateMonthStyle?: string | null;
   timeFormat?: string | null;
   // The calendar card's weekday (e.g. الخميس) and date (month + day) typography.
+  // Countdown widget: the numbers and the words under them (font class / percent scale / "#rrggbb").
+  countdownNumberFont?: string | null;
+  countdownNumberFontSize?: number | null;
+  countdownNumberTextColor?: string | null;
+  countdownLabelFont?: string | null;
+  countdownLabelFontSize?: number | null;
+  countdownLabelTextColor?: string | null;
   weekdayFont?: string | null;
   weekdayTextColor?: string | null;
   weekdayFontSize?: number | null;
@@ -146,6 +153,8 @@ export interface InvitationDetail {
   enableQrEntry: boolean;
   qrGuestCount?: number | null;
   qrScannerCount?: number | null;
+  // Where the guest QR sits: "top" (default, under the hero), "details" (after the venue card) or "bottom" (before the closing footer).
+  qrPosition?: QrPosition | null;
   qrScanStart?: string | null;
   qrScanEnd?: string | null;
 
@@ -171,6 +180,8 @@ export interface InvitationDetail {
 }
 
 // Every field optional — a step only ever sends the slice it owns.
+export type QrPosition = "top" | "details" | "bottom";
+
 export type UpdateInvitationPatch = Partial<
   Omit<InvitationDetail, "id" | "status" | "editUrl" | "createdAt" | "updatedAt">
 > & {
