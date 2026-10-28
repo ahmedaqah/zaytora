@@ -48,8 +48,7 @@ const COPY = {
     timeFormat24: "24 ساعة",
     weekdayFont: "خط اليوم (مثل الخميس)",
     dateFont: "خط التاريخ (مثل نوفمبر 19)",
-    countdownNumbers: "خط أرقام العد التنازلي",
-    countdownLabels: "خط كلمات العد التنازلي (أيام، ساعات...)",
+    countdownFont: "خط العد التنازلي (الأرقام والكلمات)",
     eventEndTime: "وقت الانتهاء",
     detectedTimezone: (tz: string) => `المنطقة الزمنية المكتشفة: ${tz}`,
     hijriDate: "التاريخ الهجري",
@@ -93,8 +92,7 @@ const COPY = {
     timeFormat24: "24-hour",
     weekdayFont: "Weekday font (e.g. Thursday)",
     dateFont: "Date font (e.g. November 19)",
-    countdownNumbers: "Countdown numbers font",
-    countdownLabels: "Countdown words font (days, hours...)",
+    countdownFont: "Countdown font (numbers and words)",
     eventEndTime: "End time",
     detectedTimezone: (tz: string) => `Detected timezone: ${tz}`,
     hijriDate: "Hijri date",
@@ -474,22 +472,13 @@ export function Step04BasicInfo({
         onColor={(dateTextColor) => onChange({ dateTextColor })}
       />
       <SectionTypographyFields
-        fontLabel={t.countdownNumbers}
+        fontLabel={t.countdownFont}
         font={value.countdownNumberFont}
         size={value.countdownNumberFontSize}
         color={value.countdownNumberTextColor}
         onFont={(countdownNumberFont) => onChange({ countdownNumberFont })}
         onSize={(countdownNumberFontSize) => onChange({ countdownNumberFontSize })}
         onColor={(countdownNumberTextColor) => onChange({ countdownNumberTextColor })}
-      />
-      <SectionTypographyFields
-        fontLabel={t.countdownLabels}
-        font={value.countdownLabelFont}
-        size={value.countdownLabelFontSize}
-        color={value.countdownLabelTextColor}
-        onFont={(countdownLabelFont) => onChange({ countdownLabelFont })}
-        onSize={(countdownLabelFontSize) => onChange({ countdownLabelFontSize })}
-        onColor={(countdownLabelTextColor) => onChange({ countdownLabelTextColor })}
       />
 
       <div>

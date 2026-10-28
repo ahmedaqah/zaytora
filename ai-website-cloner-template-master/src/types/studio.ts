@@ -96,13 +96,11 @@ export interface InvitationDetail {
   dateMonthStyle?: string | null;
   timeFormat?: string | null;
   // The calendar card's weekday (e.g. الخميس) and date (month + day) typography.
-  // Countdown widget: the numbers and the words under them (font class / percent scale / "#rrggbb").
+  // Countdown widget: one font / percent scale / "#rrggbb" shared by the numbers and the words under them.
+  // (The countdownLabel* columns exist on the server but are unused.)
   countdownNumberFont?: string | null;
   countdownNumberFontSize?: number | null;
   countdownNumberTextColor?: string | null;
-  countdownLabelFont?: string | null;
-  countdownLabelFontSize?: number | null;
-  countdownLabelTextColor?: string | null;
   weekdayFont?: string | null;
   weekdayTextColor?: string | null;
   weekdayFontSize?: number | null;

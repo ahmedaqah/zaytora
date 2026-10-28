@@ -1073,12 +1073,9 @@ export function InvitationCanvas({
   const countdownLabels = COUNTDOWN_LABELS[language];
   // The countdown grid's own `.map(([value, label]) => ...)` shadows `value`, so its typography is read out here.
   const cd = {
-    numberFont: value.countdownNumberFont,
-    numberSize: value.countdownNumberFontSize,
-    numberColor: value.countdownNumberTextColor,
-    labelFont: value.countdownLabelFont,
-    labelSize: value.countdownLabelFontSize,
-    labelColor: value.countdownLabelTextColor,
+    font: value.countdownNumberFont,
+    size: value.countdownNumberFontSize,
+    color: value.countdownNumberTextColor,
   };
   // Where the guest QR sits (see InvitationDetail.qrPosition); anything unknown keeps the original spot under the hero.
   const qrPlace = value.qrPosition === "details" || value.qrPosition === "bottom" ? value.qrPosition : "top";
@@ -1743,14 +1740,14 @@ export function InvitationCanvas({
                         className="rounded-xl border border-[var(--tpl-card-border)] bg-[var(--tpl-chip-bg)] p-3 text-center"
                       >
                         <p
-                          className={cn("text-base font-medium", TONE.strong, cd.numberFont)}
-                          style={{ ...fontSizeStyle(1, cd.numberSize), ...textColorStyle(cd.numberColor) }}
+                          className={cn("text-base font-medium", TONE.strong, cd.font)}
+                          style={{ ...fontSizeStyle(1, cd.size), ...textColorStyle(cd.color) }}
                         >
                           {value}
                         </p>
                         <p
-                          className={cn("mt-0.5 text-[10px]", TONE.muted, cd.labelFont)}
-                          style={{ ...fontSizeStyle(0.625, cd.labelSize), ...textColorStyle(cd.labelColor) }}
+                          className={cn("mt-0.5 text-[10px]", TONE.muted, cd.font)}
+                          style={{ ...fontSizeStyle(0.625, cd.size), ...textColorStyle(cd.color) }}
                         >
                           {label}
                         </p>
