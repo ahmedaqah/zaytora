@@ -1,0 +1,23 @@
+/* Optional countdown looks (countdown.style): the "classic" look carries no class, so existing invitations are untouched. */
+body .count.cs-boxes,body .count.cs-circles,body .count.cs-minimal,body .count.cs-flip{border:0;padding:6px 0;gap:8px}
+body .count[class*="cs-"] .cell+.cell::before{display:none}
+body .count[class*="cs-"] .cell{padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:0}
+body .count[class*="cs-"] .cell span{display:block;margin:4px 0 0}
+/* boxes: framed rounded squares */
+body .count.cs-boxes .cell{border:1.5px solid var(--gold-bright);border-radius:14px;background:rgba(255,255,255,.35);padding:10px 2px 8px;box-shadow:0 6px 14px rgba(70,45,20,.12)}
+body .count.cs-boxes .cell b{font-size:clamp(24px,8cqw,40px);line-height:1.15}
+/* circles: round rings */
+body .count.cs-circles .cell{aspect-ratio:1;border-radius:50%;border:2px solid var(--gold-bright);box-shadow:inset 0 0 0 4px rgba(255,255,255,.35),0 6px 14px rgba(70,45,20,.12)}
+body .count.cs-circles .cell b{font-size:clamp(20px,7cqw,34px);line-height:1.05}
+body .count.cs-circles .cell span{font-size:clamp(10px,3cqw,14px);margin-top:1px}
+/* minimal: big numbers separated by thin lines */
+body .count.cs-minimal{gap:0}
+body .count.cs-minimal .cell+.cell{border-inline-end:0;border-inline-start:1px solid rgba(168,131,47,.45)}
+body .count.cs-minimal .cell b{font-size:clamp(34px,11cqw,56px);font-weight:300;line-height:1.1}
+body .count.cs-minimal .cell span{font-size:clamp(10px,3.2cqw,14px);letter-spacing:.2em;text-transform:uppercase}
+/* flip: dark split cards */
+body .count.cs-flip .cell{background:linear-gradient(180deg,#3a2a1e 0,#3a2a1e 49%,#241810 50%,#2d2016 100%);border-radius:10px;padding:10px 2px 6px;box-shadow:0 8px 16px rgba(20,10,5,.35);position:relative}
+body .count.cs-flip .cell::after{content:"";position:absolute;left:0;right:0;top:calc(50% - 6px);height:1px;background:rgba(0,0,0,.5)}
+body .count.cs-flip .cell b{color:#f6ecd8;font-size:clamp(24px,8cqw,40px);line-height:1.1;position:relative;z-index:1}
+body .count.cs-flip .cell span{color:#d8b86a;font-size:clamp(10px,3cqw,14px)}
+body .count[class*="cs-"] .cell b{font-family:var(--latin)}

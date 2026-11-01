@@ -210,10 +210,10 @@
   /* the closing card's Latin names: "" = the design's own script font; otherwise a Latin font or one you uploaded */
   var CARD_FONT = 'closing.card.font';
   function fillFontSel(s, path) {
-    var card = path === CARD_FONT, cur = get(state.cfg, path) || (card ? '' : 'katibeh');
-    var opts = card ? [['', 'الافتراضي (خط الكتابة اللاتيني الأصلي)'], ['cinzel', 'Cinzel (كلاسيكي)'], ['cormorant', 'Cormorant (أنيق)']].concat(fontOptions().filter(function (o) { return /^cf:/.test(o[0]); })) : fontOptions();
+    var card = path === CARD_FONT, free = /^closing\.card\.texts\.\d+\.font$/.test(path), cur = get(state.cfg, path) || (card || free ? '' : 'katibeh');
+    var opts = free ? [['', 'الخط الافتراضي للبطاقة']].concat(fontOptions()) : card ? [['', 'الافتراضي (خط الكتابة اللاتيني الأصلي)'], ['cinzel', 'Cinzel (كلاسيكي)'], ['cormorant', 'Cormorant (أنيق)']].concat(fontOptions().filter(function (o) { return /^cf:/.test(o[0]); })) : fontOptions();
     s.innerHTML = ''; opts.forEach(function (o) { s.appendChild(el('option', { value: o[0], text: o[1] })); });
-    if (!opts.some(function (o) { return o[0] === cur; }) && cur !== 'custom') { cur = card ? '' : 'katibeh'; set(state.cfg, path, cur); }
+    if (!opts.some(function (o) { return o[0] === cur; }) && cur !== 'custom') { cur = card || free ? '' : 'katibeh'; set(state.cfg, path, cur); }
     if (cur === 'custom') s.appendChild(el('option', { value: 'custom', text: 'الخط المرفوع القديم' }));
     s.value = cur;
   }
@@ -362,12 +362,11 @@
     return el('div', { class: 'media' }, [el('b', { text: label }), hint ? el('p', { class: 'hint', text: hint }) : null, nm, inp, rm]);
   }
   /* uploaded paper: one picture is cut into top / middle / bottom pieces; the middle piece repeats when a section is long */
-  var paperImg = null; /* the picture last uploaded (kept in memory so the cut can be adjusted) */
-  function slicePaper(img, topPct, botPct) {
-    var P = state.cfg.royal.customPaper, sc = Math.min(1, 1024 / img.naturalWidth), W = Math.round(img.naturalWidth * sc), H = Math.round(img.naturalHeight * sc);
+  function slicePaper(img, topPct, botPct, P, main) {
+    var sc = Math.min(1, 1024 / img.naturalWidth), W = Math.round(img.naturalWidth * sc), H = Math.round(img.naturalHeight * sc);
     var th = Math.max(4, Math.round(H * topPct / 100)), bh = Math.max(4, Math.round(H * botPct / 100)), mh = H - th - bh;
     if (mh < 8) { status('القطعتان العلوية والسفلية كبيرتان جداً. صغّر إحداهما.', true); return Promise.resolve(); }
-    var parts = [['top', 0, th], ['mid', th, mh], ['bot', th + mh, bh]], id = Date.now().toString(36);
+    var parts = [['top', 0, th], ['mid', th, mh], ['bot', th + mh, bh]], id = Date.now().toString(36) + Math.floor(Math.random() * 1000);
     return Promise.all(parts.map(function (pt) {
       var cv = document.createElement('canvas'); cv.width = W; cv.height = pt[2];
       cv.getContext('2d').drawImage(img, 0, pt[1] / sc, img.naturalWidth, pt[2] / sc, 0, 0, W, pt[2]);
@@ -378,36 +377,72 @@
         var nm = 'media/paper-' + pt[0] + '-' + id + '.webp'; files[nm] = bl[i]; urls[nm] = URL.createObjectURL(bl[i]); P[pt[0]] = nm;
       });
       P.t = Math.round(th / W * 10000) / 100; P.mt = Math.round(mh / W * 10000) / 100; P.b = Math.round(bh / W * 10000) / 100;
-      state.cfg.royal.paperStyle = 'custom';
-      var po = document.querySelector('#royal-panels select option[value="custom"]'); if (po) po.parentElement.value = 'custom'; /* keep the paper list in step */
+      if (main) {
+        state.cfg.royal.paperStyle = 'custom';
+        var po = document.querySelector('#royal-panels select option[value="custom"]'); if (po) po.parentElement.value = 'custom'; /* keep the paper list in step */
+      }
       schedule();
     });
   }
-  function paperUploader() {
-    var P = state.cfg.royal.customPaper, cut = { top: 33, bot: 31 }, timer = 0;
+  /* one uploaded paper (the main one, or an extra one from royal.paperSets): cut into top / middle / bottom pieces */
+  function paperUploader(P, label, main, onChange) {
+    var cut = { top: 33, bot: 31 }, timer = 0, paperImg = null;
     var info = el('p', { class: 'hint', text: P.top ? 'تم رفع ورقة خاصة. يمكنك تعديل مكان القص أدناه.' : 'لم تُرفع ورقة بعد.' });
     var inp = el('input', { type: 'file', accept: 'image/png,image/webp,image/jpeg' });
-    function redo() { clearTimeout(timer); timer = setTimeout(function () { if (paperImg) slicePaper(paperImg, cut.top, cut.bot); }, 250); }
+    function redo() { clearTimeout(timer); timer = setTimeout(function () { if (paperImg) slicePaper(paperImg, cut.top, cut.bot, P, main); }, 250); }
     inp.addEventListener('change', function () {
       var f = inp.files[0]; if (!f) return; inp.value = '';
       var u = URL.createObjectURL(f), im = new Image();
-      im.onload = function () { paperImg = im; info.textContent = 'تم رفع الورقة (' + im.naturalWidth + '×' + im.naturalHeight + ').'; slicePaper(im, cut.top, cut.bot).then(function () { URL.revokeObjectURL(u); }); };
+      im.onload = function () { paperImg = im; info.textContent = 'تم رفع الورقة (' + im.naturalWidth + '×' + im.naturalHeight + ').'; slicePaper(im, cut.top, cut.bot, P, main).then(function () { URL.revokeObjectURL(u); if (onChange) onChange(); }); };
       im.onerror = function () { status('تعذّر قراءة صورة الورقة.', true); URL.revokeObjectURL(u); };
       im.src = u;
     });
     var rm = el('button', { type: 'button', class: 'sm del', text: 'إزالة الورقة المرفوعة' });
     rm.addEventListener('click', function () {
       ['top', 'mid', 'bot'].forEach(function (k) { dropAsset(P[k]); P[k] = ''; }); paperImg = null;
-      if (state.cfg.royal.paperStyle === 'custom') state.cfg.royal.paperStyle = 'blank';
+      if (main && state.cfg.royal.paperStyle === 'custom') state.cfg.royal.paperStyle = 'blank';
       info.textContent = 'لم تُرفع ورقة بعد.'; buildForm(); schedule();
     });
     var cb = function () { redo(); };
-    return el('div', { class: 'media' }, [el('b', { text: 'رفع ورق جديد' }),
+    return el('div', { class: 'media' }, [el('b', { text: label || 'رفع ورق جديد' }),
       el('p', { class: 'hint', text: 'ارفع صورة ورقة طولية (يفضّل PNG أو WebP، بحواف شفافة إن كانت ممزقة). تُقصّ إلى ثلاث قطع: الأعلى والأوسط والأسفل، ويتكرر الأوسط تلقائياً عندما يطول القسم. النصوص تُكتب داخل الأوسط.' }),
       info, inp,
       slider('ارتفاع الجزء العلوي من الصورة (%)', cut, 'top', 5, 70, 1, '%', cb), slider('ارتفاع الجزء السفلي من الصورة (%)', cut, 'bot', 5, 70, 1, '%', cb),
       slider('هامش النص الجانبي داخل الورقة', P, 'padX', 4, 40, 0.5, '', function () { schedule(); }), slider('هامش النص العلوي والسفلي', P, 'padY', 4, 50, 0.5, '', function () { schedule(); }),
       rm]);
+  }
+  /* any number of extra papers; each section can then pick the paper it sits on */
+  function paperSetsPanel() {
+    var R = state.cfg.royal; if (!Array.isArray(R.paperSets)) R.paperSets = [];
+    var box = el('div', { class: 'sec', style: 'padding:0' });
+    R.paperSets.forEach(function (P, i) {
+      var h = el('div', { class: 'h' }, [el('b', { text: 'ورقة إضافية ' + (i + 1) })]);
+      var del = el('button', { type: 'button', class: 'sm del', text: 'حذف الورقة' });
+      del.addEventListener('click', function () {
+        ['top', 'mid', 'bot'].forEach(function (k) { dropAsset(P[k]); });
+        R.paperSets.splice(i, 1);
+        /* sections that used this paper (or a later one) fall back to the general choice / shift down */
+        Object.keys(R.papers || {}).forEach(function (k) { var m = /^p(\d+)$/.exec(R.papers[k] || ''); if (m) { var n = +m[1]; if (n === i + 1) R.papers[k] = ''; else if (n > i + 1) R.papers[k] = 'p' + (n - 1); } });
+        buildForm(); schedule();
+      });
+      h.appendChild(el('div', { class: 'row' }, [del]));
+      box.appendChild(el('div', { class: 'item' }, [h, paperUploader(P, 'ورقة إضافية ' + (i + 1), false, function () { buildForm(); })]));
+    });
+    var add = el('button', { type: 'button', text: '+ إضافة ورقة أخرى' });
+    add.addEventListener('click', function () { R.paperSets.push({ top: '', mid: '', bot: '', t: 48.8, b: 46.5, mt: 54.7, padX: 18, padY: 17 }); buildForm(); schedule(); });
+    box.appendChild(add);
+    box.appendChild(el('p', { class: 'hint', text: 'ارفع أكثر من ورقة ثم اختر من القوائم أعلاه ورقة مختلفة لكل قسم. الورقة تظهر في القوائم بعد رفع صورتها.' }));
+    return box;
+  }
+  /* free texts on the closing card: add as many as you like, each with its own colour, font, size and position */
+  function cardTexts() {
+    var K = state.cfg.closing.card; if (!Array.isArray(K.texts)) K.texts = [];
+    return repeater('closing.card.texts', function (it, cb) {
+      var i = K.texts.indexOf(it), base = 'closing.card.texts.' + i + '.';
+      if (it.x == null) it.x = 50; if (it.y == null) it.y = 70; if (it.size == null) it.size = 1; if (!it.color) it.color = K.color || '#a8832f';
+      return [itemText(it, 'text', 'النص', cb, true), fontSel('الخط', base + 'font'), color('اللون', base + 'color'),
+        slider('الحجم', it, 'size', 0.3, 4, 0.05, '', cb), slider('أفقياً (%)', it, 'x', -20, 120, 1, '', cb), slider('عمودياً (%)', it, 'y', -20, 120, 1, '', cb)];
+    }, { text: '', font: '', color: K.color || '#a8832f', size: 1, x: 50, y: 70 }, '+ إضافة نص');
   }
   function decoPanel() {
     var D = state.cfg.royal.deco;
@@ -481,9 +516,12 @@
           ? sel('تصميم الورق لكل الأقسام', 'royal.paperStyle', [['original', 'كما في التصميم الأصلي (إطار رخامي للعدّ، أعمدة فارغة للبرنامج، ورق ممزق بورود للباقي)'], ['blank', 'ورقة الأعمدة والورود الفارغة لكل الأقسام'], ['frame', 'الإطار الرخامي لكل الأقسام'], ['torn', 'الورق الممزق بالورود لكل الأقسام'], ['custom', 'ورقتي المرفوعة (من الخيار أدناه)']])
           : sel('تصميم الورق', 'royal.paperStyle', [['blank', 'ورقة الأعمدة والورود الفارغة — كل قسم في ورقة لوحده'], ['columns', 'أعمدة ووُرود — ورقة واحدة متصلة'], ['rose', 'إطار الورود الحمراء — كل قسم في ورقة لوحده'], ['gold', 'إطار الورود الذهبي — كل قسم في ورقة لوحده (أطول)'], ['custom', 'ورقتي المرفوعة (من الخيار أدناه)']]),
         SWANS ? el('div', { class: 'g2' }, [['countdown', 'ورق العدّ التنازلي'], ['schedule', 'ورق برنامج الحفل'], ['location', 'ورق الموقع'], ['notes', 'ورق التعليمات'], ['rsvp', 'ورق تأكيد الحضور']].map(function (x) {
-          return sel(x[1] + ' (يغلب الاختيار أعلاه)', 'royal.papers.' + x[0], [['', 'حسب الاختيار أعلاه'], ['frame', 'إطار رخامي'], ['blank', 'أعمدة فارغة'], ['torn', 'ممزق بالورود'], ['custom', 'ورقتي المرفوعة']]);
+          var extra = (R.paperSets || []).map(function (P, i) { return P && P.top && P.bot ? ['p' + (i + 1), 'ورقة إضافية ' + (i + 1)] : null; }).filter(Boolean);
+          return sel(x[1] + ' (يغلب الاختيار أعلاه)', 'royal.papers.' + x[0], [['', 'حسب الاختيار أعلاه'], ['frame', 'إطار رخامي'], ['blank', 'أعمدة فارغة'], ['torn', 'ممزق بالورود'], ['custom', 'ورقتي المرفوعة']].concat(extra));
         })) : null,
-        paperUploader(),
+        paperUploader(state.cfg.royal.customPaper, 'رفع ورق جديد (ورقتي المرفوعة)', true),
+        SWANS ? paperSetsPanel() : null,
+        SWANS ? check('الورقة بعرض الدعوة كاملاً (بدون ظهور الخلفية على الطرفين)', 'royal.paperFull') : null,
         scale('درجة وضوح الورقة (100% معتمة، أقل = أشفّ)', 'royal.paperOpacity', 0.1, 1, 0.05),
         el('p', { class: 'hint', text: 'الأعمدة والورود تبقى واضحة دائماً، والورقة وحدها تصبح شفافة فتظهر الخلفية من خلالها.' })
       ]),
@@ -566,7 +604,7 @@
       return [wrap('تاريخ الحفل', d), el('div', { class: 'g2' }, [wrap('وقت البدء', st), wrap('وقت الانتهاء', en)]),
         wrap('فرق التوقيت عن UTC لمدينة الحفل', off, 'مثال: السعودية/الأردن +03:00 ، النرويج الشتاء +01:00 والصيف +02:00 ، تركيا +03:00. يُستخدم للعدّ التنازلي.'), dl];
     }
-    F.appendChild(section('3) التاريخ والعدّ التنازلي', evDom().concat([check('إظهار العدّ التنازلي', 'countdown.enabled'), text('عنوان العدّ التنازلي', 'countdown.title')])));
+    F.appendChild(section('3) التاريخ والعدّ التنازلي', evDom().concat([check('إظهار العدّ التنازلي', 'countdown.enabled'), text('عنوان العدّ التنازلي', 'countdown.title'), sel('شكل العدّ التنازلي', 'countdown.style', [['classic', 'الكلاسيكي (الحالي)'], ['boxes', 'مربعات بإطار'], ['circles', 'دوائر'], ['minimal', 'أرقام كبيرة بسيطة'], ['flip', 'بطاقات داكنة']])])));
 
     /* 4 schedule */
     F.appendChild(section('4) برنامج الحفل', [
@@ -628,6 +666,8 @@
       slider('حجم الحرف', state.cfg.closing.card, 'letterSize', 0.3, 3, 0.05, '', function () { schedule(); }), slider('مكان الحرف أفقياً (%)', state.cfg.closing.card, 'letterX', 0, 100, 1, '', function () { schedule(); }), slider('مكان الحرف عمودياً (%)', state.cfg.closing.card, 'letterY', 0, 100, 1, '', function () { schedule(); }),
       assetField('حرف كصورة (بدل الحرف النصي أو معه)', 'closing.card.img', 'PNG أو WebP شفاف، مثل حرف بخط الثلث. يظهر أعلى البطاقة.'),
       slider('عرض صورة الحرف', state.cfg.closing.card, 'imgW', 3, 100, 1, '', function () { schedule(); }), slider('مكان صورة الحرف أفقياً (%)', state.cfg.closing.card, 'imgX', 0, 100, 1, '', function () { schedule(); }), slider('مكان صورة الحرف عمودياً (%)', state.cfg.closing.card, 'imgY', 0, 100, 1, '', function () { schedule(); }),
+      el('b', { text: 'نصوص إضافية على البطاقة' }),
+      cardTexts(),
       assetField('صورة إطار البطاقة', 'closing.card.frame', 'PNG أو WebP شفاف، بنسبة 941×1670 تقريباً وبدون نصوص (النصوص تُكتب أعلاه). الأصلية إطار ورود وبجع.'),
       el('p', { class: 'hint', text: 'تُعرض البطاقة بلا ورقة خلفها. اترك الخيار مغلقاً لاستخدام ورقة الختام العادية.' })
     ]));
@@ -892,7 +932,7 @@
       if (!t) return;
       if (!confirm('تحميل القالب «' + t[1] + '»؟ ستُمسح التعديلات الحالية على هذه الدعوة.')) { s.value = s.dataset.cur; return; }
       fetch(t[2], { cache: 'no-cache' }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }).then(function (cfg) {
-        Object.keys(files).forEach(function (k) { URL.revokeObjectURL(urls[k]); }); files = {}; urls = {}; paperImg = null;
+        Object.keys(files).forEach(function (k) { URL.revokeObjectURL(urls[k]); }); files = {}; urls = {};
         state.editing = ''; applyCfg('', cfg); s.dataset.cur = s.value; status('تم تحميل القالب. عدّل الأسماء والتفاصيل ثم احفظ.');
       }).catch(function () { s.value = s.dataset.cur; status('تعذّر تحميل القالب.', true); });
     });

@@ -1,5 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap');
 @import url('swans.css');
+@import url('cdstyles.css');
 /* Layout: swan-lake video as a fixed backdrop; content sits on torn-paper panels with watercolor floral corners. Single warm look by design. */
 :root{
   --paper:#f0e3d3;
@@ -371,3 +372,5 @@ main.royal{max-width:520px;padding-block:0 28px;gap:0;overflow-x:clip}
 .ccard .cc-names{transform:translate(var(--ctx),calc(-50% + var(--cty))) scale(var(--csc))}
 .ccard .cc-d{transform:translate(calc(-50% + var(--ctx)),calc(-50% + var(--cty))) scale(var(--csc))}
 @media (prefers-reduced-motion:reduce){.tl .glider{transition:none!important}}
+
+.cc-t{position:absolute;transform:translate(-50%,-50%);text-align:center;line-height:1.5;white-space:pre-line;max-width:90%}

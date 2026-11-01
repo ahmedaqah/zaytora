@@ -207,6 +207,21 @@ public partial class PrivateInvitesController(NumindsDbContext db, IFileStorageS
                     }
                 }
             }
+            // Uploaded papers: the main one (royal.customPaper) and any extra ones (royal.paperSets), each cut into three pictures.
+            if (doc.RootElement.TryGetProperty("royal", out var royalPapers) && royalPapers.ValueKind == JsonValueKind.Object)
+            {
+                if (royalPapers.TryGetProperty("customPaper", out var mainPaper))
+                {
+                    AddPaperPieces(urls, mainPaper);
+                }
+                if (royalPapers.TryGetProperty("paperSets", out var paperSets) && paperSets.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var set in paperSets.EnumerateArray())
+                    {
+                        AddPaperPieces(urls, set);
+                    }
+                }
+            }
             if (doc.RootElement.TryGetProperty("stickers", out var stickers) && stickers.ValueKind == JsonValueKind.Array)
             {
                 foreach (var sticker in stickers.EnumerateArray())
@@ -223,6 +238,18 @@ public partial class PrivateInvitesController(NumindsDbContext db, IFileStorageS
             // Malformed stored config: nothing to clean up.
         }
         return urls;
+    }
+
+    private static void AddPaperPieces(List<string> urls, JsonElement paper)
+    {
+        if (paper.ValueKind != JsonValueKind.Object) return;
+        foreach (var key in new[] { "top", "mid", "bot" })
+        {
+            if (paper.TryGetProperty(key, out var piece))
+            {
+                AddIfUploaded(urls, piece);
+            }
+        }
     }
 
     private static void AddIfUploaded(List<string> urls, JsonElement value)
