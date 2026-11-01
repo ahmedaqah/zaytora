@@ -22,7 +22,7 @@
     ui: { coverHint: 'اضغط لفتح الدعوة', scrollHint: 'اسحب للأسفل', musicLabel: 'تشغيل أو إيقاف الموسيقى', ctaText: 'أعجبتك الدعوة؟ اصنع دعوتك الرقمية' },
     hero: {
       bismillah: '', eyebrow: '', name1: '', name2: '', connector: '&', occasion: '',
-      dateText: '', quote: '', verse: '', intro: ''
+      dateText: '', dateDir: '', quote: '', verse: '', intro: ''
     },
     event: { start: '', end: '', utcOffset: '+00:00' },
     countdown: { enabled: true, title: 'يبدأ الاحتفال بعد', labels: ['يوم', 'ساعة', 'دقيقة', 'ثانية'], style: 'classic' },
@@ -42,7 +42,7 @@
     },
     closing: { latin: '', text: '', sign: '', textScale: 1, textX: 0, textY: 0, card: { enabled: false, font: '', frame: '', letter: '', letterX: 50, letterY: 21.6, letterSize: 1, img: '', imgX: 50, imgY: 21.6, imgW: 22, name1: '', name2: '', amp: '&', date: '', color: '#a8832f', texts: [] } },
     footer: '',
-    layout: { mode: 'classic' },
+    layout: { mode: 'classic', order: [] },
     royal: {
       bismillah: 'بسم الله الرحمن الرحيم', invite: '', middle: '',
       right: { title: 'السيد', father: '', rel: 'نجله', extra: '', name: '' },
@@ -276,7 +276,7 @@
     if (R.bismillah) h += el('r-bis', nl(R.bismillah));
     if (R.invite) h += el('r-inv', nl(R.invite));
     h += fam();
-    if (R.showDate !== false && dateText) h += el('r-date', esc(dateText));
+    if (R.showDate !== false && dateText) h += el('r-date', esc(dateText)).replace('<p class=', '<p' + (c.hero && c.hero.dateDir === 'ltr' ? ' dir="ltr"' : '') + ' class=').replace('style="', 'style="' + (c.hero && c.hero.dateDir === 'ltr' ? 'unicode-bidi:isolate;direction:ltr;' : ''));
     return h + '</div></section>';
   }
   function layers() {
@@ -293,6 +293,15 @@
     var u = S.roseImg ? resolve(S.roseImg) : '';
     if (u) v += "--tl-rose:url('" + esc(u).replace(/'/g, '%27') + "');";
     return v ? ' style="' + v + '"' : '';
+  }
+  /* first card date: 'ltr' = read from left to right (day on the left), otherwise untouched */
+  function dateDir(c) { return c.hero && c.hero.dateDir === 'ltr' ? ' dir="ltr" style="unicode-bidi:isolate;direction:ltr"' : ''; }
+  /* order of the sections after the first card (layout.order); anything missing keeps its usual place after the listed ones */
+  var SEC_KEYS = ['countdown', 'schedule', 'location', 'notes', 'rsvp'];
+  function secOrder(c) {
+    var o = (c.layout && Array.isArray(c.layout.order) ? c.layout.order : []).filter(function (k, i, a) { return SEC_KEYS.indexOf(k) >= 0 && a.indexOf(k) === i; });
+    SEC_KEYS.forEach(function (k) { if (o.indexOf(k) < 0) o.push(k); });
+    return o;
   }
   /* countdown look (countdown.style): 'classic' = untouched markup, the others only add a class */
   function cdClass(c) {
@@ -424,7 +433,7 @@
     }).join('');
     h += '<div class="r-cols2 a" style="--i:4;gap:2cqw">' + cols2 + '</div>';
     if (R.showDate !== false && (dateText || R.day)) {
-      h += '<div class="r-date2 a" style="--i:5;margin-top:6cqw">' + (R.day ? '<div class="r-day"' + dayStyle(R) + '>' + esc(R.day) + '</div>' : '') + '<div class="r-dt" style="font-size:' + swPx(9) + '">' + esc(dateText) + '</div></div>';
+      h += '<div class="r-date2 a" style="--i:5;margin-top:6cqw">' + (R.day ? '<div class="r-day"' + dayStyle(R) + '>' + esc(R.day) + '</div>' : '') + '<div class="r-dt"' + (c.hero.dateDir === 'ltr' ? ' dir="ltr"' : '') + ' style="font-size:' + swPx(9) + (c.hero.dateDir === 'ltr' ? ';unicode-bidi:isolate;direction:ltr' : '') + '">' + esc(dateText) + '</div></div>';
     }
     var map = { rise: ['rise', 'up'], drop: ['rise', 'down'], slide: ['rise', 'left'], fade: ['fade'], zoom: ['soft'], blur: ['soft'], soft: ['soft'] };
     var m = map[A.type] || map.soft, dist = 18, tx = '0', ty = '0', sc = 1, bl = '0px';
@@ -490,16 +499,16 @@
     return '<a class="btn" href="' + esc(u) + '" target="_blank" rel="noopener">' + esc(L2.mapLabel || 'افتح الخريطة') + '</a>';
   }
   function swansBody(c, start, dateText, FL) {
-    var R = c.royal, kinds = swKinds(R), CP = R.customPaper || {}, h = stickersHtml(c.stickers, 'page'), SEC = '';
+    var R = c.royal, kinds = swKinds(R), CP = R.customPaper || {}, h = stickersHtml(c.stickers, 'page'), SEC = '', PT = {};
     h += swScene(c, dateText);
     if (c.countdown.enabled && start && start.ms) {
       var L = c.countdown.labels;
-      h += swSec('countdown', kinds.countdown, c.countdown.title, [], swTitle('countdown', c.countdown.title) +
+      PT.countdown = swSec('countdown', kinds.countdown, c.countdown.title, [], swTitle('countdown', c.countdown.title) +
         '<div class="count' + cdClass(c) + '" id="count" role="timer" aria-live="off">' + ['d', 'h', 'm', 's'].map(function (id, i) { return '<div class="cell"><b id="' + id + '">00</b><span>' + esc(L[i] || '') + '</span></div>'; }).join('') + '</div><!--SWAN-->', FL, CP);
     }
     var items = c.schedule.items.filter(function (it) { return it && (it.title || it.time); });
     if (c.schedule.enabled && items.length) {
-      h += swSec('schedule', kinds.schedule, c.schedule.title, ['rz-tr', 'rz-bl'], swTitle('schedule', c.schedule.title) + '<ul class="tl' + (c.schedule.roseMode === 'glide' ? ' glide-on' : '') + '"' + tlStyle(c.schedule) + '>' + items.map(function (it) {
+      PT.schedule = swSec('schedule', kinds.schedule, c.schedule.title, ['rz-tr', 'rz-bl'], swTitle('schedule', c.schedule.title) + '<ul class="tl' + (c.schedule.roseMode === 'glide' ? ' glide-on' : '') + '"' + tlStyle(c.schedule) + '>' + items.map(function (it) {
         var d = !!it.detail;
         return '<li' + (it.rose && c.schedule.roseMode !== 'glide' ? ' class="rose"' : '') + '><span class="t">' + esc(it.time) + '</span><button class="e' + (d ? '' : ' nd') + '" type="button"' + (d ? ' aria-expanded="false"' : ' tabindex="-1"') + '><span class="nm">' + esc(it.title) + '</span>' +
           (d ? '<span class="dt"><span>' + nl(it.detail) + '</span></span>' : '') + '</button></li>';
@@ -507,7 +516,7 @@
     }
     var L2 = c.location;
     if (L2.enabled && (L2.venue || L2.address || L2.mapUrl)) {
-      h += swSec('location', kinds.location, L2.title, ['rz-tr', 'rz-bl'], swTitle('location', L2.title) + '<div class="card"><svg class="pin" aria-hidden="true"><use href="#pinicon"/></svg>' +
+      PT.location = swSec('location', kinds.location, L2.title, ['rz-tr', 'rz-bl'], swTitle('location', L2.title) + '<div class="card"><svg class="pin" aria-hidden="true"><use href="#pinicon"/></svg>' +
         (L2.venue ? '<p class="venue"' + (L2.venueLang ? ' dir="ltr" lang="' + esc(L2.venueLang) + '"' : '') + '>' + esc(L2.venue) + '</p>' : '') +
         (L2.venueEn ? '<p class="venue-en" dir="ltr" lang="en">' + esc(L2.venueEn) + '</p>' : '') +
         (L2.address ? '<p class="addr">' + nl(L2.address) + '</p>' : '') +
@@ -515,17 +524,18 @@
     }
     var notes = c.notes.items.filter(function (n) { return n && n.text; });
     if (c.notes.enabled && notes.length) {
-      h += swSec('notes', kinds.notes, c.notes.title, ['rz-tr'], swTitle('notes', c.notes.title) + notes.map(function (n) { return '<p class="note">' + nl(n.text) + '</p>'; }).join('') + '<!--SWAN-->', FL, CP);
+      PT.notes = swSec('notes', kinds.notes, c.notes.title, ['rz-tr'], swTitle('notes', c.notes.title) + notes.map(function (n) { return '<p class="note">' + nl(n.text) + '</p>'; }).join('') + '<!--SWAN-->', FL, CP);
     }
     var R2 = c.rsvp;
     if (R2.enabled) {
       var max = Math.max(1, Math.min(30, parseInt(R2.maxGuests, 10) || 6)), opt = '';
       for (var i = 1; i <= max; i++) opt += '<option>' + i + '</option>';
-      h += swSec('rsvp', kinds.rsvp, R2.title, ['rz-tl'], (R2.hideTitle ? '' : swTitle('rsvp', R2.title)) + (R2.intro && !R2.hideIntro ? '<p class="note">' + nl(R2.intro) + '</p>' : '') +
+      PT.rsvp = swSec('rsvp', kinds.rsvp, R2.title, ['rz-tl'], (R2.hideTitle ? '' : swTitle('rsvp', R2.title)) + (R2.intro && !R2.hideIntro ? '<p class="note">' + nl(R2.intro) + '</p>' : '') +
         '<form id="rsvp" novalidate>' + rsvpFormHtml(R2, opt) + '</form>' +
         '<p class="thanks" id="thanks" hidden></p>' +
         '<div class="cta" id="cta" hidden><p>' + esc(c.ui.ctaText) + '</p><a class="credit" href="https://www.zaytorainvites.com/" target="_blank" rel="noopener">MADE BY ZAYTORA</a></div><!--SWAN-->', FL, CP);
     }
+    secOrder(c).forEach(function (k) { h += PT[k] || ''; });
     var CL = c.closing, names = c.hero.name1 + (c.hero.name2 ? ' ' + c.hero.name2 : '');
     h += '<section class="paper sec-closing" aria-label="' + esc(CL.sign || names) + '">' + cardHtml(CL.card && CL.card.enabled ? CL.card : { name1: c.hero.name1, name2: c.hero.name2, amp: '&', date: '' }, FL, start, dateText, CL) + '</section>';
     return h;
@@ -625,16 +635,17 @@
     h += '<h1 class="names"><span>' + esc(H.name1) + '</span>' +
       (H.name2 ? '<span class="amp">' + esc(H.connector) + '</span><span>' + esc(H.name2) + '</span>' : '') + '</h1>';
     if (H.occasion) h += '<p class="kind">' + esc(H.occasion) + '</p>';
-    if (dateText) h += '<p class="date">' + esc(dateText) + '</p>';
+    if (dateText) h += '<p class="date"' + dateDir(c) + '>' + esc(dateText) + '</p>';
     if (H.quote || H.verse) h += '<p class="quote poem">' + nl(H.quote) + (H.verse ? '<small>' + esc(H.verse) + '</small>' : '') + '</p>';
     if (H.intro) h += '<p class="inv">' + nl(H.intro) + '</p>';
     h += '</section>';
     }
 
+    var PT = {};
     /* countdown */
     if (c.countdown.enabled && start && start.ms) {
       var L = c.countdown.labels;
-      h += '<section class="' + SEC + '" aria-label="' + esc(c.countdown.title) + '">' + decoTop('countdown', FL) + title(c.countdown.title) +
+      PT.countdown = '<section class="' + SEC + '" aria-label="' + esc(c.countdown.title) + '">' + decoTop('countdown', FL) + title(c.countdown.title) +
         '<div class="count' + cdClass(c) + '" id="count" role="timer" aria-live="off">' +
         ['d', 'h', 'm', 's'].map(function (id, i) { return '<div class="cell"><b id="' + id + '">00</b><span>' + esc(L[i] || '') + '</span></div>'; }).join('') +
         '</div>' + decoBottom('countdown') + '</section>';
@@ -643,7 +654,7 @@
     /* schedule */
     var items = c.schedule.items.filter(function (it) { return it && (it.title || it.time); });
     if (c.schedule.enabled && items.length) {
-      h += '<section class="' + SEC + '" aria-label="' + esc(c.schedule.title) + '">' + decoTop('schedule', FL) + title(c.schedule.title) + '<ul class="tl' + (c.schedule.roseMode === 'glide' ? ' glide-on' : '') + '"' + tlStyle(c.schedule) + '>' +
+      PT.schedule = '<section class="' + SEC + '" aria-label="' + esc(c.schedule.title) + '">' + decoTop('schedule', FL) + title(c.schedule.title) + '<ul class="tl' + (c.schedule.roseMode === 'glide' ? ' glide-on' : '') + '"' + tlStyle(c.schedule) + '>' +
         items.map(function (it) {
           return '<li' + (it.rose && c.schedule.roseMode !== 'glide' ? ' class="rose"' : '') + '><span class="t">' + esc(it.time) + '</span><button class="e" type="button" aria-expanded="false"><span class="nm">' + esc(it.title) + '</span>' +
             (it.detail ? '<span class="dt"><span>' + nl(it.detail) + '</span></span>' : '') + '</button></li>';
@@ -654,7 +665,7 @@
     /* location */
     var L2 = c.location;
     if (L2.enabled && (L2.venue || L2.address || L2.mapUrl)) {
-      h += '<section class="' + SEC + '" aria-label="' + esc(L2.title) + '">' + decoTop('location', FL) + title(L2.title) + '<div class="card"><svg class="pin" aria-hidden="true"><use href="#pinicon"/></svg>' +
+      PT.location = '<section class="' + SEC + '" aria-label="' + esc(L2.title) + '">' + decoTop('location', FL) + title(L2.title) + '<div class="card"><svg class="pin" aria-hidden="true"><use href="#pinicon"/></svg>' +
         (L2.venue ? '<p class="venue"' + (L2.venueLang ? ' dir="ltr" lang="' + esc(L2.venueLang) + '"' : '') + '>' + esc(L2.venue) + '</p>' : '') +
         (L2.venueEn ? '<p class="venue-en" dir="ltr" lang="en">' + esc(L2.venueEn) + '</p>' : '') +
         (L2.address ? '<p class="addr">' + nl(L2.address) + '</p>' : '') +
@@ -665,7 +676,7 @@
     /* notes */
     var notes = c.notes.items.filter(function (n) { return n && n.text; });
     if (c.notes.enabled && notes.length) {
-      h += '<section class="' + SEC + '" aria-label="' + esc(c.notes.title) + '">' + decoTop('notes', FL) + fl('fl-side', 'f-side.webp', 194, 682) + title(c.notes.title) + '<div class="rules">' +
+      PT.notes = '<section class="' + SEC + '" aria-label="' + esc(c.notes.title) + '">' + decoTop('notes', FL) + fl('fl-side', 'f-side.webp', 194, 682) + title(c.notes.title) + '<div class="rules">' +
         notes.map(function (n) {
           return '<div class="rule-item"><svg viewBox="0 0 24 24" aria-hidden="true">' + (NOTE_ICONS[n.icon] || NOTE_ICONS.info) + '</svg><p>' + nl(n.text) + '</p></div>';
         }).join('') + '</div>' + decoBottom('notes') + '</section>';
@@ -675,11 +686,13 @@
     if (R.enabled) {
       var max = Math.max(1, Math.min(30, parseInt(R.maxGuests, 10) || 6)), opt = '';
       for (var i = 1; i <= max; i++) opt += '<option>' + i + '</option>';
-      h += '<section class="' + SEC + '" aria-label="' + esc(R.title) + '">' + decoTop('rsvp', FL) + (R.hideTitle ? '' : title(R.title)) + (R.intro && !R.hideIntro ? '<p class="note">' + nl(R.intro) + '</p>' : '') +
+      PT.rsvp = '<section class="' + SEC + '" aria-label="' + esc(R.title) + '">' + decoTop('rsvp', FL) + (R.hideTitle ? '' : title(R.title)) + (R.intro && !R.hideIntro ? '<p class="note">' + nl(R.intro) + '</p>' : '') +
         '<form id="rsvp" novalidate>' + rsvpFormHtml(R, opt) + '</form>' +
         '<p class="thanks" id="thanks" hidden></p>' +
         '<div class="cta" id="cta" hidden><p>' + esc(c.ui.ctaText) + '</p><a class="credit" href="https://www.zaytorainvites.com/" target="_blank" rel="noopener">MADE BY ZAYTORA</a></div>' + decoBottom('rsvp') + '</section>';
     }
+
+    secOrder(c).forEach(function (k) { h += PT[k] || ''; });
 
     /* closing */
     var CL = c.closing;

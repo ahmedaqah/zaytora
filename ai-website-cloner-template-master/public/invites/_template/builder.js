@@ -434,6 +434,23 @@
     box.appendChild(el('p', { class: 'hint', text: 'ارفع أكثر من ورقة ثم اختر من القوائم أعلاه ورقة مختلفة لكل قسم. الورقة تظهر في القوائم بعد رفع صورتها.' }));
     return box;
   }
+  /* order of the sections that follow the first card (layout.order): move each one up or down */
+  function sectionOrderPanel() {
+    var L = state.cfg.layout, NAMES = { countdown: 'العدّ التنازلي', schedule: 'برنامج الحفل', location: 'الموقع', notes: 'التعليمات', rsvp: 'تأكيد الحضور' };
+    var KEYS = ['countdown', 'schedule', 'location', 'notes', 'rsvp'];
+    var cur = (Array.isArray(L.order) ? L.order : []).filter(function (k, i, a) { return KEYS.indexOf(k) >= 0 && a.indexOf(k) === i; });
+    KEYS.forEach(function (k) { if (cur.indexOf(k) < 0) cur.push(k); });
+    L.order = cur;
+    var box = el('div', { class: 'sec', style: 'padding:0' });
+    cur.forEach(function (k, i) {
+      var up = el('button', { type: 'button', class: 'sm', text: '↑', 'aria-label': 'للأعلى' }), dn = el('button', { type: 'button', class: 'sm', text: '↓', 'aria-label': 'للأسفل' });
+      function mv(d) { var j = i + d; if (j < 0 || j >= cur.length) return; cur.splice(j, 0, cur.splice(i, 1)[0]); buildForm(); schedule(); }
+      up.addEventListener('click', function () { mv(-1); }); dn.addEventListener('click', function () { mv(1); });
+      box.appendChild(el('div', { class: 'item' }, [el('div', { class: 'h' }, [el('b', { text: (i + 1) + ') ' + NAMES[k] }), el('div', { class: 'row' }, [up, dn])])]));
+    });
+    box.appendChild(el('p', { class: 'hint', text: 'تظهر الأقسام في الدعوة بهذا الترتيب بعد البطاقة الأولى، وتبقى ورقة الختام في النهاية. الورقة المختارة لكل قسم تنتقل معه.' }));
+    return box;
+  }
   /* colour of the sliding line in the programme (empty = the design's own red) */
   function lineColorField() {
     var S = state.cfg.schedule, inp = el('input', { type: 'color' }); inp.value = /^#[0-9a-f]{6}$/i.test(S.lineColor || '') ? S.lineColor : '#b8323f';
@@ -591,6 +608,7 @@
       el('div', { class: 'g3' }, [text('الاسم الأول', 'hero.name1'), text('الفاصل', 'hero.connector'), text('الاسم الثاني', 'hero.name2')]),
       text('المناسبة', 'hero.occasion', 'مثال: حفل زفاف / حفل خطوبة / مولود جديد'),
       text('نص التاريخ', 'hero.dateText', 'فارغ = يُبنى تلقائياً من التاريخ (20 · 05 · 2027)'),
+      sel('اتجاه كتابة التاريخ في البطاقة الأولى', 'hero.dateDir', [['', 'كما هو (الافتراضي)'], ['ltr', 'من اليسار إلى اليمين']]),
       area('العبارة الرئيسية', 'hero.quote'), text('آية / تعليق صغير تحت العبارة', 'hero.verse'),
       area('نص الدعوة', 'hero.intro')
     ]));
@@ -612,6 +630,7 @@
       return [wrap('تاريخ الحفل', d), el('div', { class: 'g2' }, [wrap('وقت البدء', st), wrap('وقت الانتهاء', en)]),
         wrap('فرق التوقيت عن UTC لمدينة الحفل', off, 'مثال: السعودية/الأردن +03:00 ، النرويج الشتاء +01:00 والصيف +02:00 ، تركيا +03:00. يُستخدم للعدّ التنازلي.'), dl];
     }
+    F.appendChild(section('ترتيب الأقسام بعد البطاقة الأولى', [sectionOrderPanel()]));
     F.appendChild(section('3) التاريخ والعدّ التنازلي', evDom().concat([check('إظهار العدّ التنازلي', 'countdown.enabled'), text('عنوان العدّ التنازلي', 'countdown.title'), sel('شكل العدّ التنازلي', 'countdown.style', [['classic', 'الكلاسيكي (الحالي)'], ['boxes', 'مربعات بإطار'], ['circles', 'دوائر'], ['minimal', 'أرقام كبيرة بسيطة'], ['flip', 'بطاقات داكنة']])])));
 
     /* 4 schedule */
