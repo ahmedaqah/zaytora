@@ -36,7 +36,7 @@ export async function GET(request: Request): Promise<Response> {
     status: 200,
     headers: {
       "Content-Type": upstream.headers.get("content-type") ?? "application/octet-stream",
-      "Cache-Control": "private, max-age=3600",
+      "Cache-Control": "public, max-age=86400",
       "X-Content-Type-Options": "nosniff",
     },
   });

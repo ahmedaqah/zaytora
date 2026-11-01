@@ -32,6 +32,30 @@ function absoluteUrl(value: string): string {
   return value.startsWith("/") ? `${SITE_ORIGIN}${value}` : "";
 }
 
+// Fonts uploaded in the builder live on our storage domain, which sends no CORS headers: Chrome (Android and
+// desktop) then refuses to use them and the invitation falls back to its default font, while Safari accepts them.
+// The public page therefore loads them through the same-origin relay (src/app/invite-media).
+const FONT_HOSTS = new Set(["uploads.zaytorainvites.com", "api.zaytorainvites.com", "zaytora-api.onrender.com"]);
+function viaSite(value: unknown): unknown {
+  if (typeof value !== "string" || !/^https:\/\//i.test(value)) return value;
+  try {
+    return FONT_HOSTS.has(new URL(value).hostname) ? `/invite-media?u=${encodeURIComponent(value)}` : value;
+  } catch {
+    return value;
+  }
+}
+function relayFonts(config: Config): void {
+  const media = obj(config.media);
+  if (media.customFont) media.customFont = viaSite(media.customFont);
+  const royal = obj(config.royal);
+  if (Array.isArray(royal.customFonts)) {
+    for (const f of royal.customFonts) {
+      const font = obj(f);
+      if (font.src) font.src = viaSite(font.src);
+    }
+  }
+}
+
 function dateLabel(config: Config): string {
   const hero = obj(config.hero);
   if (str(hero.dateText)) return str(hero.dateText);
@@ -127,6 +151,7 @@ export async function GET(request: Request, context: { params: Promise<{ slug: s
   const config: Config = loaded;
   if (str(config.kind) === CUSTOM_INVITE_KIND) return serveCustomInvite(slug, config, request);
 
+  relayFonts(config);
   const hero = obj(config.hero);
   const meta = obj(config.meta);
   const media = obj(config.media);
