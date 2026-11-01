@@ -82,7 +82,7 @@ h1,h2{margin:0}
 .tl::before{content:"";position:absolute;top:10px;bottom:10px;left:50%;width:1px;background:var(--gold-bright)}
 .tl li{display:grid;grid-template-columns:1fr 34px 1fr;align-items:center;min-height:34px}
 .tl li::after{content:"";grid-column:2;grid-row:1;width:9px;height:9px;background:var(--paper);border:1.5px solid var(--gold);transform:rotate(45deg);justify-self:center}
-.tl li.rose::after{width:34px;height:34px;border:0;transform:none;background:url(/invites/_template/img/rose.webp) center/contain no-repeat}
+.tl li.rose::after{width:34px;height:34px;border:0;transform:none;background:var(--tl-rose,url(/invites/_template/img/rose.webp)) center/contain no-repeat}
 .tl .t{grid-column:1;grid-row:1;text-align:end;font-family:var(--script);font-weight:700;font-size:calc(24px*var(--ts,1));color:var(--brown);direction:ltr;justify-self:end}
 .tl .e{grid-column:3;grid-row:1;text-align:start;font-size:calc(21px*var(--ts,1));line-height:1.5;color:var(--brown)}
 
@@ -103,7 +103,7 @@ h1,h2{margin:0}
 .tl li.open::after{box-shadow:0 0 0 5px rgba(var(--gb),.28)}
 .tl .t{transition:color .3s}
 .tl li.open .t{color:var(--gold)}
-.tl .fill{position:absolute;top:10px;left:50%;width:2px;margin-left:-.5px;height:0;background:linear-gradient(var(--gold-bright),var(--gold));pointer-events:none;transition:height .15s linear}
+.tl .fill{position:absolute;top:10px;left:50%;width:2px;margin-left:-.5px;height:0;background:var(--tl-line,linear-gradient(var(--gold-bright),var(--gold)));pointer-events:none;z-index:0;transition:height .15s linear}
 .tip{font-size:calc(15px*var(--ts,1));color:var(--gold);opacity:.9}
 
 /* location card */
@@ -364,7 +364,9 @@ main.royal{max-width:520px;padding-block:0 28px;gap:0;overflow-x:clip}
 .cc-d{top:68.9%;font-family:var(--latin);font-size:4.3cqw;letter-spacing:.3em;background:var(--cg);-webkit-background-clip:text;background-clip:text;color:transparent;padding-inline-start:.3em}
 
 /* single gliding rose (schedule.roseMode = glide): one rose follows the reader down the timeline */
-.tl .glider{position:absolute;left:50%;top:0;width:var(--gs,34px);height:var(--gs,34px);margin-left:calc(var(--gs,34px)/-2);background:url(/invites/_template/img/rose.webp) center/contain no-repeat;pointer-events:none;z-index:2;filter:drop-shadow(0 2px 3px rgba(60,30,10,.3));transition:top .9s cubic-bezier(.34,1.25,.5,1),rotate .45s ease,scale .45s ease}
+.tl .glider{position:absolute;left:50%;top:0;width:var(--gs,34px);height:var(--gs,34px);margin-left:calc(var(--gs,34px)/-2);background:var(--tl-rose,url(/invites/_template/img/rose.webp)) center/contain no-repeat;pointer-events:none;z-index:2;filter:drop-shadow(0 2px 3px rgba(60,30,10,.3));transition:top .9s cubic-bezier(.34,1.25,.5,1),rotate .45s ease,scale .45s ease}
+.tl.glide-on .fill{transition:height .9s cubic-bezier(.34,1.25,.5,1)}
+.tl li::after{position:relative;z-index:1}
 .tl .glider.moving{rotate:24deg;scale:1.18}
 /* closing text size / position */
 .cl-txt{display:flex;flex-direction:column;align-items:center;width:100%;transform:translate(calc(var(--ctx,0)*min(1vw,4.8px)),calc(var(--cty,0)*min(1vw,4.8px))) scale(var(--csc,1))}

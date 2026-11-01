@@ -26,7 +26,7 @@
     },
     event: { start: '', end: '', utcOffset: '+00:00' },
     countdown: { enabled: true, title: 'يبدأ الاحتفال بعد', labels: ['يوم', 'ساعة', 'دقيقة', 'ثانية'], style: 'classic' },
-    schedule: { enabled: true, title: 'موعد الحفل', tip: 'اضغط على أي فقرة لمعرفة التفاصيل', roseMode: 'bullets', items: [] },
+    schedule: { enabled: true, title: 'موعد الحفل', tip: 'اضغط على أي فقرة لمعرفة التفاصيل', roseMode: 'bullets', lineColor: '', roseImg: '', items: [] },
     location: { enabled: true, title: 'الموقع', venue: '', venueLang: '', venueEn: '', address: '', mapUrl: '', mapLabel: 'افتح الخريطة' },
     notes: { enabled: true, title: 'تعليمات خاصة', items: [] },
     rsvp: {
@@ -286,6 +286,14 @@
     }
     return ['rl-p', 'rl-f'].map(function (cls) { return '<div class="rl ' + cls + '" aria-hidden="true"><i class="t"></i><i class="m"></i><i class="b"></i></div>'; }).join('');
   }
+  /* programme timeline: colour of the sliding line and a picture replacing the rose (schedule.lineColor / roseImg) */
+  function tlStyle(S) {
+    var v = '';
+    if (hex2rgb(S.lineColor)) v += '--tl-line:' + S.lineColor + ';';
+    var u = S.roseImg ? resolve(S.roseImg) : '';
+    if (u) v += "--tl-rose:url('" + esc(u).replace(/'/g, '%27') + "');";
+    return v ? ' style="' + v + '"' : '';
+  }
   /* countdown look (countdown.style): 'classic' = untouched markup, the others only add a class */
   function cdClass(c) {
     var s = c.countdown && c.countdown.style;
@@ -491,7 +499,7 @@
     }
     var items = c.schedule.items.filter(function (it) { return it && (it.title || it.time); });
     if (c.schedule.enabled && items.length) {
-      h += swSec('schedule', kinds.schedule, c.schedule.title, ['rz-tr', 'rz-bl'], swTitle('schedule', c.schedule.title) + '<ul class="tl' + (c.schedule.roseMode === 'glide' ? ' glide-on' : '') + '">' + items.map(function (it) {
+      h += swSec('schedule', kinds.schedule, c.schedule.title, ['rz-tr', 'rz-bl'], swTitle('schedule', c.schedule.title) + '<ul class="tl' + (c.schedule.roseMode === 'glide' ? ' glide-on' : '') + '"' + tlStyle(c.schedule) + '>' + items.map(function (it) {
         var d = !!it.detail;
         return '<li' + (it.rose && c.schedule.roseMode !== 'glide' ? ' class="rose"' : '') + '><span class="t">' + esc(it.time) + '</span><button class="e' + (d ? '' : ' nd') + '" type="button"' + (d ? ' aria-expanded="false"' : ' tabindex="-1"') + '><span class="nm">' + esc(it.title) + '</span>' +
           (d ? '<span class="dt"><span>' + nl(it.detail) + '</span></span>' : '') + '</button></li>';
@@ -635,7 +643,7 @@
     /* schedule */
     var items = c.schedule.items.filter(function (it) { return it && (it.title || it.time); });
     if (c.schedule.enabled && items.length) {
-      h += '<section class="' + SEC + '" aria-label="' + esc(c.schedule.title) + '">' + decoTop('schedule', FL) + title(c.schedule.title) + '<ul class="tl' + (c.schedule.roseMode === 'glide' ? ' glide-on' : '') + '">' +
+      h += '<section class="' + SEC + '" aria-label="' + esc(c.schedule.title) + '">' + decoTop('schedule', FL) + title(c.schedule.title) + '<ul class="tl' + (c.schedule.roseMode === 'glide' ? ' glide-on' : '') + '"' + tlStyle(c.schedule) + '>' +
         items.map(function (it) {
           return '<li' + (it.rose && c.schedule.roseMode !== 'glide' ? ' class="rose"' : '') + '><span class="t">' + esc(it.time) + '</span><button class="e" type="button" aria-expanded="false"><span class="nm">' + esc(it.title) + '</span>' +
             (it.detail ? '<span class="dt"><span>' + nl(it.detail) + '</span></span>' : '') + '</button></li>';
@@ -905,13 +913,14 @@
       var upd = function () {
         raf = 0;
         var r = tl.getBoundingClientRect(), y = window.innerHeight * 0.62;
-        fill.style.height = Math.max(0, Math.min(r.height - 20, y - r.top - 10)) + 'px';
+        if (!glider) fill.style.height = Math.max(0, Math.min(r.height - 20, y - r.top - 10)) + 'px';
         var last = -1;
         lis.forEach(function (li, n) { var lr = li.getBoundingClientRect(), lit = lr.top + lr.height / 2 < y; li.classList.toggle('lit', lit); if (lit) last = n; });
         /* single rose: glides down to the item the reader has reached, with a little sway while it travels */
         if (glider && lis.length) {
           var k = Math.max(0, last), li = lis[k];
           glider.style.top = (li.offsetTop + li.offsetHeight / 2 - glider.offsetHeight / 2) + 'px';
+          fill.style.height = Math.max(0, li.offsetTop + li.offsetHeight / 2 - 10) + 'px'; /* the rose pulls the line down with it */
           if (k !== gIdx) {
             if (gIdx !== -2) { glider.classList.add('moving'); clearTimeout(gTimer); gTimer = setTimeout(function () { glider.classList.remove('moving'); }, 650); }
             gIdx = k;
