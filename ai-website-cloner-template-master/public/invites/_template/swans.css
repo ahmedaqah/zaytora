@@ -160,7 +160,7 @@ body.swans .tl{list-style:none;margin:0;padding:0;width:100%;position:relative;d
 body.swans .tl::before{content:"";position:absolute;top:10px;bottom:10px;left:50%;width:1px;background:var(--gold-bright)}
 body.swans .tl li{display:grid;grid-template-columns:1fr 34px 1fr;align-items:center;min-height:34px}
 body.swans .tl li::after{content:"";grid-column:2;grid-row:1;width:9px;height:9px;background:var(--paper);border:1.5px solid var(--gold);transform:rotate(45deg);justify-self:center}
-body.swans .tl li.rose::after{width:34px;height:34px;border:0;transform:none;background:url(/invites/_template/img/rose.webp) center/contain no-repeat}
+body.swans .tl li.rose::after{width:34px;height:34px;border:0;transform:none;background:var(--tl-rose,url(/invites/_template/img/rose.webp)) center/contain no-repeat}
 body.swans .tl .t{grid-column:1;grid-row:1;text-align:end;font-family:var(--script);font-weight:700;font-size:24px;color:var(--brown);direction:ltr;justify-self:end}
 body.swans .tl .e{grid-column:3;grid-row:1;text-align:start;font-size:21px;line-height:1.5;color:var(--brown)}
 body.swans .tl .e{background:none;border:0;padding:6px 4px;margin:0;font:inherit;color:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;text-align:start;width:100%;border-radius:2px}
@@ -178,7 +178,9 @@ body.swans .tl li.lit:not(.rose)::after{background:var(--gold-bright);border-col
 body.swans .tl li.open::after{box-shadow:0 0 0 5px rgba(200,162,74,.28)}
 body.swans .tl .t{transition:color .3s}
 body.swans .tl li.open .t{color:var(--gold)}
-body.swans .tl .fill{position:absolute;top:10px;left:50%;width:2px;margin-left:-.5px;height:0;background:linear-gradient(#b8323f,#7b1a22);pointer-events:none;transition:height .15s linear}
+body.swans .tl .fill{position:absolute;top:10px;left:50%;width:2px;margin-left:-.5px;height:0;background:var(--tl-line,linear-gradient(#b8323f,#7b1a22));pointer-events:none;z-index:0;transition:height .15s linear}
+body.swans .tl.glide-on .fill{transition:height .9s cubic-bezier(.34,1.25,.5,1)}
+body.swans .tl li::after{position:relative;z-index:1}
 body.swans .tip{font-size:15px;color:var(--gold);opacity:.9}
 body.swans .card{width:100%;position:relative;padding:22px 16px 24px;border:1px solid var(--gold-bright);display:flex;flex-direction:column;align-items:center;gap:8px;background:rgba(255,250,242,.55)}
 body.swans .card::before{content:"";position:absolute;inset:5px;border:1px solid rgba(200,162,74,.5);pointer-events:none}

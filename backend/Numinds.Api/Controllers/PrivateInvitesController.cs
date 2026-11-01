@@ -222,6 +222,11 @@ public partial class PrivateInvitesController(NumindsDbContext db, IFileStorageS
                     }
                 }
             }
+            if (doc.RootElement.TryGetProperty("schedule", out var scheduleCfg) && scheduleCfg.ValueKind == JsonValueKind.Object
+                && scheduleCfg.TryGetProperty("roseImg", out var roseImg))
+            {
+                AddIfUploaded(urls, roseImg);
+            }
             if (doc.RootElement.TryGetProperty("stickers", out var stickers) && stickers.ValueKind == JsonValueKind.Array)
             {
                 foreach (var sticker in stickers.EnumerateArray())

@@ -434,6 +434,14 @@
     box.appendChild(el('p', { class: 'hint', text: 'ارفع أكثر من ورقة ثم اختر من القوائم أعلاه ورقة مختلفة لكل قسم. الورقة تظهر في القوائم بعد رفع صورتها.' }));
     return box;
   }
+  /* colour of the sliding line in the programme (empty = the design's own red) */
+  function lineColorField() {
+    var S = state.cfg.schedule, inp = el('input', { type: 'color' }); inp.value = /^#[0-9a-f]{6}$/i.test(S.lineColor || '') ? S.lineColor : '#b8323f';
+    inp.addEventListener('input', function () { S.lineColor = inp.value; schedule(); });
+    var rm = el('button', { type: 'button', class: 'sm del', text: 'استعادة اللون الأصلي' });
+    rm.addEventListener('click', function () { S.lineColor = ''; inp.value = '#b8323f'; schedule(); });
+    return el('div', { class: 'f' }, [el('span', { text: 'لون الخط المنزلق' }), el('div', { class: 'row' }, [inp, rm])]);
+  }
   /* free texts on the closing card: add as many as you like, each with its own colour, font, size and position */
   function cardTexts() {
     var K = state.cfg.closing.card; if (!Array.isArray(K.texts)) K.texts = [];
@@ -610,6 +618,8 @@
     F.appendChild(section('4) برنامج الحفل', [
       check('إظهار البرنامج', 'schedule.enabled'), text('العنوان', 'schedule.title'), text('تلميح تحت البرنامج', 'schedule.tip'),
       sel('شكل الوردات على الخط', 'schedule.roseMode', [['bullets', 'الافتراضي: وردات ثابتة بجانب الفقرات المعلَّمة'], ['glide', 'وردة واحدة تنزل وتنزلق إلى كل فقرة مع التمرير']]),
+      lineColorField(),
+      assetField('ملصق بدل الوردة (يظهر مكان الوردة على الخط)', 'schedule.roseImg', 'PNG أو WebP بخلفية شفافة، يفضّل مربعاً. في وضع «وردة واحدة تنزل» تسحب الوردة (أو الملصق) الخط الأحمر خلفها أثناء التمرير.'),
       repeater('schedule.items', function (it, cb) {
         var rose = el('input', { type: 'checkbox' }); rose.checked = !!it.rose; rose.addEventListener('input', function () { it.rose = rose.checked; cb(); });
         return [el('div', { class: 'g2' }, [itemText(it, 'time', 'الوقت', cb), itemText(it, 'title', 'الفقرة', cb)]), itemText(it, 'detail', 'التفاصيل عند الضغط (اختياري)', cb, true),
