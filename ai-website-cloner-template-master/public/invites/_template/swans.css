@@ -364,3 +364,8 @@ body.swans .r-mid{display:block;padding:0;grid-column:auto}
 
 body.swans section.sec-schedule .tl .glider{--gs:26px}
 @media(max-width:600px){body.swans section.sec-schedule .tl .glider{--gs:22px}}
+
+/* paper opacity (royal.paperOpacity): only the paper picture turns see-through, never the text on it */
+body.swans .paper>.pbg,body.swans .paper>.fbg>div{opacity:var(--rpo,1)}
+/* paper across the whole width of the invitation (royal.paperFull): the paper picture bleeds into the page margin on both sides */
+body.swans.pfull .paper>.fbg{left:-16px;right:-16px;width:auto}

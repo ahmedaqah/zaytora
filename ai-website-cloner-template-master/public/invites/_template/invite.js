@@ -25,7 +25,7 @@
       dateText: '', quote: '', verse: '', intro: ''
     },
     event: { start: '', end: '', utcOffset: '+00:00' },
-    countdown: { enabled: true, title: 'يبدأ الاحتفال بعد', labels: ['يوم', 'ساعة', 'دقيقة', 'ثانية'] },
+    countdown: { enabled: true, title: 'يبدأ الاحتفال بعد', labels: ['يوم', 'ساعة', 'دقيقة', 'ثانية'], style: 'classic' },
     schedule: { enabled: true, title: 'موعد الحفل', tip: 'اضغط على أي فقرة لمعرفة التفاصيل', roseMode: 'bullets', items: [] },
     location: { enabled: true, title: 'الموقع', venue: '', venueLang: '', venueEn: '', address: '', mapUrl: '', mapLabel: 'افتح الخريطة' },
     notes: { enabled: true, title: 'تعليمات خاصة', items: [] },
@@ -40,7 +40,7 @@
       msgGuests: 'عدد الحضور', msgNote: 'كلمة',
       hideTitle: false, hideIntro: false, hideName: false, hideAttendLabel: false, hideAttend: false, hideNote: false
     },
-    closing: { latin: '', text: '', sign: '', textScale: 1, textX: 0, textY: 0, card: { enabled: false, font: '', frame: '', letter: '', letterX: 50, letterY: 21.6, letterSize: 1, img: '', imgX: 50, imgY: 21.6, imgW: 22, name1: '', name2: '', amp: '&', date: '', color: '#a8832f' } },
+    closing: { latin: '', text: '', sign: '', textScale: 1, textX: 0, textY: 0, card: { enabled: false, font: '', frame: '', letter: '', letterX: 50, letterY: 21.6, letterSize: 1, img: '', imgX: 50, imgY: 21.6, imgW: 22, name1: '', name2: '', amp: '&', date: '', color: '#a8832f', texts: [] } },
     footer: '',
     layout: { mode: 'classic' },
     royal: {
@@ -52,7 +52,7 @@
       scales: { bismillah: 1, invite: 1, middle: 1, family: 1, names: 1 },
       colors: { text: '#4a3b30', names: '#2a1d15' },
       anim: { type: 'rise', duration: 1.8, gap: 0.55, delay: 0.5 },
-      paperOpacity: 1, paperStyle: 'columns', customFonts: [], useImages: true, day: '', dayScale: 1, dayX: 0, dayY: 0, papers: {},
+      paperOpacity: 1, paperStyle: 'columns', customFonts: [], useImages: true, day: '', dayScale: 1, dayX: 0, dayY: 0, papers: {}, paperSets: [],
       customPaper: { top: '', mid: '', bot: '', t: 48.8, b: 46.5, mt: 54.7, padX: 18, padY: 17 },
       veil: { on: false, color: '#120608', top: 0.42, mid: 0.22, bot: 0.38 },
       deco: {
@@ -286,6 +286,14 @@
     }
     return ['rl-p', 'rl-f'].map(function (cls) { return '<div class="rl ' + cls + '" aria-hidden="true"><i class="t"></i><i class="m"></i><i class="b"></i></div>'; }).join('');
   }
+  /* countdown look (countdown.style): 'classic' = untouched markup, the others only add a class */
+  function cdClass(c) {
+    var s = c.countdown && c.countdown.style;
+    return ['boxes', 'circles', 'minimal', 'flip'].indexOf(s) >= 0 ? ' cs-' + s : '';
+  }
+  /* extra uploaded papers (royal.paperSets): chosen per section with the value 'p1', 'p2' ... */
+  var PAPER_SETS = [], PAPER_OP = 1;
+  function paperSet(v) { var m = /^p(\d+)$/.exec(v || ''), P = m && PAPER_SETS[+m[1] - 1]; return P && P.top && P.bot ? P : null; }
   function paperStyle(R) {
     var st = ['columns', 'rose', 'gold', 'blank', 'custom'].indexOf(R.paperStyle) >= 0 ? R.paperStyle : 'columns';
     var P = R.customPaper || {};
@@ -351,8 +359,14 @@
     var amp = (K.name1 && K.name2) ? '<span class="cc-amp">' + esc(K.amp || '&') + '</span>' : '';
     var d = String(K.date || '').trim();
     var T = closingTx(CLX || {});
+    /* extra free texts on the card (closing.card.texts): own colour, font, size and position */
+    var extra = (Array.isArray(K.texts) ? K.texts : []).map(function (t) {
+      if (!t || !String(t.text || '').trim()) return '';
+      var col = hex2rgb(t.color) ? t.color : (K.color || '#a8832f');
+      return '<span class="cc-t" style="left:' + num(t.x, 50, -20, 120) + '%;top:' + num(t.y, 70, -20, 120) + '%;font-size:' + (6 * num(t.size, 1, 0.3, 4)).toFixed(2) + 'cqw;color:' + col + (t.font ? ';font-family:' + fontOf(t.font) : '') + '">' + nl(t.text) + '</span>';
+    }).join('');
     return '<div class="ccard" style="--cg:' + g + (T.on ? ';--ctx:' + T.x + 'cqw;--cty:' + T.y + 'cqw;--csc:' + T.sc : '') + '"><img class="cc-fr" src="' + esc(frame) + '" alt="" draggable="false">' + mono +
-      '<div class="cc-names">' + nm(K.name1) + amp + nm(K.name2) + '</div>' + (d ? '<span class="cc-d">' + esc(d) + '</span>' : '') + '</div>';
+      '<div class="cc-names">' + nm(K.name1) + amp + nm(K.name2) + '</div>' + (d ? '<span class="cc-d">' + esc(d) + '</span>' : '') + extra + '</div>';
   }
 
   /* ===== "swans" look (layout.mode = 'swans'): a faithful rebuild of the original swan-lake invitation.
@@ -419,7 +433,7 @@
     if (['blank', 'frame', 'torn'].indexOf(ps) >= 0) Object.keys(k).forEach(function (x) { k[x] = ps; });
     else if (ps === 'custom' && P.top && P.bot) Object.keys(k).forEach(function (x) { k[x] = 'custom'; });
     var o = R.papers || {};
-    Object.keys(k).forEach(function (x) { if (['frame', 'blank', 'torn', 'custom'].indexOf(o[x]) >= 0 && (o[x] !== 'custom' || (P.top && P.bot))) k[x] = o[x]; });
+    Object.keys(k).forEach(function (x) { if (['frame', 'blank', 'torn', 'custom'].indexOf(o[x]) >= 0 && (o[x] !== 'custom' || (P.top && P.bot))) k[x] = o[x]; else if (paperSet(o[x])) k[x] = o[x]; });
     return k;
   }
   function swMono(key, FL) {
@@ -450,9 +464,11 @@
     'rz-tr': ['sw-rz-tr.webp', 277, 404], 'rz-bl': ['sw-rz-bl.webp', 317, 379], 'rz-tl': ['sw-rz-tl.webp', 317, 379]
   };
   function swSec(key, kind, label, rz, inner, FL, CP) {
+    var ps = paperSet(kind); if (ps) { CP = ps; kind = 'custom'; }
     var cls = 'paper' + (kind === 'torn' ? '' : ' fc') + (kind === 'blank' ? ' pk-blank' : '') + (kind === 'custom' ? ' pk-custom' : '') + ' sec-' + key;
-    var st = '';
-    if (kind === 'custom') st = ' style="--t:' + swPx(num(CP.t, 48.8, 5, 150)) + ';--b:' + swPx(num(CP.b, 46.5, 5, 150)) + ';--mt:' + swPx(num(CP.mt, 54.7, 3, 300)) + ';--px:' + swPx(num(CP.padX, 18, 4, 40)) + ';--py:' + swPx(num(CP.padY, 17, 4, 50)) + '"';
+    var st = '', rpo = PAPER_OP < 1 ? '--rpo:' + PAPER_OP : '';
+    if (rpo) st = ' style="' + rpo + '"';
+    if (kind === 'custom') st = ' style="' + (rpo ? rpo + ';' : '') + '--t:' + swPx(num(CP.t, 48.8, 5, 150)) + ';--b:' + swPx(num(CP.b, 46.5, 5, 150)) + ';--mt:' + swPx(num(CP.mt, 54.7, 3, 300)) + ';--px:' + swPx(num(CP.padX, 18, 4, 40)) + ';--py:' + swPx(num(CP.padY, 17, 4, 50)) + '"';
     function pc(u) { return u ? ' style="background-image:url(\'' + esc(resolve(u)).replace(/'/g, '%27') + '\')"' : ''; }
     var bg = kind === 'torn' ? '<div class="pbg" aria-hidden="true"></div>'
       : '<div class="fbg" aria-hidden="true"><div class="ft"' + (kind === 'custom' ? pc(CP.top) : '') + '></div><div class="fm"' + (kind === 'custom' ? pc(CP.mid || CP.top) : '') + '></div><div class="fb"' + (kind === 'custom' ? pc(CP.bot) : '') + '></div></div>';
@@ -471,7 +487,7 @@
     if (c.countdown.enabled && start && start.ms) {
       var L = c.countdown.labels;
       h += swSec('countdown', kinds.countdown, c.countdown.title, [], swTitle('countdown', c.countdown.title) +
-        '<div class="count" id="count" role="timer" aria-live="off">' + ['d', 'h', 'm', 's'].map(function (id, i) { return '<div class="cell"><b id="' + id + '">00</b><span>' + esc(L[i] || '') + '</span></div>'; }).join('') + '</div><!--SWAN-->', FL, CP);
+        '<div class="count' + cdClass(c) + '" id="count" role="timer" aria-live="off">' + ['d', 'h', 'm', 's'].map(function (id, i) { return '<div class="cell"><b id="' + id + '">00</b><span>' + esc(L[i] || '') + '</span></div>'; }).join('') + '</div><!--SWAN-->', FL, CP);
     }
     var items = c.schedule.items.filter(function (it) { return it && (it.title || it.time); });
     if (c.schedule.enabled && items.length) {
@@ -518,8 +534,11 @@
     var swans = c.layout.mode === 'swans';
     var royal = c.layout.mode === 'royal'; ROYAL = royal;
     DECO = (royal || swans) ? c.royal.deco : null;
+    PAPER_SETS = Array.isArray(c.royal.paperSets) ? c.royal.paperSets : [];
+    PAPER_OP = num(c.royal.paperOpacity, 1, 0.1, 1);
     CARD.custom = royal && paperStyle(c.royal) === 'custom' ? c.royal.customPaper : null;
     document.body.classList.toggle('swans', swans);
+    document.body.classList.toggle('pfull', !!(swans || royal) && !!c.royal.paperFull);
     var FL = (H.name1 || '').trim().charAt(0);
     var SEC = 'paper';
     document.body.classList.toggle('royal', royal);
@@ -608,7 +627,7 @@
     if (c.countdown.enabled && start && start.ms) {
       var L = c.countdown.labels;
       h += '<section class="' + SEC + '" aria-label="' + esc(c.countdown.title) + '">' + decoTop('countdown', FL) + title(c.countdown.title) +
-        '<div class="count" id="count" role="timer" aria-live="off">' +
+        '<div class="count' + cdClass(c) + '" id="count" role="timer" aria-live="off">' +
         ['d', 'h', 'm', 's'].map(function (id, i) { return '<div class="cell"><b id="' + id + '">00</b><span>' + esc(L[i] || '') + '</span></div>'; }).join('') +
         '</div>' + decoBottom('countdown') + '</section>';
     }
