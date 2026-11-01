@@ -297,7 +297,7 @@
   /* first card date: 'ltr' = read from left to right (day on the left), otherwise untouched */
   function dateDir(c) { return c.hero && c.hero.dateDir === 'ltr' ? ' dir="ltr" style="unicode-bidi:isolate;direction:ltr"' : ''; }
   /* order of the sections after the first card (layout.order); anything missing keeps its usual place after the listed ones */
-  var SEC_KEYS = ['countdown', 'schedule', 'location', 'notes', 'rsvp'];
+  var SEC_KEYS = ['countdown', 'schedule', 'location', 'notes', 'rsvp', 'closing'];
   function secOrder(c) {
     var o = (c.layout && Array.isArray(c.layout.order) ? c.layout.order : []).filter(function (k, i, a) { return SEC_KEYS.indexOf(k) >= 0 && a.indexOf(k) === i; });
     SEC_KEYS.forEach(function (k) { if (o.indexOf(k) < 0) o.push(k); });
@@ -535,9 +535,9 @@
         '<p class="thanks" id="thanks" hidden></p>' +
         '<div class="cta" id="cta" hidden><p>' + esc(c.ui.ctaText) + '</p><a class="credit" href="https://www.zaytorainvites.com/" target="_blank" rel="noopener">MADE BY ZAYTORA</a></div><!--SWAN-->', FL, CP);
     }
-    secOrder(c).forEach(function (k) { h += PT[k] || ''; });
     var CL = c.closing, names = c.hero.name1 + (c.hero.name2 ? ' ' + c.hero.name2 : '');
-    h += '<section class="paper sec-closing" aria-label="' + esc(CL.sign || names) + '">' + cardHtml(CL.card && CL.card.enabled ? CL.card : { name1: c.hero.name1, name2: c.hero.name2, amp: '&', date: '' }, FL, start, dateText, CL) + '</section>';
+    PT.closing = '<section class="paper sec-closing" aria-label="' + esc(CL.sign || names) + '">' + cardHtml(CL.card && CL.card.enabled ? CL.card : { name1: c.hero.name1, name2: c.hero.name2, amp: '&', date: '' }, FL, start, dateText, CL) + '</section>';
+    secOrder(c).forEach(function (k) { h += PT[k] || ''; });
     return h;
   }
   function swansShare(c, names) {
@@ -692,21 +692,20 @@
         '<div class="cta" id="cta" hidden><p>' + esc(c.ui.ctaText) + '</p><a class="credit" href="https://www.zaytorainvites.com/" target="_blank" rel="noopener">MADE BY ZAYTORA</a></div>' + decoBottom('rsvp') + '</section>';
     }
 
-    secOrder(c).forEach(function (k) { h += PT[k] || ''; });
-
     /* closing */
     var CL = c.closing;
     if (royal && CL.card && CL.card.enabled) {
       /* the closing card stands on its own (no paper behind it): a frame picture with live text on top */
-      h += '<section class="rsec rsec-card" aria-label="' + esc(CL.sign || names) + '">' + cardHtml(CL.card, FL, start, dateText, CL) + '</section>';
+      PT.closing = '<section class="rsec rsec-card" aria-label="' + esc(CL.sign || names) + '">' + cardHtml(CL.card, FL, start, dateText, CL) + '</section>';
     } else
-    h += '<section class="' + SEC + '" aria-label="' + esc(CL.sign || names) + '">' + decoTop('closing', FL) + fl('fl-bl', 'f-bl-big.webp', 560, 657) + fl('fl-br', 'f-br.webp', 437, 659) +
+    PT.closing = '<section class="' + SEC + '" aria-label="' + esc(CL.sign || names) + '">' + decoTop('closing', FL) + fl('fl-bl', 'f-bl-big.webp', 560, 657) + fl('fl-br', 'f-br.webp', 437, 659) +
       (function () {
         var T = closingTx(CL), inner = (CL.latin ? '<p class="latin" style="margin-top:6px">' + esc(CL.latin) + '</p>' : '') +
           (CL.text ? '<p class="quote" style="font-size:30px">' + esc(CL.text) + '</p>' : '') +
           (CL.sign ? '<p class="sign">' + esc(CL.sign) + '</p>' : '');
         return T.on && inner ? '<div class="cl-txt" style="--ctx:' + T.x + ';--cty:' + T.y + ';--csc:' + T.sc + '">' + inner + '</div>' : inner;
       })() + decoBottom('closing') + '<div class="closing-space"></div></section>';
+    secOrder(c).forEach(function (k) { h += PT[k] || ''; });
     if (royal) { if (paperStyle(c.royal) !== 'columns') h = h.slice(0, secAt) + cardify(h.slice(secAt)); h += sheetClose(c); }
     }
     /* "MADE BY ZAYTORA" always closes the page and links to the site's home page. It does not depend on the stored

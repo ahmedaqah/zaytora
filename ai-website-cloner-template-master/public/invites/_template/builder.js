@@ -436,8 +436,8 @@
   }
   /* order of the sections that follow the first card (layout.order): move each one up or down */
   function sectionOrderPanel() {
-    var L = state.cfg.layout, NAMES = { countdown: 'العدّ التنازلي', schedule: 'برنامج الحفل', location: 'الموقع', notes: 'التعليمات', rsvp: 'تأكيد الحضور' };
-    var KEYS = ['countdown', 'schedule', 'location', 'notes', 'rsvp'];
+    var L = state.cfg.layout, NAMES = { countdown: 'العدّ التنازلي', schedule: 'برنامج الحفل', location: 'الموقع', notes: 'التعليمات', rsvp: 'تأكيد الحضور', closing: 'بطاقة / ورقة الختام' };
+    var KEYS = ['countdown', 'schedule', 'location', 'notes', 'rsvp', 'closing'];
     var cur = (Array.isArray(L.order) ? L.order : []).filter(function (k, i, a) { return KEYS.indexOf(k) >= 0 && a.indexOf(k) === i; });
     KEYS.forEach(function (k) { if (cur.indexOf(k) < 0) cur.push(k); });
     L.order = cur;
@@ -448,7 +448,7 @@
       up.addEventListener('click', function () { mv(-1); }); dn.addEventListener('click', function () { mv(1); });
       box.appendChild(el('div', { class: 'item' }, [el('div', { class: 'h' }, [el('b', { text: (i + 1) + ') ' + NAMES[k] }), el('div', { class: 'row' }, [up, dn])])]));
     });
-    box.appendChild(el('p', { class: 'hint', text: 'تظهر الأقسام في الدعوة بهذا الترتيب بعد البطاقة الأولى، وتبقى ورقة الختام في النهاية. الورقة المختارة لكل قسم تنتقل معه.' }));
+    box.appendChild(el('p', { class: 'hint', text: 'تظهر الأقسام في الدعوة بهذا الترتيب بعد البطاقة الأولى، ويمكن نقل الختام أيضاً (الأصل أن يكون في النهاية). الورقة المختارة لكل قسم تنتقل معه.' }));
     return box;
   }
   /* colour of the sliding line in the programme (empty = the design's own red) */
