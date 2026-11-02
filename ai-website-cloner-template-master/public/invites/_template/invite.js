@@ -225,7 +225,7 @@
       var inner = s.kind === 'video'
         ? '<video src="' + esc(url) + '" autoplay muted loop playsinline preload="auto"></video>'
         : '<img src="' + esc(url) + '" alt="" draggable="false">';
-      return '<div class="stk' + (s.float ? ' flo' : '') + '" data-i="' + i + '" data-a="' + anchor + '"' + (fx2 ? ' data-u="2"' : '') + ' style="' + st + '">' + inner + '</div>';
+      return '<div class="stk' + (s.float ? ' flo' : '') + '" data-i="' + i + '" data-a="' + anchor + '"' + (fx2 ? ' data-u="2"' : '') + (fx2 && anchor === 'page' && /^[a-z]{3,12}$/.test(s.sec || '') ? ' data-sec="' + s.sec + '" data-y="' + num(s.y, 20, -400, 4000) + '"' : '') + ' style="' + st + '">' + inner + '</div>';
     }).join('');
   }
   function fontCss(M, list) {
@@ -896,6 +896,23 @@
       live.timers.push(setTimeout(function () { papers.forEach(function (p) { p.classList.add('in'); }); }, 12000));
     } else papers.forEach(function (p) { p.classList.add('in'); });
 
+    /* stickers tied to a section: top = that section's top + offset in width units, recomputed whenever the page reflows */
+    var tied = [].slice.call(document.querySelectorAll('.stk-layer .stk[data-sec]'));
+    if (tied.length) {
+      var mainEl = document.querySelector('main');
+      var placeTied = function () {
+        tied.forEach(function (st) {
+          var sec = mainEl && mainEl.querySelector(':scope > .sec-' + st.dataset.sec), L = st.parentNode;
+          if (!sec || !L.clientWidth) return; /* section not on this page: keep the plain offset from the top */
+          st.style.top = (sec.offsetTop + parseFloat(st.dataset.y) / 100 * L.clientWidth) + 'px';
+        });
+      };
+      placeTied();
+      if (window.ResizeObserver && mainEl) { var ro = new ResizeObserver(placeTied); ro.observe(mainEl); live.unbind.push(function () { ro.disconnect(); }); }
+      on(window, 'resize', placeTied); on(window, 'load', placeTied);
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(placeTied);
+    }
+
     /* preview only: drag a sticker with the mouse/finger and report its new position to the builder */
     if (PREVIEW) {
       [].forEach.call(document.querySelectorAll('.stk[data-i]'), function (st) {
@@ -912,9 +929,18 @@
           try { st.setPointerCapture(e.pointerId); } catch (x) { /* ignore */ }
           function mv(ev) {
             if (fixed) {
-              var fx = (ev.clientX - cl) / cw * 100, fy = (ev.clientY - (st.dataset.a === 'scene' ? box.top + box.height / 2 : box.top)) / cw * 100, sc = st.dataset.a === 'scene';
+              var fx = (ev.clientX - cl) / cw * 100, sc = st.dataset.a === 'scene', py = ev.clientY - (sc ? box.top + box.height / 2 : box.top), fy = py / cw * 100;
               pos = { x: Math.round(Math.max(-30, Math.min(130, fx)) * 10) / 10, y: Math.round(Math.max(sc ? -400 : -60, Math.min(sc ? 400 : 4000, fy)) * 10) / 10 };
-              st.style.left = 'calc(50% + ' + (pos.x - 50) + 'cqw)'; st.style.top = sc ? 'calc(50% + ' + pos.y + 'cqw)' : pos.y + 'cqw';
+              st.style.left = 'calc(50% + ' + (pos.x - 50) + 'cqw)';
+              if (!sc && swansLook()) { /* tie it to the section it is over, so it follows that section on every screen */
+                st.style.top = py + 'px';
+                var secs = [].slice.call(document.querySelectorAll('main > section[class*="sec-"]')), hit = null, key = '';
+                secs.forEach(function (e) { if (e.offsetTop <= py && (!hit || e.offsetTop > hit.offsetTop)) hit = e; });
+                if (hit) { key = (/(?:^|\s)sec-([a-z]+)/.exec(hit.className) || [])[1] || ''; }
+                pos.sec = key; pos.y = hit && key ? Math.round((py - hit.offsetTop) / cw * 1000) / 10 : Math.round(py / cw * 1000) / 10;
+                return;
+              }
+              st.style.top = sc ? 'calc(50% + ' + pos.y + 'cqw)' : pos.y + 'cqw';
               return;
             }
             var x = (ev.clientX - box.left) / box.width * 100, y = (ev.clientY - box.top) / box.height * 100;
@@ -923,7 +949,7 @@
           }
           function up() {
             st.removeEventListener('pointermove', mv); st.removeEventListener('pointerup', up); st.removeEventListener('pointercancel', up);
-            if (pos && window.parent !== window) window.parent.postMessage({ type: 'zaytora-sticker-move', index: +st.dataset.i, x: pos.x, y: pos.y }, location.origin);
+            if (pos && window.parent !== window) window.parent.postMessage({ type: 'zaytora-sticker-move', index: +st.dataset.i, x: pos.x, y: pos.y, sec: pos.sec }, location.origin);
           }
           st.addEventListener('pointermove', mv); st.addEventListener('pointerup', up); st.addEventListener('pointercancel', up);
         });
