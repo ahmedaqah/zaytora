@@ -323,7 +323,7 @@
           if (s.u === 2) { s.y = anchor.value === 'scene' ? -80 : 20; draw(); } /* the vertical reference changes (scene centre / paper top) */
           schedule();
         });
-        var isScene = (s.anchor || 'scene') === 'scene', fixedPos = s.u === 2 && (isScene || state.cfg.layout.mode !== 'swans');
+        var isScene = (s.anchor || 'scene') === 'scene', fixedPos = s.u === 2;
         var layer = el('select', {}, [el('option', { value: 'front', text: 'أمام النصوص' }), el('option', { value: 'back', text: 'خلف النصوص' })]); layer.value = s.layer || 'front';
         layer.addEventListener('input', function () { s.layer = layer.value; schedule(); });
         var fl = el('input', { type: 'checkbox' }); fl.checked = !!s.float; fl.addEventListener('input', function () { s.float = fl.checked; schedule(); });
