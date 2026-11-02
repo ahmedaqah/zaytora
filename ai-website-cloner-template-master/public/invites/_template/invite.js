@@ -210,16 +210,22 @@
   function num(v, d, lo, hi) { v = parseFloat(v); return isFinite(v) ? Math.max(lo, Math.min(hi, v)) : d; }
   function wings(t) { return '<span class="r-w"><svg aria-hidden="true"><use href="#rwing"/></svg><span>' + esc(t) + '</span><svg aria-hidden="true"><use href="#rwing"/></svg></span>'; }
   /* stickers: free images / GIFs / transparent PNGs / short videos placed by percentage inside the scene or the paper sheet */
-  function stickersHtml(list, anchor) {
+  function stickersHtml(list, anchor, only) { /* only: 'old' = just the older %-positioned stickers, 'front'/'back' = just the new width-based ones of that layer */
     return list.map(function (s, i) {
       if (!s || !s.src || (s.anchor === 'page' ? 'page' : 'scene') !== anchor) return '';
+      if (only === 'old' ? s.u === 2 : only ? (s.u !== 2 || (s.layer === 'back' ? 'back' : 'front') !== only) : false) return '';
       var url = resolve(s.src); if (!url) return '';
-      var st = 'left:' + num(s.x, 50, -30, 130) + '%;top:' + num(s.y, 20, -30, 130) + '%;width:' + num(s.w, 30, 3, 200) + 'cqw;opacity:' + num(s.op, 1, 0.05, 1) +
+      /* u:2 (stickers added from now on): position measured in the same width-based unit as the size (cqw), so it stays put on every screen.
+         x = 0..100 across the content width; y = offset from the centre of the opening scene, or from the top of the paper. Older stickers keep the old % maths. */
+      var fx2 = s.u === 2, pos = fx2
+        ? 'left:calc(50% + ' + (num(s.x, 50, -30, 130) - 50) + 'cqw);top:' + (anchor === 'scene' ? 'calc(50% + ' + num(s.y, -80, -400, 400) + 'cqw)' : num(s.y, 20, -60, 4000) + 'cqw')
+        : 'left:' + num(s.x, 50, -30, 130) + '%;top:' + num(s.y, 20, -30, 130) + '%';
+      var st = pos + ';width:' + num(s.w, 30, 3, 200) + 'cqw;opacity:' + num(s.op, 1, 0.05, 1) +
         ';--rot:' + num(s.rot, 0, -180, 180) + 'deg;z-index:' + (s.layer === 'back' ? 1 : 3);
       var inner = s.kind === 'video'
         ? '<video src="' + esc(url) + '" autoplay muted loop playsinline preload="auto"></video>'
         : '<img src="' + esc(url) + '" alt="" draggable="false">';
-      return '<div class="stk' + (s.float ? ' flo' : '') + '" data-i="' + i + '" style="' + st + '">' + inner + '</div>';
+      return '<div class="stk' + (s.float ? ' flo' : '') + '" data-i="' + i + '" data-a="' + anchor + '"' + (fx2 ? ' data-u="2"' : '') + ' style="' + st + '">' + inner + '</div>';
     }).join('');
   }
   function fontCss(M, list) {
@@ -501,7 +507,9 @@
     return '<a class="btn" href="' + esc(u) + '" target="_blank" rel="noopener">' + esc(L2.mapLabel || 'افتح الخريطة') + '</a>';
   }
   function swansBody(c, start, dateText, FL) {
-    var R = c.royal, kinds = swKinds(R), CP = R.customPaper || {}, h = stickersHtml(c.stickers, 'page'), SEC = '', PT = {};
+    var R = c.royal, kinds = swKinds(R), CP = R.customPaper || {}, h = stickersHtml(c.stickers, 'page', 'old'), SEC = '', PT = {};
+    /* new stickers: two layers (behind / in front) laid over the whole invitation, each a width container so cqw matches the real page width */
+    ['back', 'front'].forEach(function (ly) { var sh = stickersHtml(c.stickers, 'page', ly); if (sh) h += '<div class="stk-layer" style="z-index:' + (ly === 'back' ? 1 : 3) + '">' + sh + '</div>'; });
     h += swScene(c, dateText);
     if (c.countdown.enabled && start && start.ms) {
       var L = c.countdown.labels;
@@ -890,9 +898,22 @@
       [].forEach.call(document.querySelectorAll('.stk[data-i]'), function (st) {
         on(st, 'pointerdown', function (e) {
           e.preventDefault();
-          var box = st.parentNode.getBoundingClientRect(), pos = null;
+          var box = st.parentNode.getBoundingClientRect(), pos = null, fixed = st.dataset.u === '2', cw = 0, cl = 0;
+          if (fixed) { /* width-based units: measure against the nearest container's content box, exactly like cqw does */
+            var ce = st.parentNode;
+            while (ce && ce !== document.body && !/size/.test(getComputedStyle(ce).containerType || '')) ce = ce.parentNode;
+            var cs = getComputedStyle(ce), bb = ce.getBoundingClientRect();
+            cw = ce.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight); cl = bb.left + ce.clientLeft + parseFloat(cs.paddingLeft);
+            if (!(cw > 0)) fixed = false;
+          }
           try { st.setPointerCapture(e.pointerId); } catch (x) { /* ignore */ }
           function mv(ev) {
+            if (fixed) {
+              var fx = (ev.clientX - cl) / cw * 100, fy = (ev.clientY - (st.dataset.a === 'scene' ? box.top + box.height / 2 : box.top)) / cw * 100, sc = st.dataset.a === 'scene';
+              pos = { x: Math.round(Math.max(-30, Math.min(130, fx)) * 10) / 10, y: Math.round(Math.max(sc ? -400 : -60, Math.min(sc ? 400 : 4000, fy)) * 10) / 10 };
+              st.style.left = 'calc(50% + ' + (pos.x - 50) + 'cqw)'; st.style.top = sc ? 'calc(50% + ' + pos.y + 'cqw)' : pos.y + 'cqw';
+              return;
+            }
             var x = (ev.clientX - box.left) / box.width * 100, y = (ev.clientY - box.top) / box.height * 100;
             pos = { x: Math.round(Math.max(-30, Math.min(130, x)) * 10) / 10, y: Math.round(Math.max(-30, Math.min(130, y)) * 10) / 10 };
             st.style.left = pos.x + '%'; st.style.top = pos.y + '%';

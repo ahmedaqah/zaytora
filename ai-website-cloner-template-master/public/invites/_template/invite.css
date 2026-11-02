@@ -314,6 +314,7 @@ main.royal{max-width:520px;padding-block:0 28px;gap:0;overflow-x:clip}
 
 /* stickers: images, GIFs, transparent PNGs, videos. Position is a percentage of the scene or the sheet; size in cqw */
 .stk{position:absolute;transform:translate(-50%,-50%) rotate(var(--rot,0deg));pointer-events:none;line-height:0}
+.stk-layer{position:absolute;inset:0;pointer-events:none;container-type:inline-size}
 .stk img,.stk video{display:block;width:100%;height:auto;object-fit:contain;background:transparent;-webkit-user-drag:none;user-select:none}
 .stk.flo{animation:stkfloat 6s ease-in-out infinite alternate}
 @keyframes stkfloat{from{translate:0 -1.2cqw}to{translate:0 1.2cqw}}

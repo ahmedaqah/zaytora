@@ -318,13 +318,18 @@
         });
         ctl.appendChild(del); h.appendChild(ctl);
         var anchor = el('select', {}, [el('option', { value: 'scene', text: 'على الواجهة الافتتاحية' }), el('option', { value: 'page', text: 'على الورقة (بقية الدعوة)' })]); anchor.value = s.anchor || 'scene';
-        anchor.addEventListener('input', function () { s.anchor = anchor.value; schedule(); });
+        anchor.addEventListener('input', function () {
+          s.anchor = anchor.value;
+          if (s.u === 2) { s.y = anchor.value === 'scene' ? -80 : 20; draw(); } /* the vertical reference changes (scene centre / paper top) */
+          schedule();
+        });
+        var isScene = (s.anchor || 'scene') === 'scene', fixedPos = s.u === 2;
         var layer = el('select', {}, [el('option', { value: 'front', text: 'أمام النصوص' }), el('option', { value: 'back', text: 'خلف النصوص' })]); layer.value = s.layer || 'front';
         layer.addEventListener('input', function () { s.layer = layer.value; schedule(); });
         var fl = el('input', { type: 'checkbox' }); fl.checked = !!s.float; fl.addEventListener('input', function () { s.float = fl.checked; schedule(); });
         var cb = function () { schedule(); };
         box.appendChild(el('div', { class: 'item' }, [h, wrap('مكان الملصق', anchor), wrap('الطبقة', layer),
-          slider('أفقياً (يمين ↔ يسار الصفحة)', s, 'x', 0, 100, 0.5, '%', cb), slider('عمودياً (أعلى ↔ أسفل)', s, 'y', 0, 100, 0.5, '%', cb),
+          slider('أفقياً (يمين ↔ يسار الصفحة)', s, 'x', 0, 100, 0.5, '%', cb), fixedPos ? slider(isScene ? 'عمودياً (أعلى ↔ أسفل عن منتصف الواجهة)' : 'عمودياً (البعد عن أعلى الورقة)', s, 'y', isScene ? -150 : 0, isScene ? 150 : 1200, 1, '', cb) : slider('عمودياً (أعلى ↔ أسفل)', s, 'y', 0, 100, 0.5, '%', cb),
           slider('الحجم', s, 'w', 5, 150, 1, '', cb), slider('التدوير', s, 'rot', -180, 180, 1, '°', cb), slider('الشفافية', s, 'op', 0.1, 1, 0.05, '', cb),
           el('label', { class: 'chk' }, [fl, el('span', { text: 'حركة طفو هادئة' })])]));
       });
@@ -334,7 +339,7 @@
         if (f.size > 20 * 1024 * 1024) { status('الملف كبير جداً (' + Math.round(f.size / 1048576) + ' MB). استخدم أقل من 20 MB.', true); return; }
         var name = 'media/sticker-' + Date.now().toString(36) + Math.floor(Math.random() * 1e4) + '.' + (ext(f.name) || 'png');
         files[name] = f; urls[name] = URL.createObjectURL(f);
-        list.push({ src: name, kind: /^video\//.test(f.type) ? 'video' : 'image', anchor: 'scene', x: 50, y: 12, w: 30, rot: 0, op: 1, layer: 'front', float: false });
+        list.push({ src: name, kind: /^video\//.test(f.type) ? 'video' : 'image', anchor: 'scene', u: 2, x: 50, y: -80, w: 30, rot: 0, op: 1, layer: 'front', float: false });
         draw(); schedule();
       });
       box.appendChild(el('div', { class: 'media' }, [el('b', { text: 'إضافة ملصق / صورة مفرغة / GIF / فيديو' }),
