@@ -399,6 +399,9 @@
      colour and paper below is still read from the config so the builder can edit all of it. ===== */
   var SW = TPL + 'img/';
   function swansLook() { return document.body.classList.contains('swans'); }
+  /* inner padding of a custom paper. It is applied on the paper itself, so "cqw" would resolve against the page instead of the paper (= the whole screen width)
+     and squeeze the content on wide screens. Same value as before up to 520px wide screens (phones unchanged), capped at the real paper width above that. */
+  function swPad(n) { return 'calc(' + (Math.round(n * 100) / 100) + ' * min(1svw, 5.2px))'; }
   function swPx(n, d) { return (Math.round(n * 100) / 100) + (d || 'cqw'); }
   function swPiece(useImg, t, def, file, imgSt, txtSt, font) {
     t = String(t == null ? '' : t).trim(); if (!t) return '';
@@ -493,7 +496,7 @@
     var cls = 'paper' + (kind === 'torn' ? '' : ' fc') + (kind === 'blank' ? ' pk-blank' : '') + (kind === 'custom' ? ' pk-custom' : '') + ' sec-' + key;
     var st = '', rpo = PAPER_OP < 1 ? '--rpo:' + PAPER_OP : '';
     if (rpo) st = ' style="' + rpo + '"';
-    if (kind === 'custom') st = ' style="' + (rpo ? rpo + ';' : '') + '--t:' + swPx(num(CP.t, 48.8, 5, 150)) + ';--b:' + swPx(num(CP.b, 46.5, 5, 150)) + ';--mt:' + swPx(num(CP.mt, 54.7, 3, 300)) + ';--px:' + swPx(num(CP.padX, 18, 4, 40)) + ';--py:' + swPx(num(CP.padY, 17, 4, 50)) + '"';
+    if (kind === 'custom') st = ' style="' + (rpo ? rpo + ';' : '') + '--t:' + swPx(num(CP.t, 48.8, 5, 150)) + ';--b:' + swPx(num(CP.b, 46.5, 5, 150)) + ';--mt:' + swPx(num(CP.mt, 54.7, 3, 300)) + ';--px:' + swPad(num(CP.padX, 18, 4, 40)) + ';--py:' + swPad(num(CP.padY, 17, 4, 50)) + '"';
     function pc(u) { return u ? ' style="background-image:url(\'' + esc(resolve(u)).replace(/'/g, '%27') + '\')"' : ''; }
     var bg = kind === 'torn' ? '<div class="pbg" aria-hidden="true"></div>'
       : '<div class="fbg" aria-hidden="true"><div class="ft"' + (kind === 'custom' ? pc(CP.top) : '') + '></div><div class="fm"' + (kind === 'custom' ? pc(CP.mid || CP.top) : '') + '></div><div class="fb"' + (kind === 'custom' ? pc(CP.bot) : '') + '></div></div>';
