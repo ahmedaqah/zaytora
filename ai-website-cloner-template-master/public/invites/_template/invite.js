@@ -1041,7 +1041,10 @@
           var th = $('thanks'); th.textContent = '';
           var t1 = document.createElement('span'); t1.style.display = 'block';
           t1.textContent = fmt(yes ? R.thanksYes : R.thanksNo, { name: n }).replace(/\s+([،,.])/g, '$1').trim();
+          /* the thank-you takes the form's place at the same height, so the paper does not shrink and pull everything below it up */
+          var keep = form.offsetHeight;
           th.appendChild(t1); form.hidden = true; th.hidden = false;
+          if (keep > 0) th.style.cssText += ';min-height:' + keep + 'px;display:flex;flex-direction:column;align-items:center;justify-content:center';
           if ($('cta')) $('cta').hidden = false;
           loadWishes();
         };
