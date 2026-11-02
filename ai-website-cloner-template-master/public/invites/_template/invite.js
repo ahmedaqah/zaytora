@@ -33,6 +33,7 @@
       enabled: true, title: 'تأكيد الحضور', intro: '', whatsapp: '', whatsapp2: '', maxGuests: 6, showGuests: true,
       nameLabel: 'الاسم', attendLabel: 'هل ستحضر؟', yesLabel: 'يشرفني الحضور', noLabel: 'أعتذر عن الحضور',
       guestsLabel: 'عدد الحضور', noteLabel: 'كلمة لأصحاب الدعوة (اختياري)', button: 'تأكيد عبر واتساب',
+      mode: 'whatsapp', siteButton: 'تأكيد الحضور', showWishes: false, wishesTitle: 'التهاني والتبريكات', sendError: 'تعذّر إرسال ردك، حاول مرة أخرى.',
       nameError: 'اكتب اسمك أولاً.', thanksYes: 'شكراً {name}، سعدنا بتأكيدك.',
       thanksNo: 'شكراً {name}، سنفتقدك ونقدّر ردّك.', thanksHint: 'رسالتك جاهزة في واتساب، اضغط «إرسال» هناك لتصلنا.',
       openWhatsapp: 'افتح واتساب', messageHeader: 'تأكيد حضور — {occasion} {names}',
@@ -336,7 +337,8 @@
   /* RSVP form fields: every element can be hidden on its own (rsvp.hide*). With nothing hidden the markup is the original. */
   function rsvpFormHtml(R, opt) {
     var h = '';
-    if (!R.hideName) h += '<div><label for="name">' + esc(R.nameLabel) + '</label><input type="text" id="name" name="name" autocomplete="name" required></div>';
+    var site = R.mode === 'site';
+    if (!R.hideName || site) h += '<div><label for="name">' + esc(R.nameLabel) + '</label><input type="text" id="name" name="name" autocomplete="name" required></div>';
     if (!R.hideAttend) {
       h += '<div>' + (R.hideAttendLabel ? '' : '<span class="lbl" id="att-l">' + esc(R.attendLabel) + '</span>') +
         '<div class="choice" role="radiogroup"' + (R.hideAttendLabel ? ' aria-label="' + esc(R.attendLabel) + '"' : ' aria-labelledby="att-l"') + '>' +
@@ -345,7 +347,7 @@
     }
     if (R.showGuests !== false) h += '<div id="guestsWrap"><label for="guests">' + esc(R.guestsLabel) + '</label><select id="guests" name="guests">' + opt + '</select></div>';
     if (!R.hideNote) h += '<div><label for="msg">' + esc(R.noteLabel) + '</label><textarea id="msg" rows="3"></textarea></div>';
-    return h + '<button class="btn gold" type="submit" style="align-self:center">' + esc(R.button) + '</button>' +
+    return h + '<button class="btn gold" type="submit" style="align-self:center">' + esc(site ? R.siteButton : R.button) + '</button>' +
       '<p id="err" role="alert" style="color:#8a2b1a;text-align:center;font-size:17px" hidden>' + esc(R.nameError) + '</p>';
   }
   /* closing text size / position (closing.textScale / textX / textY); undefined or default = untouched */
@@ -711,6 +713,7 @@
     /* "MADE BY ZAYTORA" always closes the page and links to the site's home page. It does not depend on the stored
        footer text, so every invitation (saved earlier or later) gets it. A custom footer line, if any, sits above it;
        the old default text "ZAYTORA INVITES" is not repeated. */
+    if (c.rsvp.mode === 'site' && c.rsvp.showWishes) h += '<section class="wishes" id="wishes" aria-label="' + esc(c.rsvp.wishesTitle) + '" hidden><h2 class="wishes-t">' + esc(c.rsvp.wishesTitle) + '</h2><div class="wishes-l" id="wishes-l"></div></section>';
     var note = c.footer && !/zaytora/i.test(c.footer) ? '<p class="foot-note">' + esc(c.footer) + '</p>' : '';
     h += '<footer>' + note + '<a class="credit" href="https://www.zaytorainvites.com/" target="_blank" rel="noopener">MADE BY ZAYTORA</a></footer>';
     h += '</main>';
@@ -954,10 +957,50 @@
       tick(); live.timers.push(setInterval(tick, 1000));
     }
 
+    /* congratulation messages at the end of the page (rsvp.mode === 'site' and rsvp.showWishes) */
+    var loadWishes = function () {
+      var box = $('wishes'), list = $('wishes-l');
+      if (!box || !list) return;
+      var paint = function (arr) {
+        list.textContent = '';
+        arr.forEach(function (w) {
+          if (!w || !w.message) return;
+          var d = document.createElement('div'); d.className = 'wish';
+          var p = document.createElement('p'); p.textContent = w.message;
+          var s = document.createElement('span'); s.textContent = w.guestName || '';
+          d.appendChild(p); d.appendChild(s); list.appendChild(d);
+        });
+        box.hidden = !list.firstChild;
+      };
+      var m = /\/invites\/p\/([a-z0-9-]+)/.exec(location.pathname);
+      if (PREVIEW || !m) { paint([{ guestName: 'أحمد', message: 'ألف مبروك، بارك الله لكما وبارك عليكما.' }, { guestName: 'سارة', message: 'الله يتمم لكم على خير.' }]); return; }
+      fetch('/invites/p/' + m[1] + '/wishes').then(function (r) { return r.ok ? r.json() : []; }).then(paint).catch(function () { /* the page stays without the section */ });
+    };
+    loadWishes();
+
     /* rsvp -> WhatsApp */
     var form = $('rsvp');
     if (form) {
       var R = c.rsvp, gw = $('guestsWrap');
+      /* rsvp.mode === 'site': send the answer to the site (same-origin proxy of the API) and thank the guest here */
+      var submitSite = function (n, yes) {
+        var btn = form.querySelector('button[type=submit]'), err = $('err'), noteEl = $('msg'), g = $('guests');
+        var body = { guestName: n, attending: form.att ? yes : true, guestCount: yes ? (g ? parseInt(g.value, 10) || 1 : 1) : null, message: noteEl ? noteEl.value.trim() : '' };
+        if (btn) btn.disabled = true;
+        var done = function () {
+          var th = $('thanks'); th.textContent = '';
+          var t1 = document.createElement('span'); t1.style.display = 'block';
+          t1.textContent = fmt(yes ? R.thanksYes : R.thanksNo, { name: n }).replace(/\s+([،,.])/g, '$1').trim();
+          th.appendChild(t1); form.hidden = true; th.hidden = false;
+          if ($('cta')) $('cta').hidden = false;
+          loadWishes();
+        };
+        var failed = function () { if (btn) btn.disabled = false; err.textContent = R.sendError; err.hidden = false; };
+        var m = /\/invites\/p\/([a-z0-9-]+)/.exec(location.pathname);
+        if (PREVIEW || !m) { setTimeout(done, 300); return; } /* the builder preview never writes anything */
+        fetch('/invites/p/' + m[1] + '/rsvp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+          .then(function (r) { if (r.ok) done(); else failed(); }).catch(failed);
+      };
       on(form, 'change', function () { if (gw && form.att) gw.hidden = form.att.value === 'no'; });
       on(form, 'submit', function (e) {
         e.preventDefault();
@@ -965,6 +1008,7 @@
         if (nameEl && !n) { err.hidden = false; nameEl.focus(); return; }
         err.hidden = true;
         var yes = !form.att || form.att.value === 'yes';
+        if (R.mode === 'site') { submitSite(n, yes); return; } /* answers are kept on the site instead of opening WhatsApp */
         var lines = [fmt(R.messageHeader, { occasion: c.hero.occasion, names: ctx.names }).trim()];
         if (nameEl) lines.push(R.msgName + ': ' + n);
         if (form.att) lines.push(R.msgAttend + ': ' + (yes ? R.msgYes : R.msgNo));

@@ -31,6 +31,7 @@ public class NumindsDbContext(DbContextOptions<NumindsDbContext> options)
     public DbSet<Review> Reviews => Set<Review>();
     public DbSet<ThankYouSuggestion> ThankYouSuggestions => Set<ThankYouSuggestion>();
     public DbSet<PrivateInvite> PrivateInvites => Set<PrivateInvite>();
+    public DbSet<PrivateInviteRsvp> PrivateInviteRsvps => Set<PrivateInviteRsvp>();
     public DbSet<MusicSuggestion> MusicSuggestions => Set<MusicSuggestion>();
     public DbSet<SupportMessage> SupportMessages => Set<SupportMessage>();
 
@@ -371,6 +372,23 @@ public class NumindsDbContext(DbContextOptions<NumindsDbContext> options)
             entity.Property(i => i.Title).HasMaxLength(200).IsRequired();
             entity.Property(i => i.ConfigJson).HasColumnType("text").IsRequired();
             entity.HasIndex(i => i.Slug).IsUnique();
+            entity.HasIndex(i => i.OwnerUserId);
+            entity.HasIndex(i => i.TransferToken);
+            entity.HasOne(i => i.Owner)
+                .WithMany()
+                .HasForeignKey(i => i.OwnerUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        builder.Entity<PrivateInviteRsvp>(entity =>
+        {
+            entity.Property(r => r.GuestName).HasMaxLength(128).IsRequired();
+            entity.Property(r => r.Message).HasMaxLength(1000);
+            entity.HasIndex(r => r.PrivateInviteId);
+            entity.HasOne(r => r.PrivateInvite)
+                .WithMany(i => i.Rsvps)
+                .HasForeignKey(r => r.PrivateInviteId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         builder.Entity<ThankYouSuggestion>(entity =>
