@@ -1907,6 +1907,9 @@ namespace Numinds.Api.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid?>("OwnerUserId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(60)
@@ -1917,15 +1920,59 @@ namespace Numinds.Api.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<string>("TransferToken")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("TransferTokenExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
+                    b.HasIndex("OwnerUserId");
+
                     b.HasIndex("Slug")
                         .IsUnique();
 
+                    b.HasIndex("TransferToken");
+
                     b.ToTable("PrivateInvites");
+                });
+
+            modelBuilder.Entity("Numinds.Api.Models.Entities.PrivateInviteRsvp", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool?>("Attending")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("GuestCount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("GuestName")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("Message")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid>("PrivateInviteId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PrivateInviteId");
+
+                    b.ToTable("PrivateInviteRsvps");
                 });
 
             modelBuilder.Entity("Numinds.Api.Models.Entities.ThankYouSuggestion", b =>
@@ -2089,6 +2136,27 @@ namespace Numinds.Api.Migrations
                     b.Navigation("Invitation");
                 });
 
+            modelBuilder.Entity("Numinds.Api.Models.Entities.PrivateInvite", b =>
+                {
+                    b.HasOne("Numinds.Api.Models.Entities.ApplicationUser", "Owner")
+                        .WithMany()
+                        .HasForeignKey("OwnerUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Owner");
+                });
+
+            modelBuilder.Entity("Numinds.Api.Models.Entities.PrivateInviteRsvp", b =>
+                {
+                    b.HasOne("Numinds.Api.Models.Entities.PrivateInvite", "PrivateInvite")
+                        .WithMany("Rsvps")
+                        .HasForeignKey("PrivateInviteId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("PrivateInvite");
+                });
+
             modelBuilder.Entity("Numinds.Api.Models.Entities.Template", b =>
                 {
                     b.HasOne("Numinds.Api.Models.Entities.Envelope", "Envelope")
@@ -2114,6 +2182,11 @@ namespace Numinds.Api.Migrations
                     b.Navigation("CapturedPhotos");
 
                     b.Navigation("Responses");
+                });
+
+            modelBuilder.Entity("Numinds.Api.Models.Entities.PrivateInvite", b =>
+                {
+                    b.Navigation("Rsvps");
                 });
 
             modelBuilder.Entity("Numinds.Api.Models.Entities.Template", b =>

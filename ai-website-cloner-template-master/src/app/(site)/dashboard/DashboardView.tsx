@@ -39,6 +39,7 @@ import {
 import { Pagination } from "@/components/admin/Pagination";
 import { DeleteConfirmDialog } from "./DeleteConfirmDialog";
 import { RsvpResponsesModal } from "./RsvpResponsesModal";
+import { PrivateInvitesSection } from "./PrivateInvitesSection";
 import { GalleryModal } from "./GalleryModal";
 import { QrEntryModal } from "./QrEntryModal";
 import { prepareGalleryImage } from "@/lib/galleryUpload";
@@ -733,6 +734,9 @@ export function DashboardView({ adminMode = false }: { adminMode?: boolean } = {
           />
         </div>
       </div>
+
+      {/* Private invitations an admin handed over to this account (read-only) */}
+      {!adminMode && user && <PrivateInvitesSection language={language} />}
 
       {/* Bookings — a stacked card list (not a table) so it reflows cleanly
           on a phone-width screen instead of forcing horizontal scroll. */}

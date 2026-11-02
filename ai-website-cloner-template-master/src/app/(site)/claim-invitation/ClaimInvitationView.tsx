@@ -7,6 +7,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { useAuth } from "@/context/AuthContext";
 import { ApiError } from "@/lib/api/client";
 import { claimInvitationTransfer } from "@/lib/services/invitations.service";
+import { claimPrivateInvite } from "@/lib/services/privateInvites.service";
 import { OliveMark } from "@/components/OliveMark";
 import { LoaderIcon } from "@/components/icons";
 
@@ -38,6 +39,8 @@ export function ClaimInvitationView() {
   const searchParams = useSearchParams();
   const { user, loading: authLoading } = useAuth();
   const token = searchParams.get("token");
+  // kind=private: a hand-made private invitation (read-only for the customer) instead of a studio invitation.
+  const isPrivate = searchParams.get("kind") === "private";
 
   const [error, setError] = useState<string | null>(null);
   // Guards against Strict Mode's dev-only double-invoke of effects firing
@@ -53,16 +56,16 @@ export function ClaimInvitationView() {
     }
 
     if (!user) {
-      const returnUrl = `/claim-invitation?token=${encodeURIComponent(token)}`;
+      const returnUrl = `/claim-invitation?token=${encodeURIComponent(token)}${isPrivate ? "&kind=private" : ""}`;
       router.replace(`/login?returnUrl=${encodeURIComponent(returnUrl)}`);
       return;
     }
 
     setClaimed(true);
-    claimInvitationTransfer(token)
-      .then((result) => {
-        router.replace(`/studio?invitationId=${result.invitationId}`);
-      })
+    const claim = isPrivate
+      ? claimPrivateInvite(token).then(() => router.replace("/dashboard"))
+      : claimInvitationTransfer(token).then((result) => router.replace(`/studio?invitationId=${result.invitationId}`));
+    claim
       .catch((err) => {
         setError(err instanceof ApiError && err.status === 404 ? t.expiredOrUsed : t.genericError);
       });

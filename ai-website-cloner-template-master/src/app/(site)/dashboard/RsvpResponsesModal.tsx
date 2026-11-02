@@ -49,10 +49,15 @@ export function RsvpResponsesModal({
   invitationId,
   language,
   onClose,
+  loadResponses = listRsvpResponses,
+  removeRemote = deleteRsvpResponse,
 }: {
   invitationId: string | null;
   language: "ar" | "en";
   onClose: () => void;
+  // Default to the studio invitations' endpoints; a private invitation passes its own (keyed by slug).
+  loadResponses?: (id: string) => Promise<RsvpResponseDto[]>;
+  removeRemote?: (id: string, responseId: string) => Promise<unknown>;
 }) {
   const t = COPY[language];
   const open = Boolean(invitationId);
@@ -66,7 +71,7 @@ export function RsvpResponsesModal({
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     setError(false);
-    listRsvpResponses(invitationId)
+    loadResponses(invitationId)
       .then((data) => {
         if (!cancelled) setResponses(data);
       })
@@ -80,6 +85,7 @@ export function RsvpResponsesModal({
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [invitationId]);
 
   async function removeResponse(responseId: string) {
@@ -87,7 +93,7 @@ export function RsvpResponsesModal({
     const previous = responses;
     setResponses((current) => current.filter((r) => r.id !== responseId));
     try {
-      await deleteRsvpResponse(invitationId, responseId);
+      await removeRemote(invitationId, responseId);
     } catch (err) {
       console.error("[dashboard] failed to delete rsvp response:", err);
       setResponses(previous);

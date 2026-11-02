@@ -19,6 +19,7 @@ import {
 import { CUSTOM_INVITE_KIND } from "@/lib/customInvite";
 import {
   deletePrivateInvite,
+  createPrivateInviteTransferLink,
   deletePrivateInviteMedia,
   getPrivateInvite,
   listPrivateInvites,
@@ -45,6 +46,8 @@ type PrivateInvite = {
   date: string;
   time: { ar: string; en: string };
   venue: string;
+  // Customer account it was handed to (builder-made invitations only).
+  ownerEmail?: string | null;
 };
 
 const PRIVATE_INVITES: readonly PrivateInvite[] = [
@@ -82,6 +85,10 @@ const COPY = {
     musicBadType: "نوع الملف غير مدعوم. استخدم MP3 أو M4A أو AAC أو OGG أو WAV.",
     musicTooBig: "حجم الملف يجب ألا يتجاوز 30 ميغابايت.",
     musicError: "تعذّر تحديث الموسيقى.",
+    handoff: "رابط تسليم لزبون",
+    handoffDone: "تم نسخ رابط التسليم (صالح 7 أيام ولمرة واحدة). أرسله للزبون ليفتحه وهو مسجّل الدخول.",
+    handoffError: "تعذّر إنشاء رابط التسليم.",
+    ownedBy: "مُسلَّمة إلى",
   },
   en: {
     subtitle: "Hand-built private invitations. Not listed on the site or in search engines; only people with the link can open them.",
@@ -106,6 +113,10 @@ const COPY = {
     musicBadType: "Unsupported file type. Use MP3, M4A, AAC, OGG or WAV.",
     musicTooBig: "The file must be 30MB or smaller.",
     musicError: "Could not update the music.",
+    handoff: "Hand-over link for a customer",
+    handoffDone: "Hand-over link copied (valid 7 days, single use). Send it to the customer to open while signed in.",
+    handoffError: "Could not create the hand-over link.",
+    ownedBy: "Handed to",
   },
 };
 
@@ -160,6 +171,7 @@ function fromDto(dto: PrivateInviteDto): PrivateInvite {
     date: formatDate(str(event.start)),
     time: { ar: time, en: time },
     venue: str(asRecord(dto.config.location).venue),
+    ownerEmail: dto.ownerEmail ?? null,
   };
 }
 
@@ -193,6 +205,21 @@ export default function AdminPrivateInvitesPage() {
       cancelled = true;
     };
   }, [t.loadError]);
+
+  async function handoff(slug: string) {
+    setNotice(null);
+    try {
+      const { url } = await createPrivateInviteTransferLink(slug);
+      try {
+        await navigator.clipboard.writeText(url);
+        setNotice(t.handoffDone);
+      } catch {
+        setNotice(`${t.handoffDone} ${url}`);
+      }
+    } catch {
+      setNotice(t.handoffError);
+    }
+  }
 
   async function remove(slug: string) {
     if (!window.confirm(t.confirmRemove)) return;
@@ -313,6 +340,11 @@ export default function AdminPrivateInvitesPage() {
                   <p className="text-sm text-muted-foreground" dir="ltr">
                     {inv.venue}
                   </p>
+                  {inv.ownerEmail && (
+                    <p className="mt-1 text-xs text-[#A68832]">
+                      {t.ownedBy}: <span dir="ltr">{inv.ownerEmail}</span>
+                    </p>
+                  )}
                 </div>
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-[#C8A24A]/10 px-3 py-1 text-xs font-medium text-[#A68832]">
                   <LockIcon className="size-3.5" />
@@ -364,6 +396,16 @@ export default function AdminPrivateInvitesPage() {
                     <PenLineIcon className="size-4" />
                     {t.edit}
                   </Link>
+                )}
+                {inv.editable && (
+                  <button
+                    type="button"
+                    onClick={() => handoff(inv.slug)}
+                    className="inline-flex items-center gap-2 rounded-xl border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:border-[#C8A24A]"
+                  >
+                    <ExternalLinkIcon className="size-4" />
+                    {t.handoff}
+                  </button>
                 )}
                 {inv.custom && (
                   <button

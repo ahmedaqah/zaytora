@@ -1,5 +1,6 @@
 import { apiClient, ApiError } from "@/lib/api/client";
 import { API_BASE_URL } from "@/lib/api/config";
+import type { RsvpResponseDto } from "@/types/api";
 
 // Invitation content exactly as the shared template renderer
 // (public/invites/_template/invite.js) reads it.
@@ -11,6 +12,8 @@ export interface PrivateInviteDto {
   config: PrivateInviteConfig;
   createdAt: string;
   updatedAt: string;
+  // Admin list only: e-mail of the customer account the invitation was handed to.
+  ownerEmail?: string | null;
 }
 
 // Admin — every saved invitation, newest edit first.
@@ -62,4 +65,47 @@ export async function uploadPrivateInviteMedia(file: File): Promise<{ url: strin
     throw new ApiError(payload?.message ?? response.statusText, response.status, payload);
   }
   return payload as { url: string };
+}
+
+// ---- Hand-over to a customer account + RSVPs collected on the site (config.rsvp.mode === "site") ----
+
+// A card on the customer's dashboard: read-only, no editing.
+export interface OwnedPrivateInviteDto {
+  slug: string;
+  title: string;
+  url: string;
+  name1?: string | null;
+  name2?: string | null;
+  dateText?: string | null;
+  eventStart?: string | null;
+  siteRsvp: boolean;
+  showWishes: boolean;
+  responsesCount: number;
+  attendingCount: number;
+  declinedCount: number;
+  updatedAt: string;
+}
+
+// Admin — a one-time link (valid 7 days) the customer opens while signed in to receive the invitation.
+export function createPrivateInviteTransferLink(slug: string) {
+  return apiClient.post<{ url: string }>(`/private-invites/${encodeURIComponent(slug)}/transfer-link`, {});
+}
+
+// Customer — redeems the one-time link.
+export function claimPrivateInvite(token: string) {
+  return apiClient.post<{ slug: string }>("/private-invites/claim-transfer", { token });
+}
+
+// Customer — the invitations handed over to this account.
+export function listMyPrivateInvites() {
+  return apiClient.get<OwnedPrivateInviteDto[]>("/private-invites/mine");
+}
+
+// Owner / admin — every answer sent from the invitation page, newest first.
+export function listPrivateInviteRsvps(slug: string) {
+  return apiClient.get<RsvpResponseDto[]>(`/private-invites/${encodeURIComponent(slug)}/rsvp`);
+}
+
+export function deletePrivateInviteRsvp(slug: string, responseId: string) {
+  return apiClient.delete<void>(`/private-invites/${encodeURIComponent(slug)}/rsvp/${encodeURIComponent(responseId)}`);
 }

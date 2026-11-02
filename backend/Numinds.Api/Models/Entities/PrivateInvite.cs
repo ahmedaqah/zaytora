@@ -11,4 +11,16 @@ public class PrivateInvite
     public string ConfigJson { get; set; } = "{}";
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+
+    // Customer account the invitation was handed over to (read-only for them: they share it, preview it and
+    // follow the RSVPs, but only an admin can edit it). Null = still admin-only, exactly as before.
+    public Guid? OwnerUserId { get; set; }
+    public ApplicationUser? Owner { get; set; }
+
+    // One-time hand-off link (same idea as Invitation.TransferToken); cleared as soon as it is redeemed.
+    public string? TransferToken { get; set; }
+    public DateTime? TransferTokenExpiresAt { get; set; }
+
+    // Guest answers sent from the invitation page itself (config.rsvp.mode == "site").
+    public List<PrivateInviteRsvp> Rsvps { get; set; } = [];
 }
