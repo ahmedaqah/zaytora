@@ -58,7 +58,7 @@
     if (e.origin !== location.origin || !e.data) return;
     if (e.data.type === 'zaytora-sticker-move') { /* a sticker was dragged inside the preview */
       var st = state.cfg && (state.cfg.stickers || [])[e.data.index];
-      if (st) { st.x = e.data.x; st.y = e.data.y; saveDraft(); if (drawStickers) drawStickers(); }
+      if (st) { st.x = e.data.x; st.y = e.data.y; if (e.data.sec !== undefined) st.sec = e.data.sec; saveDraft(); if (drawStickers) drawStickers(); }
       return;
     }
     if (e.data.type !== 'zaytora-invite-ready') return;
@@ -320,7 +320,7 @@
         var anchor = el('select', {}, [el('option', { value: 'scene', text: 'على الواجهة الافتتاحية' }), el('option', { value: 'page', text: 'على الورقة (بقية الدعوة)' })]); anchor.value = s.anchor || 'scene';
         anchor.addEventListener('input', function () {
           s.anchor = anchor.value;
-          if (s.u === 2) { s.y = anchor.value === 'scene' ? -80 : 20; draw(); } /* the vertical reference changes (scene centre / paper top) */
+          if (s.u === 2) { s.y = anchor.value === 'scene' ? -80 : 20; s.sec = ''; draw(); } /* the vertical reference changes (scene centre / paper top) */
           schedule();
         });
         var isScene = (s.anchor || 'scene') === 'scene', fixedPos = s.u === 2;
@@ -328,8 +328,14 @@
         layer.addEventListener('input', function () { s.layer = layer.value; schedule(); });
         var fl = el('input', { type: 'checkbox' }); fl.checked = !!s.float; fl.addEventListener('input', function () { s.float = fl.checked; schedule(); });
         var cb = function () { schedule(); };
-        box.appendChild(el('div', { class: 'item' }, [h, wrap('مكان الملصق', anchor), wrap('الطبقة', layer),
-          slider('أفقياً (يمين ↔ يسار الصفحة)', s, 'x', 0, 100, 0.5, '%', cb), fixedPos ? slider(isScene ? 'عمودياً (أعلى ↔ أسفل عن منتصف الواجهة)' : 'عمودياً (البعد عن أعلى الورقة)', s, 'y', isScene ? -150 : 0, isScene ? 150 : 1200, 1, '', cb) : slider('عمودياً (أعلى ↔ أسفل)', s, 'y', 0, 100, 0.5, '%', cb),
+        var secSel = null;
+        if (s.u === 2 && !isScene && state.cfg.layout.mode === 'swans') {
+          secSel = el('select', {}, [['', 'أعلى الدعوة'], ['countdown', 'العد التنازلي'], ['schedule', 'برنامج الحفل'], ['location', 'الموقع'], ['notes', 'التعليمات'], ['closing', 'بطاقة الختام'], ['rsvp', 'تأكيد الحضور']].map(function (o) { return el('option', { value: o[0], text: o[1] }); }));
+          secSel.value = s.sec || '';
+          secSel.addEventListener('input', function () { s.sec = secSel.value; schedule(); });
+        }
+        box.appendChild(el('div', { class: 'item' }, [h, wrap('مكان الملصق', anchor), secSel ? wrap('مرتبط بقسم (يتبعه على كل الشاشات)', secSel) : null, wrap('الطبقة', layer),
+          slider('أفقياً (يمين ↔ يسار الصفحة)', s, 'x', 0, 100, 0.5, '%', cb), fixedPos ? slider(isScene ? 'عمودياً (أعلى ↔ أسفل عن منتصف الواجهة)' : 'عمودياً (البعد عن أعلى القسم المرتبط، أو الدعوة)', s, 'y', isScene ? -150 : 0, isScene ? 150 : 1200, 1, '', cb) : slider('عمودياً (أعلى ↔ أسفل)', s, 'y', 0, 100, 0.5, '%', cb),
           slider('الحجم', s, 'w', 5, 150, 1, '', cb), slider('التدوير', s, 'rot', -180, 180, 1, '°', cb), slider('الشفافية', s, 'op', 0.1, 1, 0.05, '', cb),
           el('label', { class: 'chk' }, [fl, el('span', { text: 'حركة طفو هادئة' })])]));
       });
