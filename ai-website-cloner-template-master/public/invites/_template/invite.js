@@ -25,7 +25,7 @@
       dateText: '', dateDir: '', quote: '', verse: '', intro: ''
     },
     event: { start: '', end: '', utcOffset: '+00:00' },
-    countdown: { enabled: true, title: 'يبدأ الاحتفال بعد', labels: ['يوم', 'ساعة', 'دقيقة', 'ثانية'], style: 'classic' },
+    countdown: { enabled: true, title: 'يبدأ الاحتفال بعد', labels: ['يوم', 'ساعة', 'دقيقة', 'ثانية'], style: 'classic', order: 'rtl', labelsLang: 'ar' },
     schedule: { enabled: true, title: 'موعد الحفل', tip: 'اضغط على أي فقرة لمعرفة التفاصيل', roseMode: 'bullets', lineColor: '', roseImg: '', items: [] },
     location: { enabled: true, title: 'الموقع', venue: '', venueLang: '', venueEn: '', address: '', mapUrl: '', mapLabel: 'افتح الخريطة' },
     notes: { enabled: true, title: 'تعليمات خاصة', items: [] },
@@ -313,8 +313,10 @@
   /* countdown look (countdown.style): 'classic' = untouched markup, the others only add a class */
   function cdClass(c) {
     var s = c.countdown && c.countdown.style;
-    return ['boxes', 'circles', 'minimal', 'flip'].indexOf(s) >= 0 ? ' cs-' + s : '';
+    return (['boxes', 'circles', 'minimal', 'flip'].indexOf(s) >= 0 ? ' cs-' + s : '') + (c.countdown && c.countdown.order === 'ltr' ? ' cd-ltr' : '');
   }
+  /* countdown.labelsLang = 'en' shows Days / Hours / Minutes / Seconds; otherwise the saved (Arabic) labels */
+  function cdLabels(c) { return c.countdown && c.countdown.labelsLang === 'en' ? ['Days', 'Hours', 'Minutes', 'Seconds'] : c.countdown.labels; }
   /* extra uploaded papers (royal.paperSets): chosen per section with the value 'p1', 'p2' ... */
   var PAPER_SETS = [], PAPER_OP = 1;
   function paperSet(v) { var m = /^p(\d+)$/.exec(v || ''), P = m && PAPER_SETS[+m[1] - 1]; return P && P.top && P.bot ? P : null; }
@@ -515,7 +517,7 @@
     ['back', 'front'].forEach(function (ly) { var sh = stickersHtml(c.stickers, 'page', ly); if (sh) h += '<div class="stk-layer" style="z-index:' + (ly === 'back' ? 1 : 3) + '">' + sh + '</div>'; });
     h += swScene(c, dateText);
     if (c.countdown.enabled && start && start.ms) {
-      var L = c.countdown.labels;
+      var L = cdLabels(c);
       PT.countdown = swSec('countdown', kinds.countdown, c.countdown.title, [], swTitle('countdown', c.countdown.title) +
         '<div class="count' + cdClass(c) + '" id="count" role="timer" aria-live="off">' + ['d', 'h', 'm', 's'].map(function (id, i) { return '<div class="cell"><b id="' + id + '">00</b><span>' + esc(L[i] || '') + '</span></div>'; }).join('') + '</div><!--SWAN-->', FL, CP);
     }
@@ -657,7 +659,7 @@
     var PT = {};
     /* countdown */
     if (c.countdown.enabled && start && start.ms) {
-      var L = c.countdown.labels;
+      var L = cdLabels(c);
       PT.countdown = '<section class="' + SEC + '" aria-label="' + esc(c.countdown.title) + '">' + decoTop('countdown', FL) + title(c.countdown.title) +
         '<div class="count' + cdClass(c) + '" id="count" role="timer" aria-live="off">' +
         ['d', 'h', 'm', 's'].map(function (id, i) { return '<div class="cell"><b id="' + id + '">00</b><span>' + esc(L[i] || '') + '</span></div>'; }).join('') +

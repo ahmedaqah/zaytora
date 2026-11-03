@@ -642,7 +642,7 @@
         wrap('فرق التوقيت عن UTC لمدينة الحفل', off, 'مثال: السعودية/الأردن +03:00 ، النرويج الشتاء +01:00 والصيف +02:00 ، تركيا +03:00. يُستخدم للعدّ التنازلي.'), dl];
     }
     F.appendChild(section('ترتيب الأقسام بعد البطاقة الأولى', [sectionOrderPanel()]));
-    F.appendChild(section('3) التاريخ والعدّ التنازلي', evDom().concat([check('إظهار العدّ التنازلي', 'countdown.enabled'), text('عنوان العدّ التنازلي', 'countdown.title'), sel('شكل العدّ التنازلي', 'countdown.style', [['classic', 'الكلاسيكي (الحالي)'], ['boxes', 'مربعات بإطار'], ['circles', 'دوائر'], ['minimal', 'أرقام كبيرة بسيطة'], ['flip', 'بطاقات داكنة']])])));
+    F.appendChild(section('3) التاريخ والعدّ التنازلي', evDom().concat([check('إظهار العدّ التنازلي', 'countdown.enabled'), text('عنوان العدّ التنازلي', 'countdown.title'), sel('شكل العدّ التنازلي', 'countdown.style', [['classic', 'الكلاسيكي (الحالي)'], ['boxes', 'مربعات بإطار'], ['circles', 'دوائر'], ['minimal', 'أرقام كبيرة بسيطة'], ['flip', 'بطاقات داكنة']]), sel('ترتيب العدّ التنازلي', 'countdown.order', [['rtl', 'الأيام على اليمين (الحالي)'], ['ltr', 'الأيام على اليسار']]), sel('أسماء الأيام والساعات والدقائق والثواني', 'countdown.labelsLang', [['ar', 'بالعربية (الحالي)'], ['en', 'بالإنجليزية (Days / Hours / Minutes / Seconds)']])])));
 
     /* 4 schedule */
     F.appendChild(section('4) برنامج الحفل', [

@@ -21,3 +21,9 @@ body .count.cs-flip .cell::after{content:"";position:absolute;left:0;right:0;top
 body .count.cs-flip .cell b{color:#f6ecd8;font-size:clamp(24px,8cqw,40px);line-height:1.1;position:relative;z-index:1}
 body .count.cs-flip .cell span{color:#d8b86a;font-size:clamp(10px,3cqw,14px)}
 body .count[class*="cs-"] .cell b{font-family:var(--latin)}
+
+/* countdown.order = 'ltr': days on the left */
+body .count.cd-ltr,body.swans .count.cd-ltr{direction:ltr}
+body .count.cd-ltr .cell+.cell::before{right:auto;left:-4px}
+body.swans .count.cd-ltr .cell+.cell::before{right:auto;left:-5px}
+body.swans .paper.fc .count.cd-ltr .cell+.cell::before{right:auto;left:-3px}
