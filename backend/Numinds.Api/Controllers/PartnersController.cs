@@ -17,7 +17,9 @@ public class PartnersController(
     NumindsDbContext db,
     UserManager<ApplicationUser> userManager,
     IFileStorageService storage,
-    IMemoryCache cache) : ControllerBase
+    IMemoryCache cache,
+    IAdminNotifier notifier,
+    IConfiguration configuration) : ControllerBase
 {
     // Same reasoning as TemplatesController's CacheTtl — GET /api/partners/approved
     // is public, hit by every /OurPartners visitor, and rarely changes minute
@@ -75,6 +77,9 @@ public class PartnersController(
 
         db.Partners.Add(partner);
         await db.SaveChangesAsync(cancellationToken);
+
+        var siteBase = configuration["Frontend:BaseUrl"] ?? "http://localhost:3000";
+        notifier.Notify($"🤝 طلب شراكة جديد: {partner.BusinessName} ({partner.ApplicantName})\n{siteBase}/admin/partners");
 
         return CreatedAtAction(nameof(GetApproved), null, ToDto(partner));
     }

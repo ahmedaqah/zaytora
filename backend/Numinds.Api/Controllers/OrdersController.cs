@@ -15,7 +15,8 @@ public class OrdersController(
     NumindsDbContext db,
     IMetaConversionsApiService metaConversions,
     IEmailSender emailSender,
-    IConfiguration configuration) : ControllerBase
+    IConfiguration configuration,
+    IAdminNotifier notifier) : ControllerBase
 {
     private string FrontendBaseUrl => configuration["Frontend:BaseUrl"] ?? "http://localhost:3000";
 
@@ -117,6 +118,8 @@ public class OrdersController(
         // it now would overstate a partner's commission for checkouts that
         // never close.
         await db.SaveChangesAsync(cancellationToken);
+
+        notifier.Notify($"🛒 طلب جديد: {order.CustomerName} ({order.AmountUsd.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)} USD)\n{FrontendBaseUrl}/admin/orders");
 
         var resolvedAccount = await PaymentSettingsController.ResolveForCountryAsync(db, order.Country, cancellationToken);
 

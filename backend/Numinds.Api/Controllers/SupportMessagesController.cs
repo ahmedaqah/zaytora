@@ -10,7 +10,7 @@ namespace Numinds.Api.Controllers;
 
 [ApiController]
 [Route("api/support-messages")]
-public class SupportMessagesController(NumindsDbContext db) : ControllerBase
+public class SupportMessagesController(NumindsDbContext db, Numinds.Api.Services.IAdminNotifier notifier, IConfiguration configuration) : ControllerBase
 {
     // POST /api/support-messages — anonymous, public "Contact Us" form
     // (ContactUsView.tsx). Covered by Program.cs's global rate limiter like
@@ -33,6 +33,9 @@ public class SupportMessagesController(NumindsDbContext db) : ControllerBase
 
         db.SupportMessages.Add(message);
         await db.SaveChangesAsync(cancellationToken);
+
+        var siteBase = configuration["Frontend:BaseUrl"] ?? "http://localhost:3000";
+        notifier.Notify($"✉️ رسالة جديدة من {message.Name}: {message.Subject}\n{siteBase}/admin/settings");
 
         return Ok(ToDto(message));
     }

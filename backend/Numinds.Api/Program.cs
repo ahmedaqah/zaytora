@@ -148,6 +148,9 @@ builder.Services.AddHttpClient<IEmailSender, ResendEmailSender>();
 // one-off downloads.
 builder.Services.AddHttpClient();
 
+// Admin push notifications to Telegram (Telegram:BotToken / Telegram:ChatId); a no-op while those are unset.
+builder.Services.AddSingleton<Numinds.Api.Services.IAdminNotifier, Numinds.Api.Services.TelegramNotifier>();
+
 // Server-side complement to the frontend's Meta Pixel (see MetaPixel.tsx) --
 // reports new-account signups to Meta's Conversions API. See
 // MetaConversionsApiService for the Meta:PixelId/Meta:ConversionsApiAccessToken

@@ -23,7 +23,8 @@ public partial class PrivateInvitesController(
     NumindsDbContext db,
     IFileStorageService storage,
     Microsoft.AspNetCore.Identity.UserManager<ApplicationUser> userManager,
-    IConfiguration configuration) : ControllerBase
+    IConfiguration configuration,
+    IAdminNotifier notifier) : ControllerBase
 {
     private const long MaxMediaBytes = 30 * 1024 * 1024;
     private const int MaxConfigChars = 200_000;
@@ -580,6 +581,8 @@ public partial class PrivateInvitesController(
             CreatedAt = DateTime.UtcNow,
         });
         await db.SaveChangesAsync(cancellationToken);
+
+        notifier.NotifyReply($"pi:{row.Slug}", row.Title, $"{name}: {(request.Attending == false ? "اعتذار" : "حضور")}");
         return NoContent();
     }
 
