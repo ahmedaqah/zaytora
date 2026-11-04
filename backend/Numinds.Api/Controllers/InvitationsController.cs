@@ -26,7 +26,8 @@ public class InvitationsController(
     IConfiguration configuration,
     IHttpClientFactory httpClientFactory,
     IMemoryCache cache,
-    ILogger<InvitationsController> logger) : ControllerBase
+    ILogger<InvitationsController> logger,
+    IAdminNotifier notifier) : ControllerBase
 {
     private string FrontendBaseUrl => configuration["Frontend:BaseUrl"] ?? "http://localhost:3000";
 
@@ -1196,6 +1197,11 @@ public class InvitationsController(
             CreatedAt = DateTime.UtcNow,
         });
         await db.SaveChangesAsync(cancellationToken);
+
+        var inviteLabel = !string.IsNullOrWhiteSpace(invitation.EventTitle)
+            ? invitation.EventTitle!
+            : string.Join(" & ", new[] { invitation.FirstName, invitation.SecondName }.Where(n => !string.IsNullOrWhiteSpace(n)));
+        notifier.NotifyReply($"inv:{id}", inviteLabel, $"{request.GuestName}: {(request.Attending == false ? "اعتذار" : "حضور")}");
 
         return NoContent();
     }
