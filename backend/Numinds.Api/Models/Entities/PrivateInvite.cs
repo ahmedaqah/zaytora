@@ -12,6 +12,10 @@ public class PrivateInvite
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 
+    // Temporarily switched off by an admin: the public page shows a "paused" notice and takes no new answers.
+    // Nothing else is touched, so switching it back on restores the invitation exactly as it was.
+    public bool IsPaused { get; set; }
+
     // Customer account the invitation was handed over to (read-only for them: they share it, preview it and
     // follow the RSVPs, but only an admin can edit it). Null = still admin-only, exactly as before.
     public Guid? OwnerUserId { get; set; }

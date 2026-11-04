@@ -24,6 +24,7 @@ const COPY = {
     declined: "اعتذار",
     replies: "رد",
     whatsappMode: "تأكيد الحضور يصلك عبر واتساب",
+    paused: "متوقفة مؤقتاً",
   },
   en: {
     title: "My private invitations",
@@ -36,6 +37,7 @@ const COPY = {
     declined: "Declined",
     replies: "replies",
     whatsappMode: "RSVPs reach you on WhatsApp",
+    paused: "Paused",
   },
 };
 
@@ -86,6 +88,11 @@ export function PrivateInvitesSection({ language }: { language: "ar" | "en" }) {
               <div className="min-w-0">
                 <p className="truncate text-base font-semibold text-foreground">{names}</p>
                 {row.dateText && <p className="mt-0.5 text-xs text-muted-foreground">{row.dateText}</p>}
+                {row.isPaused && (
+                  <span className="mt-1 inline-flex rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800 dark:bg-amber-950/50 dark:text-amber-300">
+                    {t.paused}
+                  </span>
+                )}
               </div>
               {row.siteRsvp ? (
                 <div className="flex items-center gap-2 text-xs">
