@@ -14,6 +14,8 @@ export interface PrivateInviteDto {
   updatedAt: string;
   // Admin list only: e-mail of the customer account the invitation was handed to.
   ownerEmail?: string | null;
+  // Temporarily switched off: the public page shows a "paused" notice until an admin switches it back on.
+  isPaused?: boolean;
 }
 
 // Admin — every saved invitation, newest edit first.
@@ -83,6 +85,7 @@ export interface OwnedPrivateInviteDto {
   responsesCount: number;
   attendingCount: number;
   declinedCount: number;
+  isPaused?: boolean;
   updatedAt: string;
 }
 
@@ -108,4 +111,9 @@ export function listPrivateInviteRsvps(slug: string) {
 
 export function deletePrivateInviteRsvp(slug: string, responseId: string) {
   return apiClient.delete<void>(`/private-invites/${encodeURIComponent(slug)}/rsvp/${encodeURIComponent(responseId)}`);
+}
+
+// Admin — pause / resume one invitation. Only a flag changes; nothing of the invitation is touched.
+export function setPrivateInvitePaused(slug: string, paused: boolean) {
+  return apiClient.post<{ paused: boolean }>(`/private-invites/${encodeURIComponent(slug)}/pause`, { paused });
 }

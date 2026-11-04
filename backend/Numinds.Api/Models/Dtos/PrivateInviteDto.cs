@@ -9,6 +9,7 @@ public class PrivateInviteDto
     public JsonElement Config { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+    public bool IsPaused { get; set; }
 
     // Filled for admins only (GET /api/private-invites): e-mail of the customer account it was handed to, if any.
     public string? OwnerEmail { get; set; }
@@ -29,6 +30,12 @@ public class PrivateInviteMediaUploadResponse
 public class PrivateInviteTransferLinkDto
 {
     public string Url { get; set; } = string.Empty;
+}
+
+// POST /api/private-invites/{slug}/pause (admin)
+public class PrivateInvitePauseRequest
+{
+    public bool Paused { get; set; }
 }
 
 // POST /api/private-invites/claim-transfer
@@ -84,5 +91,6 @@ public class OwnedPrivateInviteDto
     public int ResponsesCount { get; set; }
     public int AttendingCount { get; set; }
     public int DeclinedCount { get; set; }
+    public bool IsPaused { get; set; }
     public DateTime UpdatedAt { get; set; }
 }

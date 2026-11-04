@@ -75,6 +75,15 @@ function page(status: number, body: string): Response {
   });
 }
 
+// An invitation an admin switched off for now: nothing of it is shown and nothing is cached, so switching it back on
+// restores it at once, exactly as it was.
+function pausedPage(): Response {
+  return new Response(
+    `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>الدعوة متوقفة مؤقتاً</title></head><body style="font-family:sans-serif;text-align:center;padding:4rem 1rem;color:#4a3b30;background:#f6efe2"><p style="font-size:1.25rem">هذه الدعوة متوقفة مؤقتاً.</p><p style="opacity:.75">يرجى المحاولة لاحقاً.</p></body></html>`,
+    { status: 200, headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" } }
+  );
+}
+
 function notFound(): Response {
   return page(
     404,
@@ -138,7 +147,8 @@ export async function GET(request: Request, context: { params: Promise<{ slug: s
       });
       if (res.status === 404) return notFound();
       if (!res.ok) continue;
-      const data = (await res.json()) as { config?: unknown };
+      const data = (await res.json()) as { config?: unknown; isPaused?: boolean };
+      if (data.isPaused === true) return pausedPage();
       loaded = obj(data.config);
       break;
     } catch {

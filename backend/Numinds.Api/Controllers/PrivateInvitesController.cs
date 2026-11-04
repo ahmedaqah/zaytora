@@ -291,6 +291,7 @@ public partial class PrivateInvitesController(
             Config = doc.RootElement.Clone(),
             CreatedAt = row.CreatedAt,
             UpdatedAt = row.UpdatedAt,
+            IsPaused = row.IsPaused,
         };
     }
 
@@ -345,6 +346,23 @@ public partial class PrivateInvitesController(
         rows.Where(r => r.Attending != false).Sum(r => r.GuestCount ?? 1);
 
     // POST /api/private-invites/{slug}/transfer-link (admin): a one-time, 7-day link the customer opens while signed in.
+    // POST /api/private-invites/{slug}/pause: admin switches an invitation off / on. Only the flag changes (UpdatedAt is left
+    // alone too), so switching it back on restores the invitation exactly as it was.
+    [HttpPost("{slug}/pause")]
+    [Authorize(Roles = Roles.Admin)]
+    public async Task<IActionResult> SetPaused(string slug, [FromBody] PrivateInvitePauseRequest request, CancellationToken cancellationToken)
+    {
+        var row = await db.PrivateInvites.FirstOrDefaultAsync(i => i.Slug == slug, cancellationToken);
+        if (row is null)
+        {
+            return NotFound(new { message = "Invitation not found." });
+        }
+
+        row.IsPaused = request.Paused;
+        await db.SaveChangesAsync(cancellationToken);
+        return Ok(new { paused = row.IsPaused });
+    }
+
     [HttpPost("{slug}/transfer-link")]
     [Authorize(Roles = Roles.Admin)]
     public async Task<ActionResult<PrivateInviteTransferLinkDto>> CreateTransferLink(string slug, CancellationToken cancellationToken)
@@ -444,6 +462,7 @@ public partial class PrivateInvitesController(
                 ResponsesCount = r.Rsvps.Count,
                 AttendingCount = AttendingHeads(r.Rsvps),
                 DeclinedCount = r.Rsvps.Count(x => x.Attending == false),
+                IsPaused = r.IsPaused,
                 UpdatedAt = r.UpdatedAt,
             });
         }
@@ -517,7 +536,7 @@ public partial class PrivateInvitesController(
         CancellationToken cancellationToken)
     {
         var row = await db.PrivateInvites.AsNoTracking().FirstOrDefaultAsync(i => i.Slug == slug, cancellationToken);
-        if (row is null || !ReadRsvpSettings(row.ConfigJson).Site)
+        if (row is null || row.IsPaused || !ReadRsvpSettings(row.ConfigJson).Site)
         {
             return NotFound();
         }
@@ -570,7 +589,7 @@ public partial class PrivateInvitesController(
     public async Task<ActionResult<List<PrivateInviteWishDto>>> GetWishes(string slug, CancellationToken cancellationToken)
     {
         var row = await db.PrivateInvites.AsNoTracking().FirstOrDefaultAsync(i => i.Slug == slug, cancellationToken);
-        if (row is null || !ReadRsvpSettings(row.ConfigJson).ShowWishes)
+        if (row is null || row.IsPaused || !ReadRsvpSettings(row.ConfigJson).ShowWishes)
         {
             return Ok(new List<PrivateInviteWishDto>());
         }

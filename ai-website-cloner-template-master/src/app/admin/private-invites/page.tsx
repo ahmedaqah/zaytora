@@ -20,6 +20,7 @@ import { CUSTOM_INVITE_KIND } from "@/lib/customInvite";
 import {
   deletePrivateInvite,
   createPrivateInviteTransferLink,
+  setPrivateInvitePaused,
   deletePrivateInviteMedia,
   getPrivateInvite,
   listPrivateInvites,
@@ -48,6 +49,7 @@ type PrivateInvite = {
   venue: string;
   // Customer account it was handed to (builder-made invitations only).
   ownerEmail?: string | null;
+  paused?: boolean;
 };
 
 const PRIVATE_INVITES: readonly PrivateInvite[] = [
@@ -89,6 +91,13 @@ const COPY = {
     handoffDone: "تم نسخ رابط التسليم (صالح 7 أيام ولمرة واحدة). أرسله للزبون ليفتحه وهو مسجّل الدخول.",
     handoffError: "تعذّر إنشاء رابط التسليم.",
     ownedBy: "مُسلَّمة إلى",
+    pause: "إيقاف مؤقت",
+    resume: "تشغيل",
+    pausedBadge: "موقوفة مؤقتاً",
+    confirmPause: "إيقاف هذه الدعوة مؤقتاً؟ سيرى من يفتح رابطها رسالة توقف، ولا تُحذف أي بيانات، ويمكنك تشغيلها في أي وقت.",
+    pausedDone: "تم إيقاف الدعوة مؤقتاً.",
+    resumedDone: "تم تشغيل الدعوة، وهي تعمل كما كانت.",
+    pauseError: "تعذّر تغيير حالة الدعوة.",
   },
   en: {
     subtitle: "Hand-built private invitations. Not listed on the site or in search engines; only people with the link can open them.",
@@ -117,6 +126,13 @@ const COPY = {
     handoffDone: "Hand-over link copied (valid 7 days, single use). Send it to the customer to open while signed in.",
     handoffError: "Could not create the hand-over link.",
     ownedBy: "Handed to",
+    pause: "Pause",
+    resume: "Resume",
+    pausedBadge: "Paused",
+    confirmPause: "Pause this invitation? Anyone opening its link will see a paused notice. Nothing is deleted and you can resume it any time.",
+    pausedDone: "Invitation paused.",
+    resumedDone: "Invitation resumed; it works exactly as before.",
+    pauseError: "Could not change the invitation's state.",
   },
 };
 
@@ -172,6 +188,7 @@ function fromDto(dto: PrivateInviteDto): PrivateInvite {
     time: { ar: time, en: time },
     venue: str(asRecord(dto.config.location).venue),
     ownerEmail: dto.ownerEmail ?? null,
+    paused: dto.isPaused === true,
   };
 }
 
@@ -218,6 +235,19 @@ export default function AdminPrivateInvitesPage() {
       }
     } catch {
       setNotice(t.handoffError);
+    }
+  }
+
+  async function togglePause(slug: string, pause: boolean) {
+    if (pause && !window.confirm(t.confirmPause)) return;
+    setNotice(null);
+    try {
+      await setPrivateInvitePaused(slug, pause);
+      setSaved((rows) => rows.map((r) => (r.slug === slug ? { ...r, paused: pause } : r)));
+      setPreviewVersion(Date.now());
+      setNotice(pause ? t.pausedDone : t.resumedDone);
+    } catch {
+      setNotice(t.pauseError);
     }
   }
 
@@ -346,10 +376,17 @@ export default function AdminPrivateInvitesPage() {
                     </p>
                   )}
                 </div>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#C8A24A]/10 px-3 py-1 text-xs font-medium text-[#A68832]">
-                  <LockIcon className="size-3.5" />
-                  {t.note}
-                </span>
+                <div className="flex flex-wrap items-center gap-2">
+                  {inv.paused && (
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800 dark:bg-amber-950/50 dark:text-amber-300">
+                      {t.pausedBadge}
+                    </span>
+                  )}
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[#C8A24A]/10 px-3 py-1 text-xs font-medium text-[#A68832]">
+                    <LockIcon className="size-3.5" />
+                    {t.note}
+                  </span>
+                </div>
               </div>
 
               <div className="mt-4">
@@ -419,6 +456,18 @@ export default function AdminPrivateInvitesPage() {
                   >
                     {musicBusySlug === inv.slug ? <LoaderIcon className="size-4 animate-spin" /> : <MusicIcon className="size-4" />}
                     {musicBusySlug === inv.slug ? t.musicBusy : t.changeMusic}
+                  </button>
+                )}
+                {(inv.editable || inv.custom) && (
+                  <button
+                    type="button"
+                    onClick={() => togglePause(inv.slug, !inv.paused)}
+                    className={cn(
+                      "inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-colors",
+                      inv.paused ? "bg-emerald-600 text-white hover:bg-emerald-700" : "border border-border text-foreground hover:border-[#C8A24A]"
+                    )}
+                  >
+                    {inv.paused ? t.resume : t.pause}
                   </button>
                 )}
                 {(inv.editable || inv.custom) && (
