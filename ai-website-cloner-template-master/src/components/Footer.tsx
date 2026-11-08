@@ -2,9 +2,13 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { InstagramIcon, MailIcon, TikTokIcon } from "@/components/icons";
 import { OliveMark } from "@/components/OliveMark";
+import { DeleteAccountDialog } from "@/components/DeleteAccountDialog";
+import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
+import { deleteAccount } from "@/lib/services/account.service";
 import { getContactSettings } from "@/lib/services/contactSettings.service";
 import { useEmailCopyToast } from "@/hooks/useEmailCopyToast";
 import type { ContactSettingsDto } from "@/types/api";
@@ -12,9 +16,9 @@ import type { ContactSettingsDto } from "@/types/api";
 // Matches Header.tsx's ROUTES mapping for the same nav items.
 const PAGE_LINK_HREFS = ["/#templates", "/studio", "/guide", "/contact-us"];
 
-// Same order as legalLinks below (Terms, Privacy, Refund, Delete Account) --
-// only Refund Policy has a real page so far, the rest stay dead "#" links.
-const LEGAL_LINK_HREFS: Array<string | undefined> = [undefined, undefined, "/refund-policy", undefined];
+// Same order as legalLinks below (Terms, Privacy, Refund, Delete Account).
+// Delete Account has no page: it opens the confirmation dialog instead.
+const LEGAL_LINK_HREFS: Array<string | undefined> = ["/terms", "/privacy-policy", "/refund-policy", undefined];
 
 const COPY = {
   ar: {
@@ -46,6 +50,32 @@ export function Footer() {
   const t = COPY[language];
   const [settings, setSettings] = useState<ContactSettingsDto | null>(null);
   const { copiedAddress, handleEmailClick } = useEmailCopyToast();
+  const router = useRouter();
+  const { user, refresh: authRefresh } = useAuth();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletePending, setDeletePending] = useState(false);
+
+  function handleDeleteAccountClick() {
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+    setDeleteDialogOpen(true);
+  }
+
+  async function handleConfirmDeleteAccount() {
+    setDeletePending(true);
+    try {
+      await deleteAccount();
+      await authRefresh();
+      setDeleteDialogOpen(false);
+      router.push("/");
+    } catch (error) {
+      console.error("[account] delete account request failed:", error);
+    } finally {
+      setDeletePending(false);
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -146,9 +176,9 @@ export function Footer() {
                       {label}
                     </Link>
                   ) : (
-                    <a href="#" className={linkClassName}>
+                    <button type="button" onClick={handleDeleteAccountClick} className={linkClassName}>
                       {label}
-                    </a>
+                    </button>
                   )}
                 </li>
               );
@@ -156,6 +186,13 @@ export function Footer() {
           </ul>
         </div>
       </div>
+
+      <DeleteAccountDialog
+        open={deleteDialogOpen}
+        pending={deletePending}
+        onConfirm={handleConfirmDeleteAccount}
+        onCancel={() => setDeleteDialogOpen(false)}
+      />
 
       {copiedAddress && (
         <div className="fixed inset-x-0 bottom-6 z-50 flex justify-center px-4">
