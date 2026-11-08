@@ -1,6 +1,10 @@
 import { API_BASE_URL } from "@/lib/api/config";
 import { applyCustomOverrides, CUSTOM_INVITE_KIND } from "@/lib/customInvite";
 
+// Cache-buster for the shared renderer files: phones (and the CDN) fetch the newest invite.css / invite.js after every deploy
+// instead of keeping an older copy, so a saved invitation always lays out like the builder's preview.
+const ASSET_V = (process.env.VERCEL_GIT_COMMIT_SHA ?? "").slice(0, 8) || String(Date.now());
+
 // Public page of an invitation saved from /admin/invite-builder. The content comes from the
 // API and is inlined into the HTML so the shared renderer (public/invites/_template/invite.js)
 // can draw it without a second request, and so link previews (WhatsApp etc.) get the right
@@ -197,12 +201,12 @@ ${image ? `<meta property="og:image" content="${esc(image)}">\n<meta property="o
 <style>html{color-scheme:light}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Aref+Ruqaa:wght@400;700&family=Cinzel:wght@400;600&family=Katibeh&family=Lateef:wght@400;700&family=Reem+Kufi:wght@400;700&family=Mirza:wght@400;700&family=Scheherazade+New:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/invites/_template/invite.css">
+<link rel="stylesheet" href="/invites/_template/invite.css?v=${ASSET_V}">
 </head>
 <body>
 <noscript>يتطلب عرض الدعوة تفعيل JavaScript.</noscript>
 <script>window.__ZAYTORA_INVITE__=${json};</script>
-<script src="/invites/_template/invite.js"></script>
+<script src="/invites/_template/invite.js?v=${ASSET_V}"></script>
 </body>
 </html>
 `;
