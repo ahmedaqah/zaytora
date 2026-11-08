@@ -65,6 +65,7 @@
       },
       fx: { strokeW: 0, strokeColor: '#ffffff', shadowType: 'none', shadowColor: '#000000', shadowSize: 6, shadowOpacity: 0.35 }
     },
+    ivory: { dateLead: 'وذلك بمشيئة الله', weekday: '', hijri: '', detailsTitle: 'تفاصيل يوم الفرح', detailsSub: 'لا يتم الحفل بدونكم', venueLabel: 'مكان الحفل', banner: '', paperImg: '', showBanner: true },
     stickers: []
   };
 
@@ -327,7 +328,7 @@
   /* first card date: 'ltr' = read from left to right (day on the left), otherwise untouched */
   function dateDir(c) { return c.hero && c.hero.dateDir === 'ltr' ? ' dir="ltr" style="unicode-bidi:isolate;direction:ltr"' : ''; }
   /* order of the sections after the first card (layout.order); anything missing keeps its usual place after the listed ones */
-  var SEC_KEYS = ['countdown', 'schedule', 'location', 'notes', 'rsvp', 'closing'];
+  var SEC_KEYS = ['countdown', 'details', 'schedule', 'location', 'notes', 'rsvp', 'closing'];
   function secOrder(c) {
     var o = (c.layout && Array.isArray(c.layout.order) ? c.layout.order : []).filter(function (k, i, a) { return SEC_KEYS.indexOf(k) >= 0 && a.indexOf(k) === i; });
     SEC_KEYS.forEach(function (k) { if (o.indexOf(k) < 0) o.push(k); });
@@ -589,6 +590,9 @@
     var H = c.hero, R = c.rsvp, M = c.media;
     var swans = c.layout.mode === 'swans';
     var royal = c.layout.mode === 'royal'; ROYAL = royal;
+    var ivory = c.layout.mode === 'ivory';
+    document.body.classList.toggle('ivory', ivory);
+    document.documentElement.style.setProperty('--ivpaper', ivory ? "url('" + (c.ivory.paperImg ? resolve(c.ivory.paperImg) : TPL + 'templates/ivory-rose/paper.jpg').replace(/'/g, '%27') + "')" : 'none');
     DECO = (royal || swans) ? c.royal.deco : null;
     PAPER_SETS = Array.isArray(c.royal.paperSets) ? c.royal.paperSets : [];
     PAPER_OP = num(c.royal.paperOpacity, 1, 0.1, 1);
@@ -665,7 +669,16 @@
     if (royal) { h += sceneHtml(c, dateText, names) + sheetOpen(c); secAt = h.length; }
     SEC = royal ? 'rsec' : 'paper';
     /* hero (classic mode) */
-    if (!royal) {
+    if (ivory) {
+    var IV = c.ivory;
+    h += '<section class="paper ivhero" aria-label="' + esc(names) + '">' +
+      (H.bismillah ? '<p class="bismillah">' + esc(H.bismillah) + '</p>' : '') +
+      (H.intro ? '<p class="ivtop">' + nl(H.intro) + '</p>' : '') +
+      '<h1 class="names"><span>' + esc(H.name1) + '</span>' + (H.name2 ? '<span class="amp">' + esc(H.connector) + '</span><span>' + esc(H.name2) + '</span>' : '') + '</h1>' +
+      (H.occasion ? '<p class="kind">' + esc(H.occasion) + '</p>' : '') +
+      '<div class="ivdate">' + (IV.dateLead ? '<p class="t1">' + esc(IV.dateLead) + '</p>' : '') + (IV.weekday ? '<p class="t2">' + esc(IV.weekday) + '</p>' : '') +
+      (dateText ? '<p class="t3"' + dateDir(c) + '>' + esc(dateText) + '</p>' : '') + '</div></section>';
+    } else if (!royal) {
     h += '<section class="' + SEC + '" aria-label="' + esc(names) + '">' + fl('fl-tl', 'f-tl-rose.webp', 282, 283) + fl('fl-tr', 'f-tr-vine.webp', 420, 618) +
       '<div class="hero-top"></div>';
     if (H.bismillah) h += '<p class="bismillah">' + esc(H.bismillah) + '</p>';
@@ -689,6 +702,16 @@
         '</div>' + decoBottom('countdown') + '</section>';
     }
 
+    /* ivory: date card */
+    if (ivory && (start || c.ivory.weekday || c.ivory.hijri)) {
+      var IVD = c.ivory, MON = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+      PT.details = '<section class="' + SEC + ' ivdet" aria-label="' + esc(IVD.detailsTitle) + '">' +
+        (IVD.showBanner !== false ? '<img class="ivban" alt="" src="' + esc(IVD.banner ? resolve(IVD.banner) : TPL + 'templates/ivory-rose/banner.webp') + '">' : '') +
+        title(IVD.detailsTitle) + (IVD.detailsSub ? '<p class="sub">' + esc(IVD.detailsSub) + '</p>' : '') +
+        '<div class="card ivdate-card">' + (start ? '<div class="date-box"><span class="dd">' + esc(String(parseInt(start.d, 10))) + '</span><span class="sep"></span><span class="mm">' + esc(MON[parseInt(start.mo, 10) - 1] + ' ' + start.y) + (IVD.weekday ? '<br>' + esc(IVD.weekday) : '') + '</span></div>' : '') +
+        (IVD.hijri ? '<p class="hijri">' + esc(IVD.hijri) + '</p>' : '') + '</div></section>';
+    }
+
     /* schedule */
     var items = c.schedule.items.filter(function (it) { return it && (it.title || it.time); });
     if (c.schedule.enabled && items.length) {
@@ -703,7 +726,7 @@
     /* location */
     var L2 = c.location;
     if (L2.enabled && (L2.venue || L2.address || L2.mapUrl)) {
-      PT.location = '<section class="' + SEC + '" aria-label="' + esc(L2.title) + '">' + decoTop('location', FL) + title(L2.title) + '<div class="card"><svg class="pin" aria-hidden="true"><use href="#pinicon"/></svg>' +
+      PT.location = '<section class="' + SEC + '" aria-label="' + esc(L2.title) + '">' + decoTop('location', FL) + title(L2.title) + '<div class="card">' + (ivory && c.ivory.venueLabel ? '<p class="vlabel">' + esc(c.ivory.venueLabel) + '</p>' : '') + '<svg class="pin" aria-hidden="true"><use href="#pinicon"/></svg>' +
         (L2.venue ? '<p class="venue"' + (L2.venueLang ? ' dir="ltr" lang="' + esc(L2.venueLang) + '"' : '') + '>' + esc(L2.venue) + '</p>' : '') +
         (L2.venueEn ? '<p class="venue-en" dir="ltr" lang="en">' + esc(L2.venueEn) + '</p>' : '') +
         (L2.address ? '<p class="addr">' + nl(L2.address) + '</p>' : '') +

@@ -581,8 +581,8 @@
 
     /* layout mode: keeps the current look or switches to the royal one */
     var panels = royalPanels();
-    var modeSel = el('select', {}, [el('option', { value: 'classic', text: 'الوضع الحالي (الأوراق الممزقة)' }), el('option', { value: 'royal', text: 'الوضع الجديد (ملكي: أعمدة وورود)' }), el('option', { value: 'swans', text: 'قالب البجع — طبق الأصل من التصميم المعتمد' })]);
-    modeSel.value = cfg.layout.mode === 'royal' || cfg.layout.mode === 'swans' ? cfg.layout.mode : 'classic';
+    var modeSel = el('select', {}, [el('option', { value: 'classic', text: 'الوضع الحالي (الأوراق الممزقة)' }), el('option', { value: 'royal', text: 'الوضع الجديد (ملكي: أعمدة وورود)' }), el('option', { value: 'swans', text: 'قالب البجع — طبق الأصل من التصميم المعتمد' }), el('option', { value: 'ivory', text: 'قالب الورد العاجي (غلاف فيديو + بطاقات عاجية)' })]);
+    modeSel.value = cfg.layout.mode === 'royal' || cfg.layout.mode === 'swans' || cfg.layout.mode === 'ivory' ? cfg.layout.mode : 'classic';
     modeSel.addEventListener('input', function () {
       var R = state.cfg.royal || (state.cfg.royal = {}), ps = R.paperStyle;
       state.cfg.layout.mode = modeSel.value;
@@ -598,6 +598,7 @@
         R.paperOpacity = 0.96; R.useImages = true; R.papers = R.papers || {};
         R.deco = R.deco || {}; R.deco.enabled = true; R.deco.rz = true; R.deco.mono = Object.assign(R.deco.mono || {}, { color: '#111111', size: 1 });
       }
+      if (modeSel.value === 'ivory') state.cfg.theme = Object.assign(state.cfg.theme || {}, { paper: '#f6e8d9', gold: '#b88a57', goldBright: '#d9857f', olive: '#7b1e2c', brown: '#5b3a33' });
       if (modeSel.value === 'royal' && ['blank', 'columns', 'rose', 'gold', 'custom'].indexOf(ps) < 0) R.paperStyle = 'blank';
       buildForm(); schedule();
     });
@@ -624,6 +625,17 @@
       area('العبارة الرئيسية', 'hero.quote'), text('آية / تعليق صغير تحت العبارة', 'hero.verse'),
       area('نص الدعوة', 'hero.intro')
     ]));
+
+    if (cfg.layout.mode === 'ivory') {
+      F.appendChild(section('2-ب) نصوص قالب الورد العاجي', [
+        text('عبارة قبل اليوم (أسفل الغلاف)', 'ivory.dateLead', 'مثال: وذلك بمشيئة الله'),
+        text('اليوم (الثلاثاء...)', 'ivory.weekday'),
+        text('التاريخ الهجري', 'ivory.hijri', 'مثال: الموافق ١٤ جمادى الآخرة ١٤٤٨هـ'),
+        text('عنوان قسم التفاصيل', 'ivory.detailsTitle'), text('عبارة تحت العنوان', 'ivory.detailsSub'),
+        text('عنوان بطاقة المكان', 'ivory.venueLabel'),
+        check('إظهار الصورة العريضة (البانر) فوق التفاصيل', 'ivory.showBanner')
+      ], true));
+    }
 
     /* 3 event date */
     var ev = cfg.event;
@@ -969,6 +981,7 @@
   /* ---------- ready-made templates ---------- */
   var TEMPLATES = [
     ['base', 'القالب الأساسي (الأوراق الممزقة)', TPL + 'config.json'],
+    ['ivory-rose', 'قالب الورد العاجي: ظرف فيديو + غلاف فيديو + بطاقات عاجية (عبدالرحمن وفاطمة)', TPL + 'templates/ivory-rose/config.json'],
     ['royal-swans', 'القالب الملكي: الغلاف بالختم + الورق الفارغ بالأعمدة + البجع (نسخة من دعوة محمد ومنار)', TPL + 'templates/royal-swans/config.json']
   ];
   (function () {

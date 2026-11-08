@@ -400,3 +400,40 @@ main.royal{max-width:520px;padding-block:0 28px;gap:0;overflow-x:clip}
 .hs-n{font-size:calc(17px*var(--ts,1));line-height:1.45;color:var(--brown);opacity:.9}
 .hs-d{font-size:calc(14px*var(--ts,1));line-height:1.55;color:var(--brown);opacity:.7}
 .hs-track:focus-visible{outline:2px solid var(--gold-bright);outline-offset:2px}
+
+/* ===== "ivory" look (layout.mode = 'ivory'): rose/ivory wedding invitation - video hero, flat textured sheets ===== */
+body.ivory{padding-inline:0;background:#2a1a17}
+body.ivory #veil{background:linear-gradient(180deg,rgba(90,40,40,.38) 0%,rgba(90,40,40,.08) 38%,rgba(90,40,40,.12) 60%,rgba(90,40,40,.5) 100%)}
+body.ivory main{max-width:480px;padding-block:0;gap:0;box-shadow:0 0 60px rgba(0,0,0,.45)}
+body.ivory .paper{filter:none;container-type:normal;padding:56px 26px;gap:10px;background:var(--ivpaper,none) center/100% 100% no-repeat,var(--paper)}
+body.ivory .paper::before,body.ivory .paper::after,body.ivory .paper>.fl{display:none}
+body.ivory .paper.ivhero{background:none;min-height:100svh;color:#fff;justify-content:flex-start;padding:11svh 24px 0;position:relative;text-shadow:0 2px 14px rgba(80,30,30,.65)}
+body.ivory .ivtop{font-family:'Reem Kufi',var(--script);font-size:calc(16px*var(--ts,1));line-height:2;color:#fff}
+body.ivory .ivhero .bismillah{color:#fff}
+body.ivory .ivhero .names{color:#fff;margin-top:3svh;font-family:'Aref Ruqaa',var(--script);font-size:calc(clamp(58px,19vw,86px)*var(--ns,1));line-height:1.05}
+body.ivory .ivhero .amp{font-size:30px;color:#ffe6d6;margin:2px 0}
+body.ivory .ivhero .kind{color:#ffe6d6;font-size:calc(22px*var(--ts,1))}
+body.ivory .ivdate{position:absolute;left:0;right:0;bottom:12svh;font-family:'Reem Kufi',var(--script);line-height:1.6}
+body.ivory .ivdate .t1{font-size:15px;opacity:.95}
+body.ivory .ivdate .t2{font-size:19px;margin-top:6px}
+body.ivory .ivdate .t3{font-size:26px;letter-spacing:5px;margin-top:6px;font-family:'Tajawal',sans-serif;font-weight:500}
+body.ivory .title{color:var(--brown);opacity:.85}
+body.ivory .title svg{color:var(--gold)}
+body.ivory .sub{font-size:14px;opacity:.85;margin-bottom:14px}
+body.ivory .count{border:0}
+body.ivory .count b{font-weight:300;color:var(--brown)}
+body.ivory .ivban{width:118%;max-width:none;margin:-56px -9% 18px;display:block}
+body.ivory .card{background:rgba(255,255,255,.55);border:1px solid rgba(184,138,87,.35);border-radius:14px;margin-top:14px;backdrop-filter:blur(4px)}
+body.ivory .card::before{display:none}
+body.ivory .card svg.pin{display:none}
+body.ivory .vlabel{font-size:13px;color:var(--gold);letter-spacing:1px}
+body.ivory .venue{color:var(--olive)}
+body.ivory .btn{background:var(--gold-bright);border-radius:4px;box-shadow:0 6px 20px rgba(90,30,30,.25);font-family:'Reem Kufi',var(--script)}
+body.ivory .date-box{display:flex;justify-content:center;align-items:center;gap:18px}
+body.ivory .date-box .dd{font-size:56px;font-weight:300;color:var(--olive);line-height:1}
+body.ivory .date-box .sep{width:1px;height:56px;background:var(--gold);opacity:.5}
+body.ivory .date-box .mm{font-family:'Reem Kufi',var(--script);font-size:16px;line-height:1.7;text-align:right;color:var(--brown)}
+body.ivory .hijri{font-family:'Reem Kufi',var(--script);font-size:15px;color:var(--gold)}
+body.ivory .rule-item{border:1.5px dashed var(--gold-bright);border-radius:14px;background:rgba(217,133,127,.09)}
+body.ivory .rule-item svg{color:var(--gold-bright)}
+body.ivory footer{background:var(--paper);margin:0;padding:20px 26px 40px}

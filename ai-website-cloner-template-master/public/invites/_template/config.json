@@ -240,5 +240,16 @@
     "day": "",
     "papers": {}
   },
-  "stickers": []
+  "stickers": [],
+  "ivory": {
+    "dateLead": "وذلك بمشيئة الله",
+    "weekday": "",
+    "hijri": "",
+    "detailsTitle": "تفاصيل يوم الفرح",
+    "detailsSub": "لا يتم الحفل بدونكم",
+    "venueLabel": "مكان الحفل",
+    "banner": "",
+    "paperImg": "",
+    "showBanner": true
+  }
 }
