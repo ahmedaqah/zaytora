@@ -466,3 +466,8 @@ body.ivory .paper:not(.ivhero){background:none;isolation:isolate}
 body.ivory .paper:not(.ivhero)::before{display:block;content:"";position:absolute;inset:0;top:0;left:0;width:100%;height:100%;aspect-ratio:auto;background-size:100% 100%;z-index:-1;background:var(--ivpaper,none) center/100% 100% no-repeat,var(--paper);opacity:var(--ivop,1);pointer-events:none}
 body.ivory .paper.ivpage[style*="background"]:not(.ivhero)::before{display:none}
 body.ivory main{position:relative}
+
+/* ivory hero: positions and name size follow the page WIDTH (not the screen height), so the live preview and a real phone lay the texts out the same way */
+body.ivory .paper.ivhero{padding-top:22cqw}
+body.ivory .ivhero .names{margin-top:6cqw;font-size:calc(clamp(58px,19cqw,86px)*var(--sn,1)*var(--ns,1))}
+body.ivory .ivdate{bottom:24cqw}
