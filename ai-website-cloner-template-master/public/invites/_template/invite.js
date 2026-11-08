@@ -26,7 +26,7 @@
     },
     event: { start: '', end: '', utcOffset: '+00:00' },
     countdown: { enabled: true, title: 'يبدأ الاحتفال بعد', labels: ['يوم', 'ساعة', 'دقيقة', 'ثانية'], style: 'classic', order: 'rtl', labelsLang: 'ar' },
-    schedule: { enabled: true, title: 'موعد الحفل', tip: 'اضغط على أي فقرة لمعرفة التفاصيل', roseMode: 'bullets', lineColor: '', roseImg: '', items: [] },
+    schedule: { enabled: true, title: 'موعد الحفل', tip: 'اضغط على أي فقرة لمعرفة التفاصيل', layout: 'timeline', roseMode: 'bullets', lineColor: '', roseImg: '', items: [] },
     location: { enabled: true, title: 'الموقع', venue: '', venueLang: '', venueEn: '', address: '', mapUrl: '', mapLabel: 'افتح الخريطة' },
     notes: { enabled: true, title: 'تعليمات خاصة', items: [] },
     rsvp: {
@@ -293,6 +293,29 @@
     }
     return ['rl-p', 'rl-f'].map(function (cls) { return '<div class="rl ' + cls + '" aria-hidden="true"><i class="t"></i><i class="m"></i><i class="b"></i></div>'; }).join('');
   }
+  /* programme as a horizontal swipe row (schedule.layout = 'slider'): icon, time and title in columns */
+  var SCHED_ICONS = {
+    heart: NOTE_ICONS.heart,
+    welcome: '<path d="M3 11 12 3l9 8"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/>',
+    dinner: '<path d="M7 3v8a2 2 0 0 0 2 2v8"/><path d="M5 3v6"/><path d="M9 3v6"/><path d="M17 21V3c-2.5 1.5-3.5 4.5-3.5 8H17"/>',
+    ceremony: '<circle cx="9" cy="14" r="5.5"/><circle cx="15" cy="14" r="5.5"/><path d="M7.5 6.5 9 4l1.5 2.5"/>',
+    crown: '<path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z"/>',
+    music: '<path d="M9 18V5l11-2v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/>',
+    cake: '<path d="M4 21h16v-8H4z"/><path d="M4 16c2 1.5 4 1.5 8 0s6-1.5 8 0"/><path d="M12 13V9"/><path d="M12 6.5c1-1.2 1-2 0-3-1 1-1 1.8 0 3z"/>',
+    camera: '<path d="M9 3 7.2 5H4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3.2L15 3H9z"/><circle cx="12" cy="12.5" r="3.6"/>',
+    car: NOTE_ICONS.car,
+    gift: NOTE_ICONS.gift,
+    star: '<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>'
+  };
+  function schedSlider(c, items) {
+    var S = c.schedule;
+    return '<div class="hs" dir="rtl"' + tlStyle(S) + '><div class="hs-track" tabindex="0" role="list">' + items.map(function (it) {
+      return '<div class="hs-i" role="listitem"><svg viewBox="0 0 24 24" aria-hidden="true">' + (SCHED_ICONS[it.icon] || SCHED_ICONS.heart) + '</svg>' +
+        (it.time ? '<span class="hs-t">' + esc(it.time) + '</span>' : '') + '<span class="hs-n">' + esc(it.title) + '</span>' +
+        (it.detail ? '<span class="hs-d">' + nl(it.detail) + '</span>' : '') + '</div>';
+    }).join('') + '</div></div>';
+  }
+  var SCHED_SLIDER = function (c) { return c.schedule && c.schedule.layout === 'slider'; };
   /* programme timeline: colour of the sliding line and a picture replacing the rose (schedule.lineColor / roseImg) */
   function tlStyle(S) {
     var v = '';
@@ -523,11 +546,11 @@
     }
     var items = c.schedule.items.filter(function (it) { return it && (it.title || it.time); });
     if (c.schedule.enabled && items.length) {
-      PT.schedule = swSec('schedule', kinds.schedule, c.schedule.title, ['rz-tr', 'rz-bl'], swTitle('schedule', c.schedule.title) + '<ul class="tl' + (c.schedule.roseMode === 'glide' ? ' glide-on' : '') + '"' + tlStyle(c.schedule) + '>' + items.map(function (it) {
+      PT.schedule = swSec('schedule', kinds.schedule, c.schedule.title, ['rz-tr', 'rz-bl'], swTitle('schedule', c.schedule.title) + (SCHED_SLIDER(c) ? schedSlider(c, items) : '<ul class="tl' + (c.schedule.roseMode === 'glide' ? ' glide-on' : '') + '"' + tlStyle(c.schedule) + '>' + items.map(function (it) {
         var d = !!it.detail;
         return '<li' + (it.rose && c.schedule.roseMode !== 'glide' ? ' class="rose"' : '') + '><span class="t">' + esc(it.time) + '</span><button class="e' + (d ? '' : ' nd') + '" type="button"' + (d ? ' aria-expanded="false"' : ' tabindex="-1"') + '><span class="nm">' + esc(it.title) + '</span>' +
           (d ? '<span class="dt"><span>' + nl(it.detail) + '</span></span>' : '') + '</button></li>';
-      }).join('') + '</ul>' + (items.some(function (it) { return it.detail; }) && c.schedule.tip ? '<p class="tip">' + esc(c.schedule.tip) + '</p>' : '') + '<!--SWAN-->', FL, CP);
+      }).join('') + '</ul>' + (items.some(function (it) { return it.detail; }) && c.schedule.tip ? '<p class="tip">' + esc(c.schedule.tip) + '</p>' : '')) + '<!--SWAN-->', FL, CP);
     }
     var L2 = c.location;
     if (L2.enabled && (L2.venue || L2.address || L2.mapUrl)) {
@@ -669,12 +692,12 @@
     /* schedule */
     var items = c.schedule.items.filter(function (it) { return it && (it.title || it.time); });
     if (c.schedule.enabled && items.length) {
-      PT.schedule = '<section class="' + SEC + '" aria-label="' + esc(c.schedule.title) + '">' + decoTop('schedule', FL) + title(c.schedule.title) + '<ul class="tl' + (c.schedule.roseMode === 'glide' ? ' glide-on' : '') + '"' + tlStyle(c.schedule) + '>' +
+      PT.schedule = '<section class="' + SEC + '" aria-label="' + esc(c.schedule.title) + '">' + decoTop('schedule', FL) + title(c.schedule.title) + (SCHED_SLIDER(c) ? schedSlider(c, items) : '<ul class="tl' + (c.schedule.roseMode === 'glide' ? ' glide-on' : '') + '"' + tlStyle(c.schedule) + '>' +
         items.map(function (it) {
           return '<li' + (it.rose && c.schedule.roseMode !== 'glide' ? ' class="rose"' : '') + '><span class="t">' + esc(it.time) + '</span><button class="e" type="button" aria-expanded="false"><span class="nm">' + esc(it.title) + '</span>' +
             (it.detail ? '<span class="dt"><span>' + nl(it.detail) + '</span></span>' : '') + '</button></li>';
         }).join('') + '</ul>' +
-        (items.some(function (it) { return it.detail; }) && c.schedule.tip ? '<p class="tip">' + esc(c.schedule.tip) + '</p>' : '') + decoBottom('schedule') + '</section>';
+        (items.some(function (it) { return it.detail; }) && c.schedule.tip ? '<p class="tip">' + esc(c.schedule.tip) + '</p>' : '')) + decoBottom('schedule') + '</section>';
     }
 
     /* location */
@@ -957,6 +980,14 @@
         });
       });
     }
+
+    /* horizontal programme row: mouse drag (touch already swipes natively) */
+    [].forEach.call(document.querySelectorAll('.hs-track'), function (tr) {
+      var down = false, sx = 0, sl = 0;
+      tr.addEventListener('pointerdown', function (e) { if (e.pointerType !== 'mouse') return; down = true; sx = e.clientX; sl = tr.scrollLeft; tr.classList.add('drag'); });
+      window.addEventListener('pointermove', function (e) { if (down) tr.scrollLeft = sl - (e.clientX - sx); });
+      window.addEventListener('pointerup', function () { down = false; tr.classList.remove('drag'); });
+    });
 
     /* interactive schedule */
     var tl = document.querySelector('.tl');

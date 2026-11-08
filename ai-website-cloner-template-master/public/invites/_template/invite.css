@@ -387,3 +387,16 @@ main.royal{max-width:520px;padding-block:0 28px;gap:0;overflow-x:clip}
 .wish{background:rgba(255,250,242,.75);border:1px solid rgba(var(--gb),.4);border-radius:14px;padding:12px 16px;color:var(--brown)}
 .wish p{margin:0;font-size:calc(18px*var(--ts,1));line-height:1.7;white-space:pre-line}
 .wish span{display:block;margin-top:4px;font-size:calc(15px*var(--ts,1));color:var(--gold)}
+
+/* programme as a horizontal swipe row (schedule.layout = slider) */
+.hs{width:100%;position:relative;--hs-line:var(--tl-line,var(--gold-bright))}
+.hs-track{display:flex;gap:0;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:6px 4px 10px;justify-content:safe center;cursor:grab;outline:0}
+.hs-track::-webkit-scrollbar{display:none}
+.hs-track.drag{cursor:grabbing;scroll-snap-type:none}
+.hs-i{flex:0 0 clamp(104px,34%,150px);scroll-snap-align:center;display:flex;flex-direction:column;align-items:center;gap:7px;padding:4px 10px;text-align:center;position:relative;box-sizing:border-box}
+.hs-i+.hs-i::before{content:"";position:absolute;inset-inline-start:0;top:12%;bottom:12%;width:1px;background:var(--hs-line);opacity:.45}
+.hs-i svg{width:calc(30px*var(--ts,1));height:calc(30px*var(--ts,1));fill:none;stroke:var(--tl-line,var(--gold));stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
+.hs-t{font-family:var(--script);font-weight:700;font-size:calc(24px*var(--ts,1));line-height:1.2;color:var(--brown);direction:ltr;unicode-bidi:isolate}
+.hs-n{font-size:calc(17px*var(--ts,1));line-height:1.45;color:var(--brown);opacity:.9}
+.hs-d{font-size:calc(14px*var(--ts,1));line-height:1.55;color:var(--brown);opacity:.7}
+.hs-track:focus-visible{outline:2px solid var(--gold-bright);outline-offset:2px}

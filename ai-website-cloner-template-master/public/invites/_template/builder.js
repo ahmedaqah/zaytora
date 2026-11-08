@@ -11,6 +11,7 @@
   var files = {}, urls = {}; // zip path -> Blob / blob: URL
   var drawStickers = null;
 
+  var SCHED_ICON_OPTS = [['heart', 'قلب'], ['welcome', 'استقبال'], ['dinner', 'عشاء'], ['ceremony', 'خاتمان / عقد'], ['crown', 'تاج / زفة'], ['music', 'موسيقى'], ['cake', 'كيك'], ['camera', 'تصوير'], ['car', 'سيارة / وصول'], ['gift', 'هدية'], ['star', 'نجمة']];
   var ICONS = [['info', 'معلومة'], ['camera-off', 'ممنوع التصوير'], ['home', 'الأقسام / المكان'], ['car', 'مواقف / وصول'], ['gift', 'هدايا'], ['dress', 'الزي'], ['heart', 'قلب']];
 
   /* ---------- utils ---------- */
@@ -647,12 +648,15 @@
     /* 4 schedule */
     F.appendChild(section('4) برنامج الحفل', [
       check('إظهار البرنامج', 'schedule.enabled'), text('العنوان', 'schedule.title'), text('تلميح تحت البرنامج', 'schedule.tip'),
+      sel('شكل عرض البرنامج', 'schedule.layout', [['timeline', 'الخط العمودي (الحالي)'], ['slider', 'صف أفقي ينزلق بالسحب (أيقونة + وقت + عنوان)']]),
       sel('شكل الوردات على الخط', 'schedule.roseMode', [['bullets', 'الافتراضي: وردات ثابتة بجانب الفقرات المعلَّمة'], ['glide', 'وردة واحدة تنزل وتنزلق إلى كل فقرة مع التمرير']]),
       lineColorField(),
       assetField('ملصق بدل الوردة (يظهر مكان الوردة على الخط)', 'schedule.roseImg', 'PNG أو WebP بخلفية شفافة، يفضّل مربعاً. في وضع «وردة واحدة تنزل» تسحب الوردة (أو الملصق) الخط الأحمر خلفها أثناء التمرير.'),
       repeater('schedule.items', function (it, cb) {
         var rose = el('input', { type: 'checkbox' }); rose.checked = !!it.rose; rose.addEventListener('input', function () { it.rose = rose.checked; cb(); });
+        var ic = el('select', {}, SCHED_ICON_OPTS.map(function (o) { return el('option', { value: o[0], text: o[1] }); })); ic.value = it.icon || 'heart'; ic.addEventListener('input', function () { it.icon = ic.value; cb(); });
         return [el('div', { class: 'g2' }, [itemText(it, 'time', 'الوقت', cb), itemText(it, 'title', 'الفقرة', cb)]), itemText(it, 'detail', 'التفاصيل عند الضغط (اختياري)', cb, true),
+          wrap('أيقونة الفقرة (للصف الأفقي)', ic),
           el('label', { class: 'chk' }, [rose, el('span', { text: 'علامة وردة' })])];
       }, { time: '', title: '', detail: '' }, '+ إضافة فقرة')
     ]));
