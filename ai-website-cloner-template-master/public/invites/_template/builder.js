@@ -330,13 +330,28 @@
         layer.addEventListener('input', function () { s.layer = layer.value; schedule(); });
         var fl = el('input', { type: 'checkbox' }); fl.checked = !!s.float; fl.addEventListener('input', function () { s.float = fl.checked; schedule(); });
         var cb = function () { schedule(); };
-        var secSel = null;
-        if (s.u === 2 && !isScene && (state.cfg.layout.mode === 'swans' || state.cfg.layout.mode === 'ivory')) {
+        var secSel = null, IVY = state.cfg.layout.mode === 'ivory' && s.u === 2, cardSel = null;
+        if (IVY) {
+          /* ivory: one clear choice of the card the sticker sits on (dragging it over another card in the preview updates this list too) */
+          var cards = [['hero', 'الغلاف الأول'], ['', 'أعلى الدعوة (بدون ربط)'], ['countdown', 'العدّ التنازلي'], ['details', 'تفاصيل يوم الفرح'], ['schedule', 'برنامج الحفل'], ['location', 'مكان الحفل'], ['notes', 'التنبيه'], ['rsvp', 'تأكيد الحضور'], ['closing', 'الختام']]
+            .concat((state.cfg.ivory.pages || []).filter(function (p) { return p && p.id; }).map(function (p, k) { return [p.id, 'صفحة إضافية ' + (k + 1) + (p.title ? ' — ' + p.title : '')]; }));
+          cardSel = el('select', {}, cards.map(function (o) { return el('option', { value: o[0], text: o[1] }); }));
+          cardSel.value = isScene ? 'hero' : (s.sec || '');
+          var curName = (cards.filter(function (o) { return o[0] === cardSel.value; })[0] || ['', 'أعلى الدعوة'])[1];
+          h.firstChild.appendChild(el('span', { class: 'hint', text: ' — على: ' + curName }));
+          cardSel.addEventListener('input', function () {
+            var v = cardSel.value;
+            if (v === 'hero') { s.anchor = 'scene'; s.sec = ''; s.rel = false; s.y = -80; }
+            else { s.anchor = 'page'; s.sec = v; s.rel = !!v; s.y = v ? 10 : 20; }
+            draw(); schedule();
+          });
+        }
+        if (!IVY && s.u === 2 && !isScene && (state.cfg.layout.mode === 'swans' || state.cfg.layout.mode === 'ivory')) {
           secSel = el('select', {}, (state.cfg.layout.mode === 'ivory' ? [['', 'أعلى الدعوة'], ['countdown', 'العد التنازلي'], ['details', 'تفاصيل يوم الفرح'], ['schedule', 'برنامج الحفل'], ['location', 'الموقع'], ['notes', 'التنبيه'], ['closing', 'الختام'], ['rsvp', 'تأكيد الحضور']].concat((state.cfg.ivory.pages || []).filter(function (p) { return p && p.id; }).map(function (p, k) { return [p.id, 'صفحة إضافية ' + (k + 1) + (p.title ? ' — ' + p.title : '')]; })) : [['', 'أعلى الدعوة'], ['countdown', 'العد التنازلي'], ['schedule', 'برنامج الحفل'], ['location', 'الموقع'], ['notes', 'التعليمات'], ['closing', 'بطاقة الختام'], ['rsvp', 'تأكيد الحضور']]).map(function (o) { return el('option', { value: o[0], text: o[1] }); }));
           secSel.value = s.sec || '';
           secSel.addEventListener('input', function () { s.sec = secSel.value; if (state.cfg.layout.mode === 'ivory') { s.rel = !!s.sec; s.y = s.sec ? 10 : 20; draw(); } schedule(); });
         }
-        box.appendChild(el('div', { class: 'item' }, [h, wrap('مكان الملصق', anchor), secSel ? wrap('مرتبط بقسم (يتبعه على كل الشاشات)', secSel) : null, wrap('الطبقة', layer),
+        box.appendChild(el('div', { class: 'item' }, [h, cardSel ? wrap('البطاقة التي عليها الملصق', cardSel) : wrap('مكان الملصق', anchor), secSel ? wrap('مرتبط بقسم (يتبعه على كل الشاشات)', secSel) : null, wrap('الطبقة', layer),
           slider('أفقياً (يمين ↔ يسار الصفحة)', s, 'x', 0, 100, 0.5, '%', cb), fixedPos && s.rel && !isScene ? slider('عمودياً (٪ من ارتفاع القسم المرتبط)', s, 'y', -20, 120, 0.5, '%', cb) : fixedPos ? slider(isScene ? 'عمودياً (أعلى ↔ أسفل عن منتصف الواجهة)' : 'عمودياً (البعد عن أعلى القسم المرتبط، أو الدعوة)', s, 'y', isScene ? -150 : 0, isScene ? 150 : 1200, 1, '', cb) : slider('عمودياً (أعلى ↔ أسفل)', s, 'y', 0, 100, 0.5, '%', cb),
           slider('الحجم', s, 'w', 5, 150, 1, '', cb), slider('التدوير', s, 'rot', -180, 180, 1, '°', cb), slider('الشفافية', s, 'op', 0.1, 1, 0.05, '', cb),
           el('label', { class: 'chk' }, [fl, el('span', { text: 'حركة طفو هادئة' })])]));
@@ -347,7 +362,10 @@
         if (f.size > 20 * 1024 * 1024) { status('الملف كبير جداً (' + Math.round(f.size / 1048576) + ' MB). استخدم أقل من 20 MB.', true); return; }
         var name = 'media/sticker-' + Date.now().toString(36) + Math.floor(Math.random() * 1e4) + '.' + (ext(f.name) || 'png');
         files[name] = f; urls[name] = URL.createObjectURL(f);
-        list.push({ src: name, kind: /^video\//.test(f.type) ? 'video' : 'image', anchor: 'scene', u: 2, x: 50, y: -80, w: 30, rot: 0, op: 1, layer: 'front', float: false });
+        var base = { src: name, kind: /^video\//.test(f.type) ? 'video' : 'image', anchor: 'scene', u: 2, x: 50, y: -80, w: 30, rot: 0, op: 1, layer: 'front', float: false };
+        /* ivory: a new sticker starts on the first card but is free to be dragged over any card; the card it sits on is then shown in its title */
+        if (state.cfg.layout.mode === 'ivory') Object.assign(base, { anchor: 'page', sec: 'hero', y: 60, rel: false });
+        list.push(base);
         draw(); schedule();
       });
       box.appendChild(el('div', { class: 'media' }, [el('b', { text: 'إضافة ملصق / صورة مفرغة / GIF / فيديو' }),
