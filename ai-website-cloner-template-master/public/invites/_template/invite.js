@@ -65,7 +65,7 @@
       },
       fx: { strokeW: 0, strokeColor: '#ffffff', shadowType: 'none', shadowColor: '#000000', shadowSize: 6, shadowOpacity: 0.35 }
     },
-    ivory: { dateLead: 'وذلك بمشيئة الله', weekday: '', hijri: '', detailsTitle: 'تفاصيل يوم الفرح', detailsSub: 'لا يتم الحفل بدونكم', venueLabel: 'مكان الحفل', banner: '', paperImg: '', showBanner: true, pages: [], stk: [] },
+    ivory: { dateLead: 'وذلك بمشيئة الله', weekday: '', hijri: '', detailsTitle: 'تفاصيل يوم الفرح', detailsSub: 'لا يتم الحفل بدونكم', venueLabel: 'مكان الحفل', banner: '', paperImg: '', showBanner: false, pages: [], stk: [] },
     stickers: []
   };
 
@@ -739,7 +739,7 @@
     if (ivory && (start || c.ivory.weekday || c.ivory.hijri)) {
       var IVD = c.ivory, MON = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
       PT.details = '<section class="' + SEC + ' ivdet" aria-label="' + esc(IVD.detailsTitle) + '">' +
-        (IVD.showBanner !== false ? '<img class="ivban" alt="" src="' + esc(IVD.banner ? resolve(IVD.banner) : TPL + 'templates/ivory-rose/banner.webp') + '">' : '') +
+        (IVD.showBanner !== false && IVD.banner ? '<img class="ivban" alt="" src="' + esc(resolve(IVD.banner)) + '">' : '') +
         title(IVD.detailsTitle) + (IVD.detailsSub ? '<p class="sub">' + esc(IVD.detailsSub) + '</p>' : '') +
         '<div class="card ivdate-card">' + (start ? '<div class="date-box"><span class="dd">' + esc(String(parseInt(start.d, 10))) + '</span><span class="sep"></span><span class="mm">' + esc(MON[parseInt(start.mo, 10) - 1] + ' ' + start.y) + (IVD.weekday ? '<br>' + esc(IVD.weekday) : '') + '</span></div>' : '') +
         (IVD.hijri ? '<p class="hijri">' + esc(IVD.hijri) + '</p>' : '') + '</div></section>';

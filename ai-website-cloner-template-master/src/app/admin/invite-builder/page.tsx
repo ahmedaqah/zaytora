@@ -16,7 +16,7 @@ import {
 // the admin session): the builder posts the invitation plus its local media files up here, this
 // page uploads the files to storage, replaces their local names with the uploaded URLs and saves
 // the invitation, which then appears in "Private invites" at /invites/p/<slug>.
-const BUILDER_PATH = "/invites/_template/builder.html?v=20261108c";
+const BUILDER_PATH = "/invites/_template/builder.html?v=20261108d";
 
 const COPY = {
   ar: {
