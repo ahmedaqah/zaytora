@@ -331,8 +331,8 @@
         var fl = el('input', { type: 'checkbox' }); fl.checked = !!s.float; fl.addEventListener('input', function () { s.float = fl.checked; schedule(); });
         var cb = function () { schedule(); };
         var secSel = null;
-        if (s.u === 2 && !isScene && state.cfg.layout.mode === 'swans') {
-          secSel = el('select', {}, [['', 'أعلى الدعوة'], ['countdown', 'العد التنازلي'], ['schedule', 'برنامج الحفل'], ['location', 'الموقع'], ['notes', 'التعليمات'], ['closing', 'بطاقة الختام'], ['rsvp', 'تأكيد الحضور']].map(function (o) { return el('option', { value: o[0], text: o[1] }); }));
+        if (s.u === 2 && !isScene && (state.cfg.layout.mode === 'swans' || state.cfg.layout.mode === 'ivory')) {
+          secSel = el('select', {}, (state.cfg.layout.mode === 'ivory' ? [['', 'أعلى الدعوة'], ['countdown', 'العد التنازلي'], ['details', 'تفاصيل يوم الفرح'], ['schedule', 'برنامج الحفل'], ['location', 'الموقع'], ['notes', 'التنبيه'], ['closing', 'الختام'], ['rsvp', 'تأكيد الحضور']].concat((state.cfg.ivory.pages || []).filter(function (p) { return p && p.id; }).map(function (p, k) { return [p.id, 'صفحة إضافية ' + (k + 1) + (p.title ? ' — ' + p.title : '')]; })) : [['', 'أعلى الدعوة'], ['countdown', 'العد التنازلي'], ['schedule', 'برنامج الحفل'], ['location', 'الموقع'], ['notes', 'التعليمات'], ['closing', 'بطاقة الختام'], ['rsvp', 'تأكيد الحضور']]).map(function (o) { return el('option', { value: o[0], text: o[1] }); }));
           secSel.value = s.sec || '';
           secSel.addEventListener('input', function () { s.sec = secSel.value; schedule(); });
         }
@@ -507,17 +507,12 @@
   }
   /* ivory template: extra pages (free sections) and stickers placed on any page */
   var IV_AFTER = [['hero', 'بعد الغلاف الأول'], ['countdown', 'بعد العدّ التنازلي'], ['details', 'بعد تفاصيل يوم الفرح'], ['schedule', 'بعد برنامج الحفل'], ['location', 'بعد مكان الحفل'], ['notes', 'بعد التنبيه'], ['rsvp', 'بعد تأكيد الحضور'], ['closing', 'بعد الختام']];
-  function ivTargets() {
-    var t = [['hero', 'الغلاف الأول'], ['countdown', 'العدّ التنازلي'], ['details', 'تفاصيل يوم الفرح'], ['schedule', 'برنامج الحفل'], ['location', 'مكان الحفل'], ['notes', 'التنبيه'], ['rsvp', 'تأكيد الحضور'], ['closing', 'الختام']];
-    (state.cfg.ivory.pages || []).forEach(function (p, i) { if (p && p.id) t.push(['page:' + p.id, 'صفحة إضافية ' + (i + 1) + (p.title ? ' — ' + p.title : '')]); });
-    return t;
-  }
   function ivPagesPanel() {
     var I = state.cfg.ivory; if (!Array.isArray(I.pages)) I.pages = [];
-    var box = el('div', { class: 'sec', style: 'padding:0' }, [el('p', { class: 'hint', text: 'أضف صفحات جديدة بعنوان ونص وصورة وزر ولون وخلفية، وحدّد مكانها بين أقسام الدعوة. بعد إضافة صفحة يمكنك وضع ملصقات عليها من قسم «الملصقات».' })]);
+    var box = el('div', { class: 'sec', style: 'padding:0' }, [el('p', { class: 'hint', text: 'أضف صفحات جديدة بعنوان ونص وصورة وزر ولون وخلفية، وحدّد مكانها بين أقسام الدعوة. لوضع ملصقات عليها استخدم قسم «الملصقات» واختر «مرتبط بقسم».' })]);
     box.appendChild(repeater('ivory.pages', function (it, cb) {
       var i = I.pages.indexOf(it), base = 'ivory.pages.' + i + '.';
-      if (!it.id) it.id = 'p' + Date.now().toString(36) + Math.floor(Math.random() * 1000);
+      if (!it.id) { it.id = 'pg'; for (var q = 0; q < 6; q++) it.id += String.fromCharCode(97 + Math.floor(Math.random() * 26)); }
       var a = el('select', {}, IV_AFTER.map(function (o) { return el('option', { value: o[0], text: o[1] }); })); a.value = it.after || 'rsvp';
       a.addEventListener('input', function () { it.after = a.value; cb(); });
       return [wrap('مكان الصفحة في الدعوة', a), itemText(it, 'title', 'عنوان الصفحة', cb), itemText(it, 'sub', 'عبارة صغيرة تحت العنوان', cb), itemText(it, 'text', 'النص', cb, true),
@@ -528,46 +523,6 @@
     }, { id: '', title: 'صفحة جديدة', sub: '', text: '', after: 'rsvp', h: 0, btnLabel: '', btnUrl: '' }, '+ إضافة صفحة'));
     return box;
   }
-  function ivStickerPanel() {
-    var I = state.cfg.ivory; if (!Array.isArray(I.stk)) I.stk = [];
-    var box = el('div', { class: 'sec', style: 'padding:0' });
-    function draw() {
-      box.innerHTML = '';
-      I.stk.forEach(function (s, i) {
-        var thumb = s.kind === 'video' ? el('b', { text: 'فيديو' }) : el('img', { src: urls[s.src] || s.src, alt: '', style: 'height:42px;max-width:90px;object-fit:contain;background:#ddd' });
-        var h = el('div', { class: 'h' }, [el('span', { class: 'row' }, [thumb, el('b', { text: ' ملصق ' + (i + 1) })])]);
-        var del = el('button', { type: 'button', class: 'sm del', text: 'حذف' });
-        del.addEventListener('click', function () { dropAsset(s.src); I.stk.splice(i, 1); draw(); schedule(); });
-        h.appendChild(el('div', { class: 'row' }, [del]));
-        var tg = el('select', {});
-        function fill() { var cur = s.target || 'hero'; tg.innerHTML = ''; ivTargets().forEach(function (o) { tg.appendChild(el('option', { value: o[0], text: o[1] })); }); tg.value = cur; }
-        fill(); tg.addEventListener('mousedown', fill); tg.addEventListener('focus', fill);
-        tg.addEventListener('input', function () { s.target = tg.value; schedule(); });
-        var ly = el('select', {}, [el('option', { value: 'front', text: 'أمام النصوص' }), el('option', { value: 'back', text: 'خلف النصوص' })]); ly.value = s.layer || 'front';
-        ly.addEventListener('input', function () { s.layer = ly.value; schedule(); });
-        var fl = el('input', { type: 'checkbox' }); fl.checked = !!s.float; fl.addEventListener('input', function () { s.float = fl.checked; schedule(); });
-        var cb = function () { schedule(); };
-        box.appendChild(el('div', { class: 'item' }, [h, wrap('الصفحة / القسم الذي يوضع عليه', tg), wrap('الطبقة', ly),
-          slider('أفقياً (يمين ↔ يسار)', s, 'x', -10, 110, 0.5, '%', cb), slider('عمودياً (أعلى ↔ أسفل)', s, 'y', -10, 110, 0.5, '%', cb),
-          slider('الحجم (٪ من عرض الصفحة)', s, 'w', 3, 150, 1, '', cb), slider('التدوير', s, 'rot', -180, 180, 1, '°', cb), slider('الشفافية', s, 'op', 0.1, 1, 0.05, '', cb),
-          el('label', { class: 'chk' }, [fl, el('span', { text: 'حركة طفو هادئة' })])]));
-      });
-      var inp = el('input', { type: 'file', accept: 'image/png,image/webp,image/gif,image/jpeg,video/mp4,video/webm' });
-      inp.addEventListener('change', function () {
-        var f = inp.files[0]; if (!f) return; inp.value = '';
-        if (f.size > 20 * 1024 * 1024) { status('الملف كبير جداً (' + Math.round(f.size / 1048576) + ' MB). استخدم أقل من 20 MB.', true); return; }
-        var name = 'media/sticker-' + Date.now().toString(36) + Math.floor(Math.random() * 1e4) + '.' + (ext(f.name) || 'png');
-        files[name] = f; urls[name] = URL.createObjectURL(f);
-        I.stk.push({ src: name, kind: /^video\//.test(f.type) ? 'video' : 'image', target: 'hero', x: 50, y: 30, w: 30, rot: 0, op: 1, layer: 'front', float: false });
-        draw(); schedule();
-      });
-      box.appendChild(el('div', { class: 'media' }, [el('b', { text: 'إضافة ملصق / صورة مفرغة / GIF / فيديو' }),
-        el('p', { class: 'hint', text: 'PNG أو WebP بخلفية شفافة، أو GIF، أو فيديو قصير. اختر الصفحة التي يوضع عليها ثم حرّكه بالمنزلقات.' }), inp]));
-    }
-    draw();
-    return box;
-  }
-
   function royalPanels() {
     var R = state.cfg.royal, SWANS = state.cfg.layout.mode === 'swans'; fontSels = [];
     var fam = function (side, label) {
@@ -634,7 +589,13 @@
       ]),
       section('الوضع الملكي — الملصقات والصور والفيديو', [stickerPanel()])
     ]);
-    wrapEl.hidden = state.cfg.layout.mode !== 'royal' && state.cfg.layout.mode !== 'swans';
+    if (state.cfg.layout.mode === 'ivory') {
+      [].slice.call(wrapEl.querySelectorAll('summary')).forEach(function (sm) { sm.textContent = sm.textContent.replace('الوضع الملكي — ', 'قالب الورد — '); });
+      [].slice.call(wrapEl.children).forEach(function (d) { var sm = d.querySelector('summary'); if (sm && /الواجهة الافتتاحية|الورقة$/.test(sm.textContent)) wrapEl.removeChild(d); });
+      wrapEl.insertBefore(section('الورق (خلفية الأقسام)', [assetField('صورة الورق (بدل الأصلية)', 'ivory.paperImg', 'تظهر خلف كل أقسام الدعوة ما عدا الغلاف.'),
+        scale('درجة وضوح الورق (100% معتم، أقل = أشفّ)', 'royal.paperOpacity', 0.1, 1, 0.05)]), wrapEl.children[1] || null);
+    }
+    wrapEl.hidden = state.cfg.layout.mode !== 'royal' && state.cfg.layout.mode !== 'swans' && state.cfg.layout.mode !== 'ivory';
     return wrapEl;
   }
 
@@ -662,7 +623,15 @@
         R.paperOpacity = 0.96; R.useImages = true; R.papers = R.papers || {};
         R.deco = R.deco || {}; R.deco.enabled = true; R.deco.rz = true; R.deco.mono = Object.assign(R.deco.mono || {}, { color: '#111111', size: 1 });
       }
-      if (modeSel.value === 'ivory') state.cfg.theme = Object.assign(state.cfg.theme || {}, { paper: '#f6e8d9', gold: '#b88a57', goldBright: '#d9857f', olive: '#7b1e2c', brown: '#5b3a33' });
+      if (modeSel.value === 'ivory') {
+        state.cfg.theme = Object.assign(state.cfg.theme || {}, { paper: '#f6e8d9', gold: '#b88a57', goldBright: '#d9857f', olive: '#7b1e2c', brown: '#5b3a33' });
+        R.colors = { text: '#ffffff', names: '#ffffff' };
+        R.fonts = { bismillah: 'aref', invite: 'reem', titles: 'aref', father: 'aref', names: 'aref', middle: 'reem' };
+        R.anim = { type: 'rise', duration: 1.2, gap: 0.5, delay: 0.4 };
+        R.veil = { on: true, color: '#5a2828', top: 0.38, mid: 0.12, bot: 0.5 };
+        R.fx = Object.assign(R.fx || {}, { shadowType: 'soft', shadowColor: '#501e1e', shadowSize: 14, shadowOpacity: 0.65, strokeW: 0 });
+        R.paperOpacity = 1; state.cfg.ivory = state.cfg.ivory || {}; if (state.cfg.ivory.showBanner == null) state.cfg.ivory.showBanner = false;
+      }
       if (modeSel.value === 'royal' && ['blank', 'columns', 'rose', 'gold', 'custom'].indexOf(ps) < 0) R.paperStyle = 'blank';
       buildForm(); schedule();
     });
@@ -698,11 +667,9 @@
         text('عنوان قسم التفاصيل', 'ivory.detailsTitle'), text('عبارة تحت العنوان', 'ivory.detailsSub'),
         text('عنوان بطاقة المكان', 'ivory.venueLabel'),
         check('إظهار الصورة العريضة (البانر) فوق التفاصيل', 'ivory.showBanner'),
-        assetField('صورة البانر العريضة (بدل الأصلية)', 'ivory.banner', 'صورة عريضة تظهر فوق قسم التفاصيل.'),
-        assetField('خلفية الورق (بدل الأصلية)', 'ivory.paperImg', 'تظهر خلف كل أقسام الدعوة ما عدا الغلاف.')
+        assetField('صورة البانر العريضة (بدل الأصلية)', 'ivory.banner', 'صورة عريضة تظهر فوق قسم التفاصيل.')
       ], true));
       F.appendChild(section('2-ج) صفحات إضافية (أقسام جديدة)', [ivPagesPanel()]));
-      F.appendChild(section('2-د) ملصقات على أي صفحة', [ivStickerPanel()]));
     }
 
     /* 3 event date */

@@ -250,8 +250,7 @@
     "venueLabel": "مكان الحفل",
     "banner": "",
     "paperImg": "",
-    "showBanner": true,
-    "pages": [],
-    "stk": []
+    "showBanner": false,
+    "pages": []
   }
 }

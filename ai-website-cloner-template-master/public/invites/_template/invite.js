@@ -584,16 +584,16 @@
   }
 
   /* ivory look: stickers placed on a section (target = 'hero' | section key | 'page:<id>') and free extra pages */
-  function ivStk(c, target) {
-    return ((c.ivory && c.ivory.stk) || []).map(function (s) {
-      if (!s || !s.src || (s.target || 'hero') !== target) return '';
-      var url = resolve(s.src); if (!url) return '';
-      var st = 'left:' + num(s.x, 50, -30, 130) + '%;top:' + num(s.y, 20, -30, 130) + '%;width:' + num(s.w, 30, 3, 200) + '%;opacity:' + num(s.op, 1, 0.05, 1) +
-        ';--rot:' + num(s.rot, 0, -180, 180) + 'deg;z-index:' + (s.layer === 'back' ? 1 : 3);
-      var inner = s.kind === 'video' ? '<video src="' + esc(url) + '" autoplay muted loop playsinline preload="auto"></video>' : '<img src="' + esc(url) + '" alt="" draggable="false">';
-      return '<div class="ivs' + (s.float ? ' flo' : '') + '" style="' + st + '">' + inner + '</div>';
-    }).join('');
+  /* ivory look: fonts, sizes, colours, outline/shadow and motion come from the same royal.* settings as the other templates */
+  function ivVars(c) {
+    var R = c.royal, F = R.fonts || {}, SC = R.scales || {}, CO = R.colors || {}, A = R.anim || {};
+    function ff(k) { return fontOf(F[k] || 'katibeh'); }
+    return '--f-b:' + ff('bismillah') + ';--f-i:' + ff('invite') + ';--f-m:' + ff('middle') + ';--f-t:' + ff('titles') + ';--f-n:' + ff('names') +
+      ';--sb:' + num(SC.bismillah, 1, 0.5, 1.8) + ';--si:' + num(SC.invite, 1, 0.5, 1.8) + ';--sm:' + num(SC.middle, 1, 0.5, 1.8) + ';--sn:' + num(SC.names, 1, 0.5, 1.8) +
+      ';--r-text:' + (hex2rgb(CO.text) ? CO.text : '#ffffff') + ';--r-names:' + (hex2rgb(CO.names) ? CO.names : '#ffffff') + fxVars(R.fx) +
+      ';--ad:' + num(A.duration, 1.2, 0.3, 6) + 's;--rg:' + num(A.gap, 0.5, 0, 3) + 's;--rd:' + num(A.delay, 0.4, 0, 6) + 's;--ivop:' + num(R.paperOpacity, 1, 0.1, 1);
   }
+  function ivSec(html, key) { return html ? html.replace(/^<section class="paper/, '<section class="paper sec-' + key) : html; }
   function ivInject(html, extra) { return extra && html ? html.replace(/<\/section>$/, function () { return extra + '</section>'; }) : html; }
   function ivPage(c, p) {
     var bg = p.bg ? resolve(p.bg) : '', st = [];
@@ -602,10 +602,10 @@
     if (/^#[0-9a-f]{6}$/i.test(p.color || '')) st.push('color:' + p.color + ';--brown:' + p.color);
     var mh = num(p.h, 0, 0, 300); if (mh) st.push('min-height:' + mh + 'svh;justify-content:center');
     var img = p.img ? resolve(p.img) : '';
-    return ivInject('<section class="paper ivpage" id="pg-' + esc(p.id || '') + '"' + (st.length ? ' style="' + st.join(';') + '"' : '') + '>' +
+    return ivInject('<section class="paper ivpage sec-' + esc(p.id || '') + '"' + (st.length ? ' style="' + st.join(';') + '"' : '') + '>' +
       (img ? '<img class="ivpimg" alt="" src="' + esc(img) + '">' : '') + (p.title ? title(p.title) : '') + (p.sub ? '<p class="sub">' + esc(p.sub) + '</p>' : '') +
       (p.text ? '<p class="ivptext">' + nl(p.text) + '</p>' : '') +
-      (p.btnLabel && /^https?:\/\//i.test(p.btnUrl || '') ? '<a class="btn" href="' + esc(p.btnUrl) + '" target="_blank" rel="noopener">' + esc(p.btnLabel) + '</a>' : '') + '</section>', ivStk(c, 'page:' + (p.id || '')));
+      (p.btnLabel && /^https?:\/\//i.test(p.btnUrl || '') ? '<a class="btn" href="' + esc(p.btnUrl) + '" target="_blank" rel="noopener">' + esc(p.btnLabel) + '</a>' : '') + '</section>', '');
   }
   function ivPagesAfter(c, key) {
     return ((c.ivory && c.ivory.pages) || []).filter(function (p) { return p && (p.after || 'rsvp') === key; }).map(function (p) { return ivPage(c, p); }).join('');
@@ -621,7 +621,7 @@
     var ivory = c.layout.mode === 'ivory';
     document.body.classList.toggle('ivory', ivory);
     document.documentElement.style.setProperty('--ivpaper', ivory ? "url('" + (c.ivory.paperImg ? resolve(c.ivory.paperImg) : TPL + 'templates/ivory-rose/paper.jpg').replace(/'/g, '%27') + "')" : 'none');
-    DECO = (royal || swans) ? c.royal.deco : null;
+    DECO = (royal || swans || ivory) ? c.royal.deco : null;
     PAPER_SETS = Array.isArray(c.royal.paperSets) ? c.royal.paperSets : [];
     PAPER_OP = num(c.royal.paperOpacity, 1, 0.1, 1);
     CARD.custom = royal && paperStyle(c.royal) === 'custom' ? c.royal.customPaper : null;
@@ -657,13 +657,13 @@
     } else {
       h += '<div id="bg" aria-hidden="true"></div>';
     }
-    var VL = (royal || swans) && c.royal.veil && c.royal.veil.on ? c.royal.veil : null, veilCss = swans ? ' style="background:none"' : ''; /* swans: its own stylesheet paints a veil, so "off" must clear it */
+    var VL = (royal || swans || ivory) && c.royal.veil && c.royal.veil.on ? c.royal.veil : null, veilCss = swans ? ' style="background:none"' : ''; /* swans: its own stylesheet paints a veil, so "off" must clear it */
     if (VL) {
       var vr = (hex2rgb(VL.color) || [18, 6, 8]).join(',');
       veilCss = ' style="background:linear-gradient(180deg,rgba(' + vr + ',' + num(VL.top, 0.42, 0, 1) + '),rgba(' + vr + ',' + num(VL.mid, 0.22, 0, 1) + ') 45%,rgba(' + vr + ',' + num(VL.bot, 0.38, 0, 1) + '))"';
     }
     h += '<div id="veil"' + veilCss + '></div>';
-    if (royal || swans) h += fontCss(M, c.royal.customFonts);
+    if (royal || swans || ivory) h += fontCss(M, c.royal.customFonts);
 
     if (!opts.skipCover) {
       /* the poster also paints the button itself, so phones that hold back the video (low-power mode, slow network) still show the cover picture */
@@ -690,7 +690,7 @@
     if (!swans) h += '<div id="scrollhint" aria-hidden="true"><span class="mouse"></span><span class="chev"><i></i><i></i></span><span class="tx">' + esc(c.ui.scrollHint) + '</span></div>';
 
     if (swans) h += swansShare(c, names);
-    h += '<main' + (royal ? ' class="royal"' : '') + '>';
+    h += '<main' + (royal ? ' class="royal"' : '') + (ivory ? ' style="' + ivVars(c) + '"' : '') + '>';
     var secAt = 0;
     if (swans) h += swansBody(c, start, dateText, FL);
     else {
@@ -699,14 +699,18 @@
     /* hero (classic mode) */
     if (ivory) {
     var IV = c.ivory;
-    var heroH = '<section class="paper ivhero" aria-label="' + esc(names) + '">' +
-      (H.bismillah ? '<p class="bismillah">' + esc(H.bismillah) + '</p>' : '') +
-      (H.intro ? '<p class="ivtop">' + nl(H.intro) + '</p>' : '') +
-      '<h1 class="names"><span>' + esc(H.name1) + '</span>' + (H.name2 ? '<span class="amp">' + esc(H.connector) + '</span><span>' + esc(H.name2) + '</span>' : '') + '</h1>' +
-      (H.occasion ? '<p class="kind">' + esc(H.occasion) + '</p>' : '') +
-      '<div class="ivdate">' + (IV.dateLead ? '<p class="t1">' + esc(IV.dateLead) + '</p>' : '') + (IV.weekday ? '<p class="t2">' + esc(IV.weekday) + '</p>' : '') +
+    var types = ['rise', 'fade', 'drop', 'zoom', 'blur', 'slide'], hty = types.indexOf((c.royal.anim || {}).type) >= 0 ? c.royal.anim.type : 'rise', hi = 0;
+    function hel(cls, inner, tag) { var n = hi++; return '<' + (tag || 'p') + ' class="r-el ' + cls + '" style="--i:' + n + '">' + inner + '</' + (tag || 'p') + '>'; }
+    var heroH = '<section class="paper ivhero sec-hero an-' + hty + '" id="rscene" aria-label="' + esc(names) + '">' +
+      (H.bismillah ? hel('bismillah', esc(H.bismillah)) : '') +
+      (H.intro ? hel('ivtop', nl(H.intro)) : '') +
+      hel('names', '<span>' + esc(H.name1) + '</span>' + (H.name2 ? '<span class="amp">' + esc(H.connector) + '</span><span>' + esc(H.name2) + '</span>' : ''), 'h1') +
+      (H.occasion ? hel('kind', esc(H.occasion)) : '') +
+      '<div class="ivdate r-el" style="--i:' + (hi++) + '">' + (IV.dateLead ? '<p class="t1">' + esc(IV.dateLead) + '</p>' : '') + (IV.weekday ? '<p class="t2">' + esc(IV.weekday) + '</p>' : '') +
       (dateText ? '<p class="t3"' + dateDir(c) + '>' + esc(dateText) + '</p>' : '') + '</div></section>';
-    h += ivInject(heroH, ivStk(c, 'hero')) + ivPagesAfter(c, 'hero');
+    h += stickersHtml(c.stickers, 'page', 'old');
+    ['back', 'front'].forEach(function (ly) { var sh = stickersHtml(c.stickers, 'page', ly); if (sh) h += '<div class="stk-layer" style="z-index:' + (ly === 'back' ? 1 : 3) + '">' + sh + '</div>'; });
+    h += ivInject(heroH, stickersHtml(c.stickers, 'scene')) + ivPagesAfter(c, 'hero');
     } else if (!royal) {
     h += '<section class="' + SEC + '" aria-label="' + esc(names) + '">' + fl('fl-tl', 'f-tl-rose.webp', 282, 283) + fl('fl-tr', 'f-tr-vine.webp', 420, 618) +
       '<div class="hero-top"></div>';
@@ -795,7 +799,7 @@
           (CL.sign ? '<p class="sign">' + esc(CL.sign) + '</p>' : '');
         return T.on && inner ? '<div class="cl-txt" style="--ctx:' + T.x + ';--cty:' + T.y + ';--csc:' + T.sc + '">' + inner + '</div>' : inner;
       })() + decoBottom('closing') + '<div class="closing-space"></div></section>';
-    secOrder(c).forEach(function (k) { h += ivory ? ivInject(PT[k] || '', ivStk(c, k)) + ivPagesAfter(c, k) : (PT[k] || ''); });
+    secOrder(c).forEach(function (k) { h += ivory ? ivSec(PT[k] || '', k) + ivPagesAfter(c, k) : (PT[k] || ''); });
     if (royal) { if (paperStyle(c.royal) !== 'columns') h = h.slice(0, secAt) + cardify(h.slice(secAt)); h += sheetClose(c); }
     }
     /* "MADE BY ZAYTORA" always closes the page and links to the site's home page. It does not depend on the stored
@@ -1009,7 +1013,7 @@
               var fx = (ev.clientX - cl) / cw * 100, sc = st.dataset.a === 'scene', py = ev.clientY - (sc ? box.top + box.height / 2 : box.top), fy = py / cw * 100;
               pos = { x: Math.round(Math.max(-30, Math.min(130, fx)) * 10) / 10, y: Math.round(Math.max(sc ? -400 : -60, Math.min(sc ? 400 : 4000, fy)) * 10) / 10 };
               st.style.left = 'calc(50% + ' + (pos.x - 50) + 'cqw)';
-              if (!sc && swansLook()) { /* tie it to the section it is over, so it follows that section on every screen */
+              if (!sc && (swansLook() || document.body.classList.contains('ivory'))) { /* tie it to the section it is over, so it follows that section on every screen */
                 st.style.top = py + 'px';
                 var secs = [].slice.call(document.querySelectorAll('main > section[class*="sec-"]')), hit = null, key = '';
                 secs.forEach(function (e) { if (e.offsetTop <= py && (!hit || e.offsetTop > hit.offsetTop)) hit = e; });

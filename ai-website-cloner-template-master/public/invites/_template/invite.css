@@ -447,3 +447,22 @@ body.ivory .paper.ivhero{overflow:visible}
 @media (prefers-reduced-motion:reduce){.ivs.flo{animation:none}}
 body.ivory .ivpimg{width:100%;max-width:100%;height:auto;display:block;border-radius:10px;margin-bottom:6px}
 body.ivory .ivptext{font-size:calc(19px*var(--ts,1));line-height:1.9;color:var(--brown);max-width:32ch}
+
+/* ivory: settings shared with the other templates (fonts, sizes, colours, outline/shadow, motion, paper opacity) */
+body.ivory .paper.ivhero{container-type:inline-size;color:var(--r-text,#fff);text-shadow:var(--fx-sh,none);-webkit-text-stroke:var(--fx-w,0px) var(--fx-c,#fff);paint-order:stroke fill}
+body.ivory .ivhero .bismillah{font-family:var(--f-b);font-size:calc(24px*var(--sb,1)*var(--ts,1));color:var(--r-text,#fff)}
+body.ivory .ivhero .ivtop{font-family:var(--f-i);font-size:calc(16px*var(--si,1)*var(--ts,1));color:var(--r-text,#fff)}
+body.ivory .ivhero .names{font-family:var(--f-n);font-size:calc(clamp(58px,19vw,86px)*var(--sn,1)*var(--ns,1));color:var(--r-names,#fff)}
+body.ivory .ivhero .kind{font-family:var(--f-m);font-size:calc(22px*var(--sm,1)*var(--ts,1));color:var(--r-text,#fff)}
+body.ivory .ivhero .ivdate{font-family:var(--f-m);color:var(--r-text,#fff)}
+body.ivory .ivhero .amp{color:var(--r-names,#fff);opacity:.85}
+body.ivory .title{font-family:var(--f-t,var(--script))}
+body.ivory .ivhero .r-el{animation-name:var(--k,rfade);animation-duration:var(--ad,1.2s);animation-timing-function:cubic-bezier(.22,.7,.2,1);animation-fill-mode:both;animation-delay:calc(var(--rd,.4s) + var(--i,0)*var(--rg,.5s));animation-play-state:paused}
+body.ivory .ivhero.go .r-el{animation-play-state:running}
+body.ivory .ivhero.still .r-el{animation:none}
+body.ivory .ivhero.an-slide .r-el{--k:rrise}
+@media (prefers-reduced-motion:reduce){body.ivory .ivhero .r-el{animation:none!important}}
+body.ivory .paper:not(.ivhero){background:none;isolation:isolate}
+body.ivory .paper:not(.ivhero)::before{display:block;content:"";position:absolute;inset:0;z-index:-1;background:var(--ivpaper,none) center/100% 100% no-repeat,var(--paper);opacity:var(--ivop,1);pointer-events:none}
+body.ivory .paper.ivpage[style*="background"]:not(.ivhero)::before{display:none}
+body.ivory main{position:relative}

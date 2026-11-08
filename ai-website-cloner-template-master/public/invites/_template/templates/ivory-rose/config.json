@@ -148,12 +148,12 @@
     },
     "showDate": true,
     "fonts": {
-      "bismillah": "katibeh",
-      "invite": "amiri",
-      "titles": "katibeh",
-      "father": "katibeh",
-      "names": "katibeh",
-      "middle": "katibeh"
+      "bismillah": "aref",
+      "invite": "reem",
+      "titles": "aref",
+      "father": "aref",
+      "names": "aref",
+      "middle": "reem"
     },
     "scales": {
       "bismillah": 1,
@@ -163,14 +163,14 @@
       "middle": 1
     },
     "colors": {
-      "text": "#4a3b30",
-      "names": "#2a1d15"
+      "text": "#ffffff",
+      "names": "#ffffff"
     },
     "anim": {
       "type": "rise",
-      "duration": 1.8,
-      "gap": 0.55,
-      "delay": 0.5
+      "duration": 1.2,
+      "gap": 0.5,
+      "delay": 0.4
     },
     "paperOpacity": 1,
     "paperStyle": "columns",
@@ -178,10 +178,10 @@
     "fx": {
       "strokeW": 0,
       "strokeColor": "#ffffff",
-      "shadowType": "none",
-      "shadowColor": "#000000",
-      "shadowSize": 6,
-      "shadowOpacity": 0.35
+      "shadowType": "soft",
+      "shadowColor": "#501e1e",
+      "shadowSize": 14,
+      "shadowOpacity": 0.65
     },
     "middle": "",
     "customPaper": {
@@ -195,11 +195,11 @@
       "padY": 17
     },
     "veil": {
-      "on": false,
-      "color": "#120608",
-      "top": 0.42,
-      "mid": 0.22,
-      "bot": 0.38
+      "on": true,
+      "color": "#5a2828",
+      "top": 0.38,
+      "mid": 0.12,
+      "bot": 0.5
     },
     "deco": {
       "enabled": false,
@@ -246,9 +246,8 @@
     "venueLabel": "مكان الحفل",
     "banner": "",
     "paperImg": "",
-    "showBanner": true,
-    "pages": [],
-    "stk": []
+    "showBanner": false,
+    "pages": []
   },
   "ui": {}
 }
