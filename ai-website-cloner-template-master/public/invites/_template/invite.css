@@ -471,3 +471,6 @@ body.ivory main{position:relative}
 body.ivory .paper.ivhero{padding-top:22cqw}
 body.ivory .ivhero .names{margin-top:6cqw;font-size:calc(clamp(58px,19cqw,86px)*var(--sn,1)*var(--ns,1))}
 body.ivory .ivdate{bottom:24cqw}
+
+/* preview: no scrollbar, so the frame is as wide as a real phone screen */
+html.pv{scrollbar-width:none}html.pv::-webkit-scrollbar{display:none}

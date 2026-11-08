@@ -226,7 +226,7 @@
       var inner = s.kind === 'video'
         ? '<video src="' + esc(url) + '" autoplay muted loop playsinline preload="auto"></video>'
         : '<img src="' + esc(url) + '" alt="" draggable="false">';
-      return '<div class="stk' + (s.float ? ' flo' : '') + '" data-i="' + i + '" data-a="' + anchor + '"' + (fx2 ? ' data-u="2"' : '') + (fx2 && anchor === 'page' && /^[a-z]{3,12}$/.test(s.sec || '') ? ' data-sec="' + s.sec + '" data-y="' + num(s.y, 20, -400, 4000) + '"' : '') + ' style="' + st + '">' + inner + '</div>';
+      return '<div class="stk' + (s.float ? ' flo' : '') + '" data-i="' + i + '" data-a="' + anchor + '"' + (fx2 ? ' data-u="2"' : '') + (fx2 && anchor === 'page' && /^[a-z]{3,12}$/.test(s.sec || '') ? ' data-sec="' + s.sec + '" data-y="' + num(s.y, 20, -400, 4000) + '"' + (s.rel ? ' data-rel="1"' : '') : '') + ' style="' + st + '">' + inner + '</div>';
     }).join('');
   }
   function fontCss(M, list) {
@@ -985,7 +985,7 @@
         tied.forEach(function (st) {
           var sec = mainEl && mainEl.querySelector(':scope > .sec-' + st.dataset.sec), L = st.parentNode;
           if (!sec || !L.clientWidth) return; /* section not on this page: keep the plain offset from the top */
-          st.style.top = (sec.offsetTop + parseFloat(st.dataset.y) / 100 * L.clientWidth) + 'px';
+          st.style.top = (sec.offsetTop + parseFloat(st.dataset.y) / 100 * (st.dataset.rel ? sec.offsetHeight : L.clientWidth)) + 'px'; /* rel: % of the section's own height, so it stays at the same spot of the section whatever the phone width */
         });
       };
       placeTied();
@@ -1018,7 +1018,8 @@
                 var secs = [].slice.call(document.querySelectorAll('main > section[class*="sec-"]')), hit = null, key = '';
                 secs.forEach(function (e) { if (e.offsetTop <= py && (!hit || e.offsetTop > hit.offsetTop)) hit = e; });
                 if (hit) { key = (/(?:^|\s)sec-([a-z]+)/.exec(hit.className) || [])[1] || ''; }
-                pos.sec = key; pos.y = hit && key ? Math.round((py - hit.offsetTop) / cw * 1000) / 10 : Math.round(py / cw * 1000) / 10;
+                pos.sec = key; pos.rel = !!(hit && key && key !== 'hero' && document.body.classList.contains('ivory'));
+                pos.y = hit && key ? Math.round((py - hit.offsetTop) / (pos.rel ? hit.offsetHeight : cw) * 1000) / 10 : Math.round(py / cw * 1000) / 10;
                 return;
               }
               st.style.top = sc ? 'calc(' + (document.body.classList.contains('ivory') ? '38cqw' : '50%') + ' + ' + pos.y + 'cqw)' : pos.y + 'cqw';
@@ -1030,7 +1031,7 @@
           }
           function up() {
             st.removeEventListener('pointermove', mv); st.removeEventListener('pointerup', up); st.removeEventListener('pointercancel', up);
-            if (pos && window.parent !== window) window.parent.postMessage({ type: 'zaytora-sticker-move', index: +st.dataset.i, x: pos.x, y: pos.y, sec: pos.sec }, location.origin);
+            if (pos && window.parent !== window) window.parent.postMessage({ type: 'zaytora-sticker-move', index: +st.dataset.i, x: pos.x, y: pos.y, sec: pos.sec, rel: pos.rel }, location.origin);
           }
           st.addEventListener('pointermove', mv); st.addEventListener('pointerup', up); st.addEventListener('pointercancel', up);
         });

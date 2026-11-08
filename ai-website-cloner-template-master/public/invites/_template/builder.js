@@ -59,7 +59,7 @@
     if (e.origin !== location.origin || !e.data) return;
     if (e.data.type === 'zaytora-sticker-move') { /* a sticker was dragged inside the preview */
       var st = state.cfg && (state.cfg.stickers || [])[e.data.index];
-      if (st) { st.x = e.data.x; st.y = e.data.y; if (e.data.sec !== undefined) st.sec = e.data.sec; saveDraft(); if (drawStickers) drawStickers(); }
+      if (st) { st.x = e.data.x; st.y = e.data.y; if (e.data.sec !== undefined) st.sec = e.data.sec; st.rel = !!e.data.rel; saveDraft(); if (drawStickers) drawStickers(); }
       return;
     }
     if (e.data.type !== 'zaytora-invite-ready') return;
@@ -334,10 +334,10 @@
         if (s.u === 2 && !isScene && (state.cfg.layout.mode === 'swans' || state.cfg.layout.mode === 'ivory')) {
           secSel = el('select', {}, (state.cfg.layout.mode === 'ivory' ? [['', 'أعلى الدعوة'], ['countdown', 'العد التنازلي'], ['details', 'تفاصيل يوم الفرح'], ['schedule', 'برنامج الحفل'], ['location', 'الموقع'], ['notes', 'التنبيه'], ['closing', 'الختام'], ['rsvp', 'تأكيد الحضور']].concat((state.cfg.ivory.pages || []).filter(function (p) { return p && p.id; }).map(function (p, k) { return [p.id, 'صفحة إضافية ' + (k + 1) + (p.title ? ' — ' + p.title : '')]; })) : [['', 'أعلى الدعوة'], ['countdown', 'العد التنازلي'], ['schedule', 'برنامج الحفل'], ['location', 'الموقع'], ['notes', 'التعليمات'], ['closing', 'بطاقة الختام'], ['rsvp', 'تأكيد الحضور']]).map(function (o) { return el('option', { value: o[0], text: o[1] }); }));
           secSel.value = s.sec || '';
-          secSel.addEventListener('input', function () { s.sec = secSel.value; schedule(); });
+          secSel.addEventListener('input', function () { s.sec = secSel.value; if (state.cfg.layout.mode === 'ivory') { s.rel = !!s.sec; s.y = s.sec ? 10 : 20; draw(); } schedule(); });
         }
         box.appendChild(el('div', { class: 'item' }, [h, wrap('مكان الملصق', anchor), secSel ? wrap('مرتبط بقسم (يتبعه على كل الشاشات)', secSel) : null, wrap('الطبقة', layer),
-          slider('أفقياً (يمين ↔ يسار الصفحة)', s, 'x', 0, 100, 0.5, '%', cb), fixedPos ? slider(isScene ? 'عمودياً (أعلى ↔ أسفل عن منتصف الواجهة)' : 'عمودياً (البعد عن أعلى القسم المرتبط، أو الدعوة)', s, 'y', isScene ? -150 : 0, isScene ? 150 : 1200, 1, '', cb) : slider('عمودياً (أعلى ↔ أسفل)', s, 'y', 0, 100, 0.5, '%', cb),
+          slider('أفقياً (يمين ↔ يسار الصفحة)', s, 'x', 0, 100, 0.5, '%', cb), fixedPos && s.rel && !isScene ? slider('عمودياً (٪ من ارتفاع القسم المرتبط)', s, 'y', -20, 120, 0.5, '%', cb) : fixedPos ? slider(isScene ? 'عمودياً (أعلى ↔ أسفل عن منتصف الواجهة)' : 'عمودياً (البعد عن أعلى القسم المرتبط، أو الدعوة)', s, 'y', isScene ? -150 : 0, isScene ? 150 : 1200, 1, '', cb) : slider('عمودياً (أعلى ↔ أسفل)', s, 'y', 0, 100, 0.5, '%', cb),
           slider('الحجم', s, 'w', 5, 150, 1, '', cb), slider('التدوير', s, 'rot', -180, 180, 1, '°', cb), slider('الشفافية', s, 'op', 0.1, 1, 0.05, '', cb),
           el('label', { class: 'chk' }, [fl, el('span', { text: 'حركة طفو هادئة' })])]));
       });
