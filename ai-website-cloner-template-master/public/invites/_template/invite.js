@@ -65,7 +65,7 @@
       },
       fx: { strokeW: 0, strokeColor: '#ffffff', shadowType: 'none', shadowColor: '#000000', shadowSize: 6, shadowOpacity: 0.35 }
     },
-    ivory: { dateLead: 'وذلك بمشيئة الله', weekday: '', hijri: '', detailsTitle: 'تفاصيل يوم الفرح', detailsSub: 'لا يتم الحفل بدونكم', venueLabel: 'مكان الحفل', banner: '', paperImg: '', showBanner: true },
+    ivory: { dateLead: 'وذلك بمشيئة الله', weekday: '', hijri: '', detailsTitle: 'تفاصيل يوم الفرح', detailsSub: 'لا يتم الحفل بدونكم', venueLabel: 'مكان الحفل', banner: '', paperImg: '', showBanner: true, pages: [], stk: [] },
     stickers: []
   };
 
@@ -583,6 +583,34 @@
     return '<button id="share" type="button" aria-label="مشاركة الدعوة" hidden><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><path d="M8.3 10.8l7.4-4.3M8.3 13.2l7.4 4.3"/></svg></button><div id="toast" role="status" aria-live="polite"></div>';
   }
 
+  /* ivory look: stickers placed on a section (target = 'hero' | section key | 'page:<id>') and free extra pages */
+  function ivStk(c, target) {
+    return ((c.ivory && c.ivory.stk) || []).map(function (s) {
+      if (!s || !s.src || (s.target || 'hero') !== target) return '';
+      var url = resolve(s.src); if (!url) return '';
+      var st = 'left:' + num(s.x, 50, -30, 130) + '%;top:' + num(s.y, 20, -30, 130) + '%;width:' + num(s.w, 30, 3, 200) + '%;opacity:' + num(s.op, 1, 0.05, 1) +
+        ';--rot:' + num(s.rot, 0, -180, 180) + 'deg;z-index:' + (s.layer === 'back' ? 1 : 3);
+      var inner = s.kind === 'video' ? '<video src="' + esc(url) + '" autoplay muted loop playsinline preload="auto"></video>' : '<img src="' + esc(url) + '" alt="" draggable="false">';
+      return '<div class="ivs' + (s.float ? ' flo' : '') + '" style="' + st + '">' + inner + '</div>';
+    }).join('');
+  }
+  function ivInject(html, extra) { return extra && html ? html.replace(/<\/section>$/, function () { return extra + '</section>'; }) : html; }
+  function ivPage(c, p) {
+    var bg = p.bg ? resolve(p.bg) : '', st = [];
+    if (bg) st.push("background:url('" + bg.replace(/'/g, '%27') + "') center/cover no-repeat");
+    else if (/^#[0-9a-f]{6}$/i.test(p.bgColor || '')) st.push('background:' + p.bgColor);
+    if (/^#[0-9a-f]{6}$/i.test(p.color || '')) st.push('color:' + p.color + ';--brown:' + p.color);
+    var mh = num(p.h, 0, 0, 300); if (mh) st.push('min-height:' + mh + 'svh;justify-content:center');
+    var img = p.img ? resolve(p.img) : '';
+    return ivInject('<section class="paper ivpage" id="pg-' + esc(p.id || '') + '"' + (st.length ? ' style="' + st.join(';') + '"' : '') + '>' +
+      (img ? '<img class="ivpimg" alt="" src="' + esc(img) + '">' : '') + (p.title ? title(p.title) : '') + (p.sub ? '<p class="sub">' + esc(p.sub) + '</p>' : '') +
+      (p.text ? '<p class="ivptext">' + nl(p.text) + '</p>' : '') +
+      (p.btnLabel && /^https?:\/\//i.test(p.btnUrl || '') ? '<a class="btn" href="' + esc(p.btnUrl) + '" target="_blank" rel="noopener">' + esc(p.btnLabel) + '</a>' : '') + '</section>', ivStk(c, 'page:' + (p.id || '')));
+  }
+  function ivPagesAfter(c, key) {
+    return ((c.ivory && c.ivory.pages) || []).filter(function (p) { return p && (p.after || 'rsvp') === key; }).map(function (p) { return ivPage(c, p); }).join('');
+  }
+
   function render(raw, opts) {
     opts = opts || {};
     teardown();
@@ -671,13 +699,14 @@
     /* hero (classic mode) */
     if (ivory) {
     var IV = c.ivory;
-    h += '<section class="paper ivhero" aria-label="' + esc(names) + '">' +
+    var heroH = '<section class="paper ivhero" aria-label="' + esc(names) + '">' +
       (H.bismillah ? '<p class="bismillah">' + esc(H.bismillah) + '</p>' : '') +
       (H.intro ? '<p class="ivtop">' + nl(H.intro) + '</p>' : '') +
       '<h1 class="names"><span>' + esc(H.name1) + '</span>' + (H.name2 ? '<span class="amp">' + esc(H.connector) + '</span><span>' + esc(H.name2) + '</span>' : '') + '</h1>' +
       (H.occasion ? '<p class="kind">' + esc(H.occasion) + '</p>' : '') +
       '<div class="ivdate">' + (IV.dateLead ? '<p class="t1">' + esc(IV.dateLead) + '</p>' : '') + (IV.weekday ? '<p class="t2">' + esc(IV.weekday) + '</p>' : '') +
       (dateText ? '<p class="t3"' + dateDir(c) + '>' + esc(dateText) + '</p>' : '') + '</div></section>';
+    h += ivInject(heroH, ivStk(c, 'hero')) + ivPagesAfter(c, 'hero');
     } else if (!royal) {
     h += '<section class="' + SEC + '" aria-label="' + esc(names) + '">' + fl('fl-tl', 'f-tl-rose.webp', 282, 283) + fl('fl-tr', 'f-tr-vine.webp', 420, 618) +
       '<div class="hero-top"></div>';
@@ -766,7 +795,7 @@
           (CL.sign ? '<p class="sign">' + esc(CL.sign) + '</p>' : '');
         return T.on && inner ? '<div class="cl-txt" style="--ctx:' + T.x + ';--cty:' + T.y + ';--csc:' + T.sc + '">' + inner + '</div>' : inner;
       })() + decoBottom('closing') + '<div class="closing-space"></div></section>';
-    secOrder(c).forEach(function (k) { h += PT[k] || ''; });
+    secOrder(c).forEach(function (k) { h += ivory ? ivInject(PT[k] || '', ivStk(c, k)) + ivPagesAfter(c, k) : (PT[k] || ''); });
     if (royal) { if (paperStyle(c.royal) !== 'columns') h = h.slice(0, secAt) + cardify(h.slice(secAt)); h += sheetClose(c); }
     }
     /* "MADE BY ZAYTORA" always closes the page and links to the site's home page. It does not depend on the stored

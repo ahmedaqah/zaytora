@@ -437,3 +437,13 @@ body.ivory .hijri{font-family:'Reem Kufi',var(--script);font-size:15px;color:var
 body.ivory .rule-item{border:1.5px dashed var(--gold-bright);border-radius:14px;background:rgba(217,133,127,.09)}
 body.ivory .rule-item svg{color:var(--gold-bright)}
 body.ivory footer{background:var(--paper);margin:0;padding:20px 26px 40px}
+
+body.ivory .paper{overflow-x:clip}
+body.ivory .paper.ivhero{overflow:visible}
+.ivs{position:absolute;transform:translate(-50%,-50%) rotate(var(--rot,0deg));pointer-events:none;line-height:0}
+.ivs img,.ivs video{display:block;width:100%;height:auto;object-fit:contain;background:transparent;-webkit-user-drag:none;user-select:none}
+.ivs.flo{animation:ivfloat 6s ease-in-out infinite alternate}
+@keyframes ivfloat{to{margin-top:-12px}}
+@media (prefers-reduced-motion:reduce){.ivs.flo{animation:none}}
+body.ivory .ivpimg{width:100%;max-width:100%;height:auto;display:block;border-radius:10px;margin-bottom:6px}
+body.ivory .ivptext{font-size:calc(19px*var(--ts,1));line-height:1.9;color:var(--brown);max-width:32ch}
