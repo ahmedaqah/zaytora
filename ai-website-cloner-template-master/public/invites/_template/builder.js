@@ -760,7 +760,19 @@
       check('إظهار خانة عدد الحضور (أزل العلامة لحذفها من النموذج)', 'rsvp.showGuests'),
       num('أكبر عدد حضور في القائمة', 'rsvp.maxGuests', 1, 30),
       text('العنوان', 'rsvp.title'), area('نص تمهيدي', 'rsvp.intro', '', 2),
-      text('تسمية الاسم', 'rsvp.nameLabel'), text('خيار الحضور', 'rsvp.yesLabel'), text('خيار الاعتذار', 'rsvp.noLabel'), text('نص الزر', 'rsvp.button')
+      el('b', { text: 'نصوص النموذج (كلها قابلة للتعديل)' }),
+      text('تسمية الاسم', 'rsvp.nameLabel'), text('عبارة «هل ستحضر؟»', 'rsvp.attendLabel'), text('خيار الحضور', 'rsvp.yesLabel'), text('خيار الاعتذار', 'rsvp.noLabel'),
+      text('تسمية عدد الحضور', 'rsvp.guestsLabel'), text('تسمية كلمة لأصحاب الدعوة', 'rsvp.noteLabel'),
+      text('نص الزر (واتساب)', 'rsvp.button'),
+      el('b', { text: 'رسائل بعد الإرسال' }),
+      text('تنبيه نسيان الاسم', 'rsvp.nameError'), text('تنبيه تعذّر الإرسال', 'rsvp.sendError'),
+      el('p', { class: 'hint', text: 'يمكنك كتابة {name} ليحلّ محلّه اسم الضيف.' }),
+      text('شكر عند الحضور', 'rsvp.thanksYes'), text('شكر عند الاعتذار', 'rsvp.thanksNo'),
+      text('عبارة بعد تجهيز رسالة واتساب', 'rsvp.thanksHint'), text('نص زر «افتح واتساب»', 'rsvp.openWhatsapp'),
+      el('b', { text: 'نص رسالة واتساب التي تصلك' }),
+      el('p', { class: 'hint', text: 'العنوان يقبل {occasion} و{names}.' }),
+      text('عنوان الرسالة', 'rsvp.messageHeader'), text('«الاسم»', 'rsvp.msgName'), text('«الحضور»', 'rsvp.msgAttend'),
+      text('عند الحضور', 'rsvp.msgYes'), text('عند الاعتذار', 'rsvp.msgNo'), text('«عدد الحضور»', 'rsvp.msgGuests'), text('«كلمة»', 'rsvp.msgNote')
     ]));
 
     /* 8 closing */
