@@ -471,6 +471,9 @@ body.ivory main{position:relative}
 body.ivory .paper.ivhero{padding-top:22cqw}
 body.ivory .ivhero .names{margin-top:6cqw;font-size:calc(clamp(58px,19cqw,86px)*var(--sn,1)*var(--ns,1))}
 /* the date block sits in the flow (not absolute) so it can never overlap the names: it is pushed to the bottom when there is room and simply follows the names when there is not */
+/* the "&" gets its own room between the two names, scaled with the name size, so tall calligraphy strokes (Thuluth) from the first name's descenders and the second name's ascenders do not run through it */
+body.ivory .ivhero .names{gap:calc(2cqw*var(--sn,1)*var(--ns,1))}
+body.ivory .ivhero .names .amp{line-height:1.3;margin:calc(5cqw*var(--sn,1)*var(--ns,1)) 0;position:relative;z-index:1}
 body.ivory .ivdate{position:static;left:auto;right:auto;bottom:auto;width:100%;margin-top:auto;padding-top:12cqw;padding-bottom:24cqw}
 
 /* preview: no scrollbar, so the frame is as wide as a real phone screen */
