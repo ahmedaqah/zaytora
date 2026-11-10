@@ -65,7 +65,7 @@
       },
       fx: { strokeW: 0, strokeColor: '#ffffff', shadowType: 'none', shadowColor: '#000000', shadowSize: 6, shadowOpacity: 0.35 }
     },
-    ivory: { dateLead: 'وذلك بمشيئة الله', weekday: '', hijri: '', detailsTitle: 'تفاصيل يوم الفرح', detailsSub: 'لا يتم الحفل بدونكم', venueLabel: 'مكان الحفل', banner: '', paperImg: '', showBanner: false, pages: [], stk: [] },
+    ivory: { namesLayout: '', dateLead: 'وذلك بمشيئة الله', weekday: '', hijri: '', detailsTitle: 'تفاصيل يوم الفرح', detailsSub: 'لا يتم الحفل بدونكم', venueLabel: 'مكان الحفل', banner: '', paperImg: '', showBanner: false, pages: [], stk: [] },
     stickers: []
   };
 
@@ -701,7 +701,7 @@
     var IV = c.ivory;
     var types = ['rise', 'fade', 'drop', 'zoom', 'blur', 'slide'], hty = types.indexOf((c.royal.anim || {}).type) >= 0 ? c.royal.anim.type : 'rise', hi = 0;
     function hel(cls, inner, tag) { var n = hi++; return '<' + (tag || 'p') + ' class="r-el ' + cls + '" style="--i:' + n + '">' + inner + '</' + (tag || 'p') + '>'; }
-    var heroH = '<section class="paper ivhero sec-hero an-' + hty + '" id="rscene" aria-label="' + esc(names) + '">' +
+    var heroH = '<section class="paper ivhero sec-hero an-' + hty + (IV.namesLayout === 'row' ? ' names-row' : '') + '" id="rscene" aria-label="' + esc(names) + '">' +
       (H.bismillah ? hel('bismillah', esc(H.bismillah)) : '') +
       (H.intro ? hel('ivtop', nl(H.intro)) : '') +
       hel('names', '<span>' + esc(H.name1) + '</span>' + (H.name2 ? '<span class="amp">' + esc(H.connector) + '</span><span>' + esc(H.name2) + '</span>' : ''), 'h1') +
