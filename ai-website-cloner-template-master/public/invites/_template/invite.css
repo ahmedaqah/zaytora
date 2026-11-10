@@ -470,7 +470,8 @@ body.ivory main{position:relative}
 /* ivory hero: positions and name size follow the page WIDTH (not the screen height), so the live preview and a real phone lay the texts out the same way */
 body.ivory .paper.ivhero{padding-top:22cqw}
 body.ivory .ivhero .names{margin-top:6cqw;font-size:calc(clamp(58px,19cqw,86px)*var(--sn,1)*var(--ns,1))}
-body.ivory .ivdate{bottom:24cqw}
+/* the date block sits in the flow (not absolute) so it can never overlap the names: it is pushed to the bottom when there is room and simply follows the names when there is not */
+body.ivory .ivdate{position:static;left:auto;right:auto;bottom:auto;width:100%;margin-top:auto;padding-top:12cqw;padding-bottom:24cqw}
 
 /* preview: no scrollbar, so the frame is as wide as a real phone screen */
 html.pv{scrollbar-width:none}html.pv::-webkit-scrollbar{display:none}
