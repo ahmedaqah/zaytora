@@ -28,6 +28,10 @@ public interface ICardPaymentConfirmer
     // The paid/failed transition (order status, invitation approval, partner credit, Meta Purchase), also
     // used by the admin's manual confirmation.
     Task ApplyStatusAsync(Order order, string status, string? adminNote, CancellationToken cancellationToken);
+
+    // The admin's manual confirmation: takes the same gate as the automatic paths and re-reads the order first, so
+    // a click that lands while an automatic approval is being saved cannot credit the partner or report the sale twice.
+    Task ApplyStatusLockedAsync(Order order, string status, string? adminNote, CancellationToken cancellationToken);
 }
 
 public class CardPaymentConfirmer(
@@ -173,6 +177,20 @@ public class CardPaymentConfirmer(
         }
     }
 
+    public async Task ApplyStatusLockedAsync(Order order, string status, string? adminNote, CancellationToken cancellationToken)
+    {
+        await Gate.WaitAsync(cancellationToken);
+        try
+        {
+            await db.Entry(order).ReloadAsync(cancellationToken);
+            await ApplyStatusAsync(order, status, adminNote, cancellationToken);
+        }
+        finally
+        {
+            Gate.Release();
+        }
+    }
+
     public async Task ApplyStatusAsync(Order order, string status, string? adminNote, CancellationToken cancellationToken)
     {
         var wasPaid = order.PaymentStatus == "paid";
@@ -193,7 +211,9 @@ public class CardPaymentConfirmer(
         // invitation is already paid, and rejecting *this* order must not
         // undo an approval (or a partner's earned credit) that already
         // happened through that other, still-paid order.
-        var hasOtherPaidOrder = await db.Orders.AnyAsync(
+        // (An order whose invitation was deleted has no InvitationId; it has no "other orders of the same
+        // invitation", and EF's null-safe == would otherwise match every other such order.)
+        var hasOtherPaidOrder = order.InvitationId != null && await db.Orders.AnyAsync(
             o => o.InvitationId == order.InvitationId && o.Id != order.Id && o.PaymentStatus == "paid",
             cancellationToken);
 

@@ -65,7 +65,8 @@ public sealed record NetloopersPayment(
     long Amount,
     string? Currency,
     string? OrderId,
-    string? Environment);
+    string? Environment,
+    string? CheckoutUrl = null);
 
 public sealed class NetloopersGateway(
     HttpClient httpClient,
@@ -217,7 +218,8 @@ public sealed class NetloopersGateway(
             amount,
             GetString(root, "currency"),
             GetString(root, "order_id"),
-            GetString(root, "environment"));
+            GetString(root, "environment"),
+            GetString(root, "checkout_url"));
     }
 
     public bool VerifyWebhookSignature(string? timestampHeader, string? signatureHeader, byte[] rawBody)

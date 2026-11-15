@@ -66,11 +66,11 @@ export function sendOrderReminder(id: string) {
 // browser coming back from checkout is never what approves it.
 export function payOrderByCard(id: string) {
   // Up to two gateway calls happen server-side, so allow more than the client's 10 s default.
-  return apiClient.post<CardCheckoutResponse>(`/orders/${id}/pay-card`, undefined, { timeoutMs: 30_000 });
+  return apiClient.post<CardCheckoutResponse>(`/orders/${encodeURIComponent(id)}/pay-card`, undefined, { timeoutMs: 30_000 });
 }
 
 // Called by /payment-return. Asks our API to re-check the order's card payment with Netloopers and
 // approve it if it really was paid (the browser's word is never used), then returns the order.
 export function verifyCardPayment(id: string) {
-  return apiClient.post<OrderDto>(`/orders/${id}/verify-card`, undefined, { timeoutMs: 30_000 });
+  return apiClient.post<OrderDto>(`/orders/${encodeURIComponent(id)}/verify-card`, undefined, { timeoutMs: 30_000 });
 }

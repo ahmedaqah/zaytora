@@ -214,6 +214,10 @@ builder.Services.ConfigureApplicationCookie(options =>
 // global limiter is a generous catch-all safety net for every other
 // endpoint (order/review/partner-application submission included).
 const string AuthRateLimitPolicy = "auth";
+// Customer-facing card-payment endpoints (start a checkout, re-check a payment). Each call can reach the
+// payment gateway, whose own limit is 120 requests/minute for the whole site, so one caller must not be able
+// to use it up.
+const string CardPaymentRateLimitPolicy = "card-payment";
 
 builder.Services.AddRateLimiter(options =>
 {
@@ -226,6 +230,16 @@ builder.Services.AddRateLimiter(options =>
             {
                 Window = TimeSpan.FromMinutes(1),
                 PermitLimit = 120,
+                QueueLimit = 0,
+            }));
+
+    options.AddPolicy(CardPaymentRateLimitPolicy, context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                Window = TimeSpan.FromMinutes(1),
+                PermitLimit = 30,
                 QueueLimit = 0,
             }));
 

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Numinds.Api.Data;
 using Numinds.Api.Models;
@@ -345,7 +346,7 @@ public class OrdersController(
             return NotFound();
         }
 
-        await confirmer.ApplyStatusAsync(order, request.Status, request.AdminNote, cancellationToken);
+        await confirmer.ApplyStatusLockedAsync(order, request.Status, request.AdminNote, cancellationToken);
 
         return Ok(await ToDtoAsync(order, cancellationToken));
     }
@@ -356,6 +357,7 @@ public class OrdersController(
     // Guid and a guest can be mid-checkout before ever logging in. The amount is
     // always the server-side AmountUsd, never anything the browser sends.
     [HttpPost("{id:guid}/pay-card")]
+    [EnableRateLimiting("card-payment")]
     public async Task<ActionResult<CardCheckoutResponse>> PayByCard(Guid id, CancellationToken cancellationToken)
     {
         var order = await db.Orders.FirstOrDefaultAsync(o => o.Id == id, cancellationToken);
@@ -378,6 +380,37 @@ public class OrdersController(
         if (invitation is null || invitation.Status is "paid" or "shared")
         {
             return Conflict(new { title = "This invitation is no longer waiting for payment." });
+        }
+
+        // A checkout this order already started must never be silently replaced: if the customer had paid it
+        // (or pays it later) while we only remembered the newer attempt, the payment would never be approved.
+        // So look at the stored payment first: paid -> approve it now; still open -> send them back to the same
+        // checkout page; only a payment that definitely failed gets a fresh one.
+        if (!string.IsNullOrEmpty(order.GatewayPaymentId))
+        {
+            try
+            {
+                var existing = await gateway.GetPaymentAsync(order.GatewayPaymentId, cancellationToken);
+                if (string.Equals(existing.OrderId, order.Id.ToString(), StringComparison.OrdinalIgnoreCase))
+                {
+                    if (gateway.IsSuccessStatus(existing.Status))
+                    {
+                        await confirmer.ConfirmAsync(existing, cancellationToken);
+                        return Conflict(new { title = "This order has already been paid." });
+                    }
+
+                    if (!gateway.IsFailureStatus(existing.Status) && !string.IsNullOrEmpty(existing.CheckoutUrl))
+                    {
+                        return Ok(new CardCheckoutResponse { CheckoutUrl = existing.CheckoutUrl });
+                    }
+                }
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or HttpRequestException or TaskCanceledException or JsonException)
+            {
+                // Cannot tell what happened to the earlier attempt: do not start another one on top of it.
+                logger.LogError(ex, "Could not read the earlier Netloopers payment of order {OrderId}", order.Id);
+                return Problem("Could not start the card payment right now. Please try again in a moment or use the bank transfer.", statusCode: 502);
+            }
         }
 
         // Netloopers appends payment_id, order_id, status and environment to these URLs when it
@@ -481,6 +514,7 @@ public class OrdersController(
     // gateway's webhooks are unavailable, and it is harmless (idempotent) when they work.
     [HttpPost("{id:guid}/verify-card")]
     [AllowAnonymous]
+    [EnableRateLimiting("card-payment")]
     public async Task<ActionResult<OrderDto>> VerifyCard(Guid id, CancellationToken cancellationToken)
     {
         var order = await db.Orders.FirstOrDefaultAsync(o => o.Id == id, cancellationToken);
@@ -491,10 +525,23 @@ public class OrdersController(
 
         // At most one gateway lookup per order every few seconds, so repeated calls cannot eat the gateway's rate limit.
         var now = DateTime.UtcNow;
-        var recentlyChecked = VerifyChecks.TryGetValue(order.Id, out var last) && now - last < TimeSpan.FromSeconds(3);
+        var recentlyChecked = false;
+        if (order.PaymentStatus == "pending" && !string.IsNullOrEmpty(order.GatewayPaymentId))
+        {
+            VerifyChecks.AddOrUpdate(order.Id, now, (_, last) =>
+            {
+                if (now - last < TimeSpan.FromSeconds(3))
+                {
+                    recentlyChecked = true;
+                    return last;
+                }
+
+                return now;
+            });
+        }
+
         if (order.PaymentStatus == "pending" && !string.IsNullOrEmpty(order.GatewayPaymentId) && !recentlyChecked)
         {
-            VerifyChecks[order.Id] = now;
             if (VerifyChecks.Count > 2000)
             {
                 foreach (var key in VerifyChecks.Where(kv => now - kv.Value > TimeSpan.FromMinutes(5)).Select(kv => kv.Key).ToList())

@@ -16,10 +16,15 @@ public class CardPaymentReconciler(
     // Stays well under the gateway's 120 requests/minute limit.
     private const int MaxPerRun = 40;
 
-    // Payments already seen failed/cancelled, and orders already flagged to the admin, so neither is
-    // re-queried or re-announced every minute (reset on restart, which is fine).
-    private readonly HashSet<string> _finished = [];
-    private readonly HashSet<Guid> _flagged = [];
+    // When each order was last asked about, so the checks rotate fairly between orders (an old paid order cannot be
+    // pushed out by a flood of newer pending ones) and older orders are asked about less and less often.
+    private readonly Dictionary<Guid, DateTime> _lastChecked = [];
+
+    // How long to wait before asking about an order again, by its age: new orders every run, old ones rarely.
+    private static TimeSpan RecheckEvery(TimeSpan age) =>
+        age < TimeSpan.FromMinutes(30) ? TimeSpan.Zero
+        : age < TimeSpan.FromHours(6) ? TimeSpan.FromMinutes(5)
+        : TimeSpan.FromMinutes(30);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -47,52 +52,63 @@ public class CardPaymentReconciler(
 
     private async Task RunOnceAsync(CancellationToken ct)
     {
-        using var scope = scopeFactory.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<NumindsDbContext>();
-        var gateway = scope.ServiceProvider.GetRequiredService<INetloopersGateway>();
-        var confirmer = scope.ServiceProvider.GetRequiredService<ICardPaymentConfirmer>();
+        var now = DateTime.UtcNow;
+        var since = now - Lookback;
 
-        var since = DateTime.UtcNow - Lookback;
-        var candidates = await db.Orders.AsNoTracking()
-            .Where(o => o.PaymentStatus == "pending" && o.GatewayPaymentId != null && o.CreatedAt > since)
-            .OrderByDescending(o => o.CreatedAt)
-            .Select(o => new { o.Id, o.GatewayPaymentId })
-            .Take(MaxPerRun * 3)
-            .ToListAsync(ct);
-
-        var checkedCount = 0;
-        foreach (var c in candidates)
+        List<(Guid Id, string PaymentId, DateTime CreatedAt)> candidates;
+        using (var listScope = scopeFactory.CreateScope())
         {
-            if (checkedCount >= MaxPerRun) break;
-            var paymentId = c.GatewayPaymentId!;
-            if (_finished.Contains(paymentId) || _flagged.Contains(c.Id)) continue;
-            checkedCount++;
+            var db = listScope.ServiceProvider.GetRequiredService<NumindsDbContext>();
+            candidates = (await db.Orders.AsNoTracking()
+                    .Where(o => o.PaymentStatus == "pending" && o.GatewayPaymentId != null && o.CreatedAt > since)
+                    .OrderByDescending(o => o.CreatedAt)
+                    .Select(o => new { o.Id, o.GatewayPaymentId, o.CreatedAt })
+                    .Take(1000)
+                    .ToListAsync(ct))
+                .Select(o => (o.Id, o.GatewayPaymentId!, o.CreatedAt))
+                .ToList();
+        }
+
+        // Forget orders that are no longer candidates (paid, rejected or past the lookback).
+        var live = candidates.Select(c => c.Id).ToHashSet();
+        foreach (var gone in _lastChecked.Keys.Where(k => !live.Contains(k)).ToList())
+        {
+            _lastChecked.Remove(gone);
+        }
+
+        // Due orders first, the ones asked about longest ago before the rest.
+        var due = candidates
+            .Where(c => !_lastChecked.TryGetValue(c.Id, out var last) || now - last >= RecheckEvery(now - c.CreatedAt))
+            .OrderBy(c => _lastChecked.TryGetValue(c.Id, out var last) ? last : DateTime.MinValue)
+            .Take(MaxPerRun)
+            .ToList();
+
+        foreach (var c in due)
+        {
+            _lastChecked[c.Id] = now;
 
             try
             {
-                var payment = await gateway.GetPaymentAsync(paymentId, ct);
+                // A fresh scope (and DbContext) per payment, so a failure while saving one order cannot leave
+                // half-applied changes behind for the next one.
+                using var scope = scopeFactory.CreateScope();
+                var gateway = scope.ServiceProvider.GetRequiredService<INetloopersGateway>();
+                var confirmer = scope.ServiceProvider.GetRequiredService<ICardPaymentConfirmer>();
+
+                var payment = await gateway.GetPaymentAsync(c.PaymentId, ct);
                 if (!string.Equals(payment.OrderId, c.Id.ToString(), StringComparison.OrdinalIgnoreCase))
                 {
-                    _finished.Add(paymentId);
                     continue;
                 }
 
-                if (gateway.IsPendingStatus(payment.Status)) continue;
-
-                if (gateway.IsFailureStatus(payment.Status))
+                // Pending and known failures need nothing; success is approved, and an unrecognised status goes to
+                // the confirmer too, which tells the admin once.
+                if (gateway.IsPendingStatus(payment.Status) || gateway.IsFailureStatus(payment.Status))
                 {
-                    _finished.Add(paymentId);
                     continue;
                 }
 
-                // Success -> approve. An unrecognised status also goes to the confirmer, which alerts the admin
-                // once (and keeps being re-checked here, so it is approved as soon as the status list is fixed).
-                var result = await confirmer.ConfirmAsync(payment, ct);
-                if (result == CardConfirmResult.NotApproved && gateway.IsSuccessStatus(payment.Status))
-                {
-                    // Paid at the gateway but failed our checks; the confirmer already alerted the admin once.
-                    _flagged.Add(c.Id);
-                }
+                await confirmer.ConfirmAsync(payment, ct);
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {
@@ -101,7 +117,7 @@ public class CardPaymentReconciler(
             catch (Exception ex)
             {
                 // One bad order must not stop the others from being checked.
-                logger.LogWarning(ex, "Could not check Netloopers payment {PaymentId} for order {OrderId}.", paymentId, c.Id);
+                logger.LogWarning(ex, "Could not check Netloopers payment {PaymentId} for order {OrderId}.", c.PaymentId, c.Id);
             }
         }
     }

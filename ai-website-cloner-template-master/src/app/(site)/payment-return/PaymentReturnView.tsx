@@ -47,7 +47,9 @@ export function PaymentReturnView() {
   const { language } = useLanguage();
   const t = COPY[language];
   const params = useSearchParams();
-  const orderId = params.get("order_id") ?? "";
+  // order_id comes from the address bar, so only a real order id (a GUID) is ever used to call our API.
+  const rawOrderId = params.get("order_id") ?? "";
+  const orderId = /^[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$/.test(rawOrderId) ? rawOrderId : "";
   const gatewayStatus = (params.get("status") ?? "").toLowerCase();
   const gatewayFailed = ["failed", "cancelled", "canceled", "expired"].includes(gatewayStatus);
 
