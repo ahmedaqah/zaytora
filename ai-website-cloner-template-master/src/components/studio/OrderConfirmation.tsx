@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { CheckIcon, CopyIcon, InfoIcon } from "@/components/icons";
 import { useLanguage } from "@/context/LanguageContext";
@@ -96,6 +96,15 @@ export function OrderConfirmation({
   const { language } = useLanguage();
   const t = COPY[language];
   const [cardState, setCardState] = useState<"idle" | "loading" | "error">("idle");
+
+  // Coming back with the browser's Back button restores this page frozen in the "loading" state.
+  useEffect(() => {
+    function onPageShow(event: PageTransitionEvent) {
+      if (event.persisted) setCardState("idle");
+    }
+    window.addEventListener("pageshow", onPageShow);
+    return () => window.removeEventListener("pageshow", onPageShow);
+  }, []);
 
   async function handlePayByCard() {
     setCardState("loading");

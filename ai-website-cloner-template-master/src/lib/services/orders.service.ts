@@ -65,5 +65,6 @@ export function sendOrderReminder(id: string) {
 // gateway's server-to-server webhook once the payment really succeeds; the
 // browser coming back from checkout is never what approves it.
 export function payOrderByCard(id: string) {
-  return apiClient.post<CardCheckoutResponse>(`/orders/${id}/pay-card`);
+  // Up to two gateway calls happen server-side, so allow more than the client's 10 s default.
+  return apiClient.post<CardCheckoutResponse>(`/orders/${id}/pay-card`, undefined, { timeoutMs: 30_000 });
 }

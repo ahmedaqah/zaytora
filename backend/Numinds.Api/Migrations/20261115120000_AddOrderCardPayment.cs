@@ -27,8 +27,8 @@ namespace Numinds.Api.Migrations
             migrationBuilder.AddColumn<string>(
                 name: "GatewayPaymentId",
                 table: "Orders",
-                type: "character varying(64)",
-                maxLength: 64,
+                type: "character varying(128)",
+                maxLength: 128,
                 nullable: true);
         }
 

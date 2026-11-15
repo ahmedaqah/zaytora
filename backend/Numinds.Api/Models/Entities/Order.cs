@@ -46,9 +46,10 @@ public class Order
     public string Currency { get; set; } = "USD";
     public decimal ConvertedAmount { get; set; }
 
-    // How this order is (being) paid: "bank" = manual transfer confirmed by an
-    // admin (the original flow), "card" = online payment through Netloopers,
-    // confirmed automatically by its signed webhook (OrdersController.NetloopersWebhook).
+    // How this order was paid: "bank" = manual transfer confirmed by an admin
+    // (the original flow, and the default while the order is still pending),
+    // "card" = paid online through Netloopers and confirmed automatically by its
+    // signed webhook (OrdersController.NetloopersWebhook) -- only ever set there.
     public string PaymentMethod { get; set; } = "bank";
 
     // The Netloopers payment id (pay_...) of the most recent card payment

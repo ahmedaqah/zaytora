@@ -288,7 +288,7 @@ public class NumindsDbContext(DbContextOptions<NumindsDbContext> options)
             entity.Property(o => o.PaymentStatus).HasMaxLength(16).IsRequired();
             entity.Property(o => o.AdminNote).HasMaxLength(512);
             entity.Property(o => o.PaymentMethod).HasMaxLength(16).IsRequired();
-            entity.Property(o => o.GatewayPaymentId).HasMaxLength(64);
+            entity.Property(o => o.GatewayPaymentId).HasMaxLength(128);
             entity.Property(o => o.AmountUsd).HasColumnType("decimal(10,2)");
             entity.Property(o => o.ConvertedAmount).HasColumnType("decimal(12,2)");
 

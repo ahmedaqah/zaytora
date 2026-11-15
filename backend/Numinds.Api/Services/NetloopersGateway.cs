@@ -45,6 +45,9 @@ public interface INetloopersGateway
     // True when `status` (as returned by GET /payments/{id}) means the money was received.
     bool IsSuccessStatus(string? status);
 
+    // True while the payment is still in flight (not final): the webhook asks for a retry instead of giving up.
+    bool IsPendingStatus(string? status);
+
     // The Netloopers environment ("test" / "live") this server's key belongs to.
     string ExpectedEnvironment { get; }
 }
@@ -103,6 +106,11 @@ public sealed class NetloopersGateway(
         return accepted.Contains(status.Trim(), StringComparer.OrdinalIgnoreCase);
     }
 
+    public bool IsPendingStatus(string? status) =>
+        !string.IsNullOrWhiteSpace(status) &&
+        new[] { "pending", "processing", "initiated", "created", "in_progress", "requires_action" }
+            .Contains(status.Trim(), StringComparer.OrdinalIgnoreCase);
+
     public async Task<NetloopersCheckout> CreateCheckoutAsync(
         Guid orderId,
         decimal amountUsd,
@@ -141,7 +149,7 @@ public sealed class NetloopersGateway(
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await GetAccessTokenAsync(cancellationToken));
         // A fresh key per attempt: a customer who abandoned a checkout and tries again must get a new
         // payment, not a replay of the old one.
-        request.Headers.Add("Idempotency-Key", $"order_{orderId:N}_{Guid.NewGuid():N}");
+        request.Headers.Add("Idempotency-Key", $"order_{orderId:N}_{Guid.NewGuid().ToString("N")[..8]}");
 
         using var response = await httpClient.SendAsync(request, cancellationToken);
         var json = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -179,7 +187,7 @@ public sealed class NetloopersGateway(
 
         using var doc = JsonDocument.Parse(json);
         var root = Unwrap(doc.RootElement);
-        long amount = 0;
+        long amount = -1; // absent, fractional or unparseable: never matches an order total
         if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("amount", out var amountEl))
         {
             if (amountEl.ValueKind == JsonValueKind.Number && amountEl.TryGetInt64(out var n))
@@ -210,6 +218,13 @@ public sealed class NetloopersGateway(
         }
 
         if (!long.TryParse(timestampHeader.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var seconds))
+        {
+            return false;
+        }
+
+        // Reject absurd values up front: FromUnixTimeSeconds throws outside this range, and an
+        // unauthenticated request must never be able to cause a 500.
+        if (seconds < 0 || seconds > 253402300799)
         {
             return false;
         }

@@ -843,8 +843,8 @@ namespace Numinds.Api.Migrations
                         .HasColumnType("character varying(128)");
 
                     b.Property<string>("GatewayPaymentId")
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
 
                     b.Property<bool>("GiftFeeCoverage")
                         .HasColumnType("boolean");
