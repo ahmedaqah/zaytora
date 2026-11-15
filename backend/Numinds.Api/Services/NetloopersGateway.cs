@@ -48,6 +48,11 @@ public interface INetloopersGateway
     // True while the payment is still in flight (not final): the webhook asks for a retry instead of giving up.
     bool IsPendingStatus(string? status);
 
+    // True for a status that definitely means the payment did not go through (failed / cancelled / expired ...).
+    // A status that is neither success, pending nor failure is *unknown* and is reported to the admin, so a
+    // paid customer is never silently left waiting just because the gateway's status word is not on our list.
+    bool IsFailureStatus(string? status);
+
     // The Netloopers environment ("test" / "live") this server's key belongs to.
     string ExpectedEnvironment { get; }
 }
@@ -60,7 +65,8 @@ public sealed record NetloopersPayment(
     long Amount,
     string? Currency,
     string? OrderId,
-    string? Environment);
+    string? Environment,
+    string? CheckoutUrl = null);
 
 public sealed class NetloopersGateway(
     HttpClient httpClient,
@@ -105,6 +111,11 @@ public sealed class NetloopersGateway(
         var accepted = configured.Length > 0 ? configured : DefaultSuccessStatuses;
         return accepted.Contains(status.Trim(), StringComparer.OrdinalIgnoreCase);
     }
+
+    public bool IsFailureStatus(string? status) =>
+        !string.IsNullOrWhiteSpace(status) &&
+        new[] { "failed", "failure", "cancelled", "canceled", "expired", "declined", "rejected", "voided", "error" }
+            .Contains(status.Trim(), StringComparer.OrdinalIgnoreCase);
 
     public bool IsPendingStatus(string? status) =>
         !string.IsNullOrWhiteSpace(status) &&
@@ -207,7 +218,8 @@ public sealed class NetloopersGateway(
             amount,
             GetString(root, "currency"),
             GetString(root, "order_id"),
-            GetString(root, "environment"));
+            GetString(root, "environment"),
+            GetString(root, "checkout_url"));
     }
 
     public bool VerifyWebhookSignature(string? timestampHeader, string? signatureHeader, byte[] rawBody)
