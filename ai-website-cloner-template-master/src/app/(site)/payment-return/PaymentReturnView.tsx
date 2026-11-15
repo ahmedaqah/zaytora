@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useLanguage } from "@/context/LanguageContext";
-import { getOrder } from "@/lib/services/orders.service";
+import { verifyCardPayment } from "@/lib/services/orders.service";
 
 const COPY = {
   ar: {
@@ -41,8 +41,8 @@ const POLL_MS = 3000;
 const MAX_POLLS = 30; // ~90 s, then fall back to "still confirming"
 
 // Where the customer lands after the hosted checkout. The query string (status, payment_id, ...)
-// is only used to word the message: the invitation is approved by the gateway's webhook, and this
-// page just asks our own API whether that has happened yet.
+// is only used to word the message: each poll asks our own API to re-check the payment with the
+// gateway (and approve the order if it was really paid), then reports the order's status.
 export function PaymentReturnView() {
   const { language } = useLanguage();
   const t = COPY[language];
@@ -62,7 +62,7 @@ export function PaymentReturnView() {
     async function poll() {
       attempts += 1;
       try {
-        const order = await getOrder(orderId);
+        const order = await verifyCardPayment(orderId);
         if (cancelled) return;
         if (order.paymentStatus === "paid") {
           setState("paid");

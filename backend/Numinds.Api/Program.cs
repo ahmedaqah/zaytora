@@ -159,6 +159,8 @@ builder.Services.AddHttpClient<IMetaConversionsApiService, MetaConversionsApiSer
 
 // Online card payments (Netloopers); only active for the countries in Netloopers:EnabledCountries.
 builder.Services.AddHttpClient<INetloopersGateway, NetloopersGateway>(client => client.Timeout = TimeSpan.FromSeconds(20));
+builder.Services.AddScoped<ICardPaymentConfirmer, CardPaymentConfirmer>();
+builder.Services.AddHostedService<CardPaymentReconciler>();
 
 // R2 (Cloudflare's S3-compatible object storage) for admin-uploaded images
 // (partner logos, template covers, envelope photos, thank-you-suggestion
