@@ -46,6 +46,23 @@ public class CardPaymentConfirmer(
     // are never produced twice.
     private static readonly SemaphoreSlim Gate = new(1, 1);
 
+    // The return page asks again every few seconds and the reconciler every minute, so the same problem would
+    // otherwise be announced to the admin over and over. Each (payment, kind) is announced once per server run.
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, byte> Announced = new();
+
+    private void NotifyOnce(string key, string text)
+    {
+        if (Announced.Count > 5000)
+        {
+            Announced.Clear();
+        }
+
+        if (Announced.TryAdd(key, 0))
+        {
+            notifier.Notify(text);
+        }
+    }
+
     public async Task<CardConfirmResult> ConfirmAsync(NetloopersPayment payment, CancellationToken cancellationToken)
     {
         if (!Guid.TryParse(payment.OrderId, out var orderId))
@@ -73,7 +90,7 @@ public class CardPaymentConfirmer(
                 if (gateway.IsSuccessStatus(payment.Status) && (order.PaymentMethod != "card" || order.GatewayPaymentId != payment.Id))
                 {
                     logger.LogWarning("Netloopers payment {PaymentId} succeeded for already-paid order {OrderId}.", payment.Id, order.Id);
-                    notifier.Notify($"⚠️ دفعة بالبطاقة إضافية لطلب مدفوع مسبقاً ({order.CustomerName}) — قد يكون الزبون دفع مرتين، راجع الاسترداد.\n{FrontendBaseUrl}/admin/orders");
+                    NotifyOnce($"{payment.Id}:double", $"⚠️ دفعة بالبطاقة إضافية لطلب مدفوع مسبقاً ({order.CustomerName}) — قد يكون الزبون دفع مرتين، راجع الاسترداد.\n{FrontendBaseUrl}/admin/orders");
                 }
 
                 return CardConfirmResult.AlreadyPaid;
@@ -89,6 +106,15 @@ public class CardPaymentConfirmer(
             else if (!gateway.IsSuccessStatus(payment.Status))
             {
                 // failed / cancelled / expired: the order stays pending so the customer can try again.
+                if (!gateway.IsFailureStatus(payment.Status))
+                {
+                    // A status word we do not recognise (the gateway documents none): this may well be a paid
+                    // payment, so say so instead of leaving the customer waiting in silence. The admin can approve it
+                    // by hand, and add the word to Netloopers:SuccessStatuses so later ones are approved automatically.
+                    logger.LogWarning("Netloopers payment {PaymentId} has an unrecognised status \"{Status}\".", payment.Id, payment.Status);
+                    NotifyOnce($"{payment.Id}:status", $"⚠️ دفعة بالبطاقة بحالة غير معروفة \"{payment.Status}\" ({order.CustomerName}) — إن كانت مدفوعة فاعتمدها يدوياً، وأضف الحالة إلى Netloopers__SuccessStatuses.\n{FrontendBaseUrl}/admin/orders");
+                }
+
                 return CardConfirmResult.NotApproved;
             }
             else if (expectedCents <= 0)
@@ -113,7 +139,7 @@ public class CardPaymentConfirmer(
             if (problem is not null)
             {
                 logger.LogWarning("Netloopers payment {PaymentId} for order {OrderId} not auto-approved: {Problem}", payment.Id, order.Id, problem);
-                notifier.Notify($"⚠️ دفعة بالبطاقة لم تُعتمد تلقائياً ({order.CustomerName}): {problem}\nراجعها يدوياً: {FrontendBaseUrl}/admin/orders");
+                NotifyOnce($"{payment.Id}:problem", $"⚠️ دفعة بالبطاقة لم تُعتمد تلقائياً ({order.CustomerName}): {problem}\nراجعها يدوياً: {FrontendBaseUrl}/admin/orders");
                 return CardConfirmResult.NotApproved;
             }
 
