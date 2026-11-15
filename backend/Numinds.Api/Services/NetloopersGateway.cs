@@ -16,6 +16,10 @@ namespace Numinds.Api.Services;
 //
 // Configuration (secrets go in environment variables, never in the repo):
 //   Netloopers:SecretKey       sk_test_... / sk_live_...     (required)
+//   Netloopers:ClientId        the client id that goes with the secret key (e.g. the pk_test_... / pk_live_... key of the
+//                              same environment). The live token endpoint answers the documented "Bearer sk_*" request with
+//                              401 INVALID_CLIENT "client_id and client_secret are required", so when this is set the pair
+//                              is sent in the request body instead.
 //   Netloopers:WebhookSecret   signing secret of the webhook (required for the webhook)
 //   Netloopers:EnabledCountries comma list of order country codes allowed to pay by card, e.g. "NG"
 //   Netloopers:CategorySlug    optional; sent as category_slug when the account has no default category
@@ -81,7 +85,8 @@ public sealed class NetloopersGateway(
     private static string? cachedToken;
     private static DateTime cachedTokenExpiresUtc = DateTime.MinValue;
 
-    private string SecretKey => configuration["Netloopers:SecretKey"] ?? string.Empty;
+    private string SecretKey => (configuration["Netloopers:SecretKey"] ?? string.Empty).Trim();
+    private string ClientId => (configuration["Netloopers:ClientId"] ?? string.Empty).Trim();
     private string WebhookSecret => configuration["Netloopers:WebhookSecret"] ?? string.Empty;
     private string BaseUrl => (configuration["Netloopers:BaseUrl"] ?? "https://netloopers.com/api/v1").TrimEnd('/');
 
@@ -294,17 +299,31 @@ public sealed class NetloopersGateway(
                 throw new InvalidOperationException("Netloopers:SecretKey is not configured.");
             }
 
-            using var request = new HttpRequestMessage(HttpMethod.Post, $"{BaseUrl}/oauth/token")
+            var form = new Dictionary<string, string> { ["grant_type"] = "client_credentials" };
+            using var request = new HttpRequestMessage(HttpMethod.Post, $"{BaseUrl}/oauth/token");
+            if (!string.IsNullOrEmpty(ClientId))
             {
-                Content = new FormUrlEncodedContent(new Dictionary<string, string> { ["grant_type"] = "client_credentials" }),
-            };
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", SecretKey);
+                // What the live endpoint actually asks for: the client id and the secret in the body.
+                form["client_id"] = ClientId;
+                form["client_secret"] = SecretKey;
+            }
+            else
+            {
+                // The documented form (secret key as Bearer token). The live endpoint currently rejects it, see ClientId above.
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", SecretKey);
+            }
+
+            request.Content = new FormUrlEncodedContent(form);
 
             using var response = await httpClient.SendAsync(request, cancellationToken);
             var json = await response.Content.ReadAsStringAsync(cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
-                logger.LogError("Netloopers token request failed: {Status} {Body}", (int)response.StatusCode, Truncate(json));
+                logger.LogError(
+                    "Netloopers token request failed ({Mode}): {Status} {Body}",
+                    string.IsNullOrEmpty(ClientId) ? "bearer secret key" : "client_id + client_secret",
+                    (int)response.StatusCode,
+                    Truncate(json));
                 throw new InvalidOperationException($"Netloopers returned {(int)response.StatusCode} for the token request.");
             }
 
