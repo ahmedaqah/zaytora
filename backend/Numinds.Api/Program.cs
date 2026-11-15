@@ -157,6 +157,9 @@ builder.Services.AddSingleton<Numinds.Api.Services.IAdminNotifier, Numinds.Api.S
 // config keys and its degrade-gracefully-when-unset behavior.
 builder.Services.AddHttpClient<IMetaConversionsApiService, MetaConversionsApiService>();
 
+// Online card payments (Netloopers); only active for the countries in Netloopers:EnabledCountries.
+builder.Services.AddHttpClient<INetloopersGateway, NetloopersGateway>(client => client.Timeout = TimeSpan.FromSeconds(20));
+
 // R2 (Cloudflare's S3-compatible object storage) for admin-uploaded images
 // (partner logos, template covers, envelope photos, thank-you-suggestion
 // cards) -- Render's own filesystem is ephemeral and wipes anything written

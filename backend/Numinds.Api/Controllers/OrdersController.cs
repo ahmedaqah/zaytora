@@ -6,6 +6,7 @@ using Numinds.Api.Models;
 using Numinds.Api.Models.Dtos;
 using Numinds.Api.Models.Entities;
 using Numinds.Api.Services;
+using System.Text.Json;
 
 namespace Numinds.Api.Controllers;
 
@@ -16,9 +17,14 @@ public class OrdersController(
     IMetaConversionsApiService metaConversions,
     IEmailSender emailSender,
     IConfiguration configuration,
-    IAdminNotifier notifier) : ControllerBase
+    IAdminNotifier notifier,
+    INetloopersGateway gateway,
+    ILogger<OrdersController> logger) : ControllerBase
 {
     private string FrontendBaseUrl => configuration["Frontend:BaseUrl"] ?? "http://localhost:3000";
+
+    // Serializes the Netloopers webhook's approve step (see NetloopersWebhook).
+    private static readonly SemaphoreSlim WebhookGate = new(1, 1);
 
     // POST /api/orders — anonymous is allowed, same reasoning as
     // InvitationsController.Create: a guest can be mid-checkout before ever
@@ -127,6 +133,7 @@ public class OrdersController(
         {
             Order = await ToDtoAsync(order, cancellationToken),
             PaymentSettings = resolvedAccount ?? new PaymentAccountDto(),
+            CardPaymentAvailable = gateway.IsAvailableForCountry(order.Country),
         });
     }
 
@@ -338,11 +345,241 @@ public class OrdersController(
             return NotFound();
         }
 
-        var wasPaid = order.PaymentStatus == "paid";
-        order.PaymentStatus = request.Status;
-        order.AdminNote = string.IsNullOrWhiteSpace(request.AdminNote) ? null : request.AdminNote;
+        await ApplyStatusAsync(order, request.Status, request.AdminNote, cancellationToken);
 
-        if (request.Status == "paid")
+        return Ok(await ToDtoAsync(order, cancellationToken));
+    }
+
+    // POST /api/orders/{id}/pay-card — starts an online card payment for a pending
+    // order and returns the Netloopers hosted-checkout URL to send the customer to.
+    // Anonymous, same reasoning as GetById/Create: the order id is an unguessable
+    // Guid and a guest can be mid-checkout before ever logging in. The amount is
+    // always the server-side AmountUsd, never anything the browser sends.
+    [HttpPost("{id:guid}/pay-card")]
+    public async Task<ActionResult<CardCheckoutResponse>> PayByCard(Guid id, CancellationToken cancellationToken)
+    {
+        var order = await db.Orders.FirstOrDefaultAsync(o => o.Id == id, cancellationToken);
+        if (order is null)
+        {
+            return NotFound();
+        }
+
+        if (order.PaymentStatus != "pending")
+        {
+            return Conflict(new { title = "This order is no longer pending." });
+        }
+
+        if (!gateway.IsAvailableForCountry(order.Country))
+        {
+            return BadRequest(new { title = "Card payment is not available for this order." });
+        }
+
+        var invitation = await db.Invitations.AsNoTracking().FirstOrDefaultAsync(i => i.Id == order.InvitationId, cancellationToken);
+        if (invitation is null || invitation.Status is "paid" or "shared")
+        {
+            return Conflict(new { title = "This invitation is no longer waiting for payment." });
+        }
+
+        // Netloopers appends payment_id, order_id, status and environment to these URLs when it
+        // sends the customer back; the page only uses order_id to look the order up here.
+        var returnUrl = $"{FrontendBaseUrl}/payment-return";
+
+        NetloopersCheckout checkout;
+        try
+        {
+            checkout = await gateway.CreateCheckoutAsync(
+                order.Id,
+                order.AmountUsd,
+                order.CustomerName,
+                order.CustomerEmail,
+                $"ZAYTORA invitation {order.Id.ToString()[..8].ToUpperInvariant()}",
+                returnUrl,
+                returnUrl,
+                cancellationToken);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or HttpRequestException or TaskCanceledException or JsonException)
+        {
+            logger.LogError(ex, "Could not start a Netloopers payment for order {OrderId}", order.Id);
+            return Problem("Could not start the card payment right now. Please try again or use the bank transfer.", statusCode: 502);
+        }
+
+        // Reference only; PaymentMethod becomes "card" in the webhook, once the money has really arrived
+        // (a customer may abandon this checkout and pay by bank transfer instead).
+        order.GatewayPaymentId = checkout.PaymentId;
+        await db.SaveChangesAsync(cancellationToken);
+
+        return Ok(new CardCheckoutResponse { CheckoutUrl = checkout.CheckoutUrl });
+    }
+
+    // POST /api/orders/netloopers-webhook — called by Netloopers (server to server), never by a browser.
+    // Anonymous on purpose: it is authenticated by the HMAC signature instead. The payload is only a
+    // trigger: the payment is re-fetched from Netloopers and its status, amount, currency, environment and
+    // order id are checked against our own order before anything is approved, so a forged or replayed
+    // request cannot approve an invitation.
+    [HttpPost("netloopers-webhook")]
+    [AllowAnonymous]
+    [RequestSizeLimit(65536)]
+    public async Task<IActionResult> NetloopersWebhook(CancellationToken cancellationToken)
+    {
+        using var buffer = new MemoryStream();
+        await Request.Body.CopyToAsync(buffer, cancellationToken);
+        var rawBody = buffer.ToArray();
+
+        if (!gateway.VerifyWebhookSignature(Request.Headers["X-Timestamp"].ToString(), Request.Headers["X-Signature"].ToString(), rawBody))
+        {
+            logger.LogWarning("Netloopers webhook rejected: missing/invalid signature or timestamp.");
+            return Unauthorized();
+        }
+
+        string? eventType = null;
+        string? paymentId = null;
+        try
+        {
+            using var doc = JsonDocument.Parse(rawBody);
+            var root = doc.RootElement;
+            if (root.ValueKind == JsonValueKind.Object)
+            {
+                if (root.TryGetProperty("type", out var t) && t.ValueKind == JsonValueKind.String) eventType = t.GetString();
+                if (root.TryGetProperty("resource_id", out var r) && r.ValueKind == JsonValueKind.String) paymentId = r.GetString();
+            }
+        }
+        catch (JsonException)
+        {
+            return BadRequest();
+        }
+
+        // Only a completed payment approves anything. failed / cancelled / expired / pending events leave the
+        // order "pending" so the customer can simply try again; every other event type is ignored.
+        if (eventType != "payment.completed" || string.IsNullOrEmpty(paymentId))
+        {
+            logger.LogInformation("Netloopers webhook ignored: type {Type}, resource {Resource}.", eventType, paymentId);
+            return Ok();
+        }
+
+        NetloopersPayment payment;
+        try
+        {
+            payment = await gateway.GetPaymentAsync(paymentId, cancellationToken);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or HttpRequestException or TaskCanceledException or JsonException)
+        {
+            // 5xx makes Netloopers retry with backoff, so a short outage on either side does not lose the payment.
+            logger.LogError(ex, "Netloopers webhook: could not read payment {PaymentId}", paymentId);
+            return StatusCode(StatusCodes.Status503ServiceUnavailable);
+        }
+
+        if (!Guid.TryParse(payment.OrderId, out var orderId))
+        {
+            logger.LogWarning("Netloopers payment {PaymentId} has no valid order_id ({OrderId}); ignored.", payment.Id, payment.OrderId);
+            return Ok();
+        }
+
+        // One webhook at a time: a gateway retry that overlaps a slow first delivery (the Meta call below can
+        // take a moment) must not credit the partner, report the sale and send the email twice. Webhooks are
+        // rare, so a single gate is plenty; the order is re-read after acquiring it.
+        await WebhookGate.WaitAsync(cancellationToken);
+        try
+        {
+            var order = await db.Orders.FirstOrDefaultAsync(o => o.Id == orderId, cancellationToken);
+            if (order is null)
+            {
+                logger.LogWarning("Netloopers payment {PaymentId} refers to unknown order {OrderId}; ignored.", payment.Id, orderId);
+                return Ok();
+            }
+
+            // Retries and duplicate deliveries land here; the order is already approved. But if a *different*
+            // successful payment shows up for an already-paid order, the customer has paid twice -- tell the admin.
+            if (order.PaymentStatus == "paid")
+            {
+                if (gateway.IsSuccessStatus(payment.Status) && (order.PaymentMethod != "card" || order.GatewayPaymentId != payment.Id))
+                {
+                    logger.LogWarning("Netloopers payment {PaymentId} succeeded for already-paid order {OrderId}.", payment.Id, order.Id);
+                    notifier.Notify($"⚠️ دفعة بالبطاقة إضافية لطلب مدفوع مسبقاً ({order.CustomerName}) — قد يكون الزبون دفع مرتين، راجع الاسترداد.\n{FrontendBaseUrl}/admin/orders");
+                }
+
+                return Ok();
+            }
+
+            var expectedCents = (long)Math.Round(order.AmountUsd * 100m, MidpointRounding.AwayFromZero);
+            string? problem = null;
+            if (gateway.IsPendingStatus(payment.Status))
+            {
+                // Not final yet: answer 503 so the gateway retries later instead of this payment being dropped.
+                logger.LogInformation("Netloopers payment {PaymentId} is still {Status}; asking for a retry.", payment.Id, payment.Status);
+                return StatusCode(StatusCodes.Status503ServiceUnavailable);
+            }
+            else if (!gateway.IsSuccessStatus(payment.Status))
+            {
+                problem = $"payment status is \"{payment.Status}\"";
+            }
+            else if (expectedCents <= 0)
+            {
+                problem = "the order total is zero, nothing should have been charged";
+            }
+            else if (payment.Amount != expectedCents)
+            {
+                problem = $"amount {payment.Amount} cents does not match the order ({expectedCents} cents)";
+            }
+            else if (!string.Equals(payment.Currency, "USD", StringComparison.OrdinalIgnoreCase))
+            {
+                problem = $"currency is {payment.Currency}, expected USD";
+            }
+            else if (!string.Equals(payment.Environment, gateway.ExpectedEnvironment, StringComparison.OrdinalIgnoreCase)
+                     && (payment.Environment is not null || gateway.ExpectedEnvironment == "live"))
+            {
+                // A live key must see an explicit "live" payment; a missing environment is never accepted there.
+                problem = $"payment environment is {payment.Environment ?? "missing"}, expected {gateway.ExpectedEnvironment}";
+            }
+
+            if (problem is not null)
+            {
+                // Acknowledge (retrying would not change the answer) but tell the admin to look at it by hand.
+                logger.LogWarning("Netloopers payment {PaymentId} for order {OrderId} not auto-approved: {Problem}", payment.Id, order.Id, problem);
+                notifier.Notify($"⚠️ دفعة بالبطاقة لم تُعتمد تلقائياً ({order.CustomerName}): {problem}\nراجعها يدوياً: {FrontendBaseUrl}/admin/orders");
+                return Ok();
+            }
+
+            order.PaymentMethod = "card";
+            order.GatewayPaymentId = payment.Id;
+            await ApplyStatusAsync(order, "paid", $"Paid by card via Netloopers ({payment.Id})", cancellationToken);
+
+            notifier.Notify($"💳 دفع بالبطاقة (تأكيد تلقائي): {order.CustomerName} ({order.AmountUsd.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)} USD)\n{FrontendBaseUrl}/admin/orders");
+
+            try
+            {
+                await emailSender.SendAsync(
+                    order.CustomerEmail,
+                    "تم استلام دفعتك وتفعيل دعوتك على زيتورا",
+                    $"<p>مرحباً {System.Net.WebUtility.HtmlEncode(order.CustomerName)}،</p>" +
+                    "<p>استلمنا دفعتك بنجاح وتم تفعيل دعوتك. تقدر تشاركها وتتابع الردود من لوحة التحكم:</p>" +
+                    $"<p><a href=\"{FrontendBaseUrl}/dashboard\">{FrontendBaseUrl}/dashboard</a></p>",
+                    cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                // The order is already approved and saved; a mail problem must not turn this into a webhook failure.
+                logger.LogWarning(ex, "Could not send the payment confirmation email for order {OrderId}", order.Id);
+            }
+
+            return Ok();
+        }
+        finally
+        {
+            WebhookGate.Release();
+        }
+    }
+
+    // The paid/failed transition shared by the admin's manual confirmation
+    // (UpdateStatus) and the automatic card confirmation (NetloopersWebhook), so
+    // both produce exactly the same result: the order status, the invitation's
+    // approval, the partner's credit and the Meta Purchase event.
+    private async Task ApplyStatusAsync(Order order, string status, string? adminNote, CancellationToken cancellationToken)
+    {
+        var wasPaid = order.PaymentStatus == "paid";
+        order.PaymentStatus = status;
+        order.AdminNote = string.IsNullOrWhiteSpace(adminNote) ? null : adminNote;
+
+        if (status == "paid")
         {
             order.PaidAt = DateTime.UtcNow;
         }
@@ -369,14 +606,14 @@ public class OrdersController(
         // would double-count a sale already credited through the other paid
         // order, and reversing would claw back credit that other order is
         // still legitimately earning.
-        if (!string.IsNullOrEmpty(order.PromoCodeUsed) && wasPaid != (request.Status == "paid") && !hasOtherPaidOrder)
+        if (!string.IsNullOrEmpty(order.PromoCodeUsed) && wasPaid != (status == "paid") && !hasOtherPaidOrder)
         {
             var partner = await db.Partners.FirstOrDefaultAsync(
                 p => p.PromoCode != null && p.PromoCode.ToLower() == order.PromoCodeUsed.ToLower(),
                 cancellationToken);
             if (partner is not null)
             {
-                if (request.Status == "paid")
+                if (status == "paid")
                 {
                     partner.UsageCount += 1;
                     partner.RevenueUsd += order.AmountUsd;
@@ -392,7 +629,7 @@ public class OrdersController(
         var invitation = await db.Invitations.FirstOrDefaultAsync(i => i.Id == order.InvitationId, cancellationToken);
         if (invitation is not null)
         {
-            if (request.Status == "paid")
+            if (status == "paid")
             {
                 invitation.Status = "paid";
             }
@@ -412,7 +649,7 @@ public class OrdersController(
         // AdminNote) or confirming a stale duplicate order for an
         // invitation that's genuinely already been paid for can't
         // double-report the same sale to Meta.
-        if (!wasPaid && request.Status == "paid" && !hasOtherPaidOrder)
+        if (!wasPaid && status == "paid" && !hasOtherPaidOrder)
         {
             // No real page URL exists for this event -- it fires from the
             // admin's confirmation click, not a customer browser session
@@ -421,8 +658,6 @@ public class OrdersController(
             await metaConversions.SendPurchaseAsync(
                 order.Id.ToString(), order.CustomerEmail, order.AmountUsd, $"{FrontendBaseUrl}/dashboard", cancellationToken);
         }
-
-        return Ok(await ToDtoAsync(order, cancellationToken));
     }
 
     private static decimal ApplyDiscount(decimal amount, string type, decimal value) =>
@@ -451,6 +686,7 @@ public class OrdersController(
         Currency = order.Currency,
         ConvertedAmount = order.ConvertedAmount,
         PaymentStatus = order.PaymentStatus,
+        PaymentMethod = order.PaymentMethod,
         AdminNote = order.AdminNote,
         CreatedAt = order.CreatedAt,
         PaidAt = order.PaidAt,

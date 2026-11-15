@@ -46,6 +46,17 @@ public class Order
     public string Currency { get; set; } = "USD";
     public decimal ConvertedAmount { get; set; }
 
+    // How this order was paid: "bank" = manual transfer confirmed by an admin
+    // (the original flow, and the default while the order is still pending),
+    // "card" = paid online through Netloopers and confirmed automatically by its
+    // signed webhook (OrdersController.NetloopersWebhook) -- only ever set there.
+    public string PaymentMethod { get; set; } = "bank";
+
+    // The Netloopers payment id (pay_...) of the most recent card payment
+    // started for this order. Reference only -- the webhook never trusts it,
+    // it re-fetches the payment and matches on the order id instead.
+    public string? GatewayPaymentId { get; set; }
+
     // pending -> paid | failed
     public string PaymentStatus { get; set; } = "pending";
     public string? AdminNote { get; set; }

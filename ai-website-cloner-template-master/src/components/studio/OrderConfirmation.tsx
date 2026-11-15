@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { CheckIcon, CopyIcon, InfoIcon } from "@/components/icons";
 import { useLanguage } from "@/context/LanguageContext";
+import { payOrderByCard } from "@/lib/services/orders.service";
 import type { OrderDto, PaymentAccountDto } from "@/types/api";
 
 const COPY = {
@@ -22,6 +23,12 @@ const COPY = {
     pendingNotice: "سيتم تفعيل دعوتك خلال 24 ساعة من تأكيد استلام التحويل من قِبَلنا.",
     copied: "تم النسخ",
     backToDashboard: "الذهاب للوحة التحكم",
+    cardHeading: "ادفع بالبطاقة",
+    cardHint: "دفع آمن عبر بوابة الدفع، ويتم تفعيل دعوتك تلقائياً فور نجاح الدفع.",
+    cardButton: "ادفع الآن بالبطاقة",
+    cardRedirecting: "جارٍ تحويلك لصفحة الدفع...",
+    cardError: "تعذّر بدء الدفع بالبطاقة الآن. حاول مرة أخرى أو استخدم التحويل البنكي.",
+    orBank: "أو حوّل المبلغ بنكياً",
   },
   en: {
     heading: "Your order has been created",
@@ -38,6 +45,12 @@ const COPY = {
     pendingNotice: "Your invitation activates once we confirm the transfer was received — usually within 24 hours.",
     copied: "Copied",
     backToDashboard: "Go to dashboard",
+    cardHeading: "Pay by card",
+    cardHint: "Secure payment through our payment gateway. Your invitation activates automatically as soon as the payment succeeds.",
+    cardButton: "Pay now by card",
+    cardRedirecting: "Redirecting you to the payment page...",
+    cardError: "We couldn't start the card payment right now. Please try again or use the bank transfer.",
+    orBank: "Or pay by bank transfer",
   },
 };
 
@@ -74,12 +87,35 @@ function CopyableRow({ label, value, copiedLabel }: { label: string; value: stri
 export function OrderConfirmation({
   order,
   paymentSettings,
+  cardPaymentAvailable = false,
 }: {
   order: OrderDto;
   paymentSettings: PaymentAccountDto;
+  cardPaymentAvailable?: boolean;
 }) {
   const { language } = useLanguage();
   const t = COPY[language];
+  const [cardState, setCardState] = useState<"idle" | "loading" | "error">("idle");
+
+  // Coming back with the browser's Back button restores this page frozen in the "loading" state.
+  useEffect(() => {
+    function onPageShow(event: PageTransitionEvent) {
+      if (event.persisted) setCardState("idle");
+    }
+    window.addEventListener("pageshow", onPageShow);
+    return () => window.removeEventListener("pageshow", onPageShow);
+  }, []);
+
+  async function handlePayByCard() {
+    setCardState("loading");
+    try {
+      const { checkoutUrl } = await payOrderByCard(order.id);
+      // The URL comes from our own API, which got it from the payment gateway.
+      window.location.assign(checkoutUrl);
+    } catch {
+      setCardState("error");
+    }
+  }
   const hasReceivingAccount = Boolean(paymentSettings.recipientName && paymentSettings.accountNumber);
 
   return (
@@ -109,6 +145,27 @@ export function OrderConfirmation({
             </span>
           </div>
         </div>
+
+        {cardPaymentAvailable && (
+          <div className="rounded-xl border border-gold/30 bg-gold/5 p-4">
+            <p className="mb-1 text-sm font-semibold text-foreground">{t.cardHeading}</p>
+            <p className="mb-3 text-xs leading-relaxed text-body-foreground">{t.cardHint}</p>
+            <button
+              type="button"
+              onClick={handlePayByCard}
+              disabled={cardState === "loading"}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-gold py-3 text-sm font-medium text-white transition-colors hover:bg-gold/90 disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {cardState === "loading" ? t.cardRedirecting : t.cardButton}
+            </button>
+            {cardState === "error" && (
+              <p role="alert" className="mt-2 text-xs text-red-600 dark:text-red-400">
+                {t.cardError}
+              </p>
+            )}
+            <p className="mt-3 text-center text-xs text-muted-foreground">{t.orBank}</p>
+          </div>
+        )}
 
         {hasReceivingAccount ? (
           <div className="rounded-xl border border-gold/20 bg-gold/5 p-4">

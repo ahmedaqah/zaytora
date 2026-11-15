@@ -16,6 +16,8 @@ public class OrderDto
     public string Currency { get; set; } = "USD";
     public decimal ConvertedAmount { get; set; }
     public string PaymentStatus { get; set; } = "pending";
+    // "bank" (manual transfer, admin confirms) | "card" (Netloopers, confirmed by its webhook)
+    public string PaymentMethod { get; set; } = "bank";
     public string? AdminNote { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? PaidAt { get; set; }
@@ -56,6 +58,15 @@ public class OrderCreatedResponse
 {
     public OrderDto Order { get; set; } = new();
     public PaymentAccountDto PaymentSettings { get; set; } = new();
+    // True when the customer's country is enabled for online card payment (Netloopers:EnabledCountries)
+    // and the gateway key is configured -- the confirmation screen then also offers "pay by card".
+    public bool CardPaymentAvailable { get; set; }
+}
+
+// POST /api/orders/{id}/pay-card -- where to send the customer to pay.
+public class CardCheckoutResponse
+{
+    public string CheckoutUrl { get; set; } = string.Empty;
 }
 
 public class UpdateOrderStatusRequest

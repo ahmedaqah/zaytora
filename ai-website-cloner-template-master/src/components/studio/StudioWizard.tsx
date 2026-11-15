@@ -624,7 +624,11 @@ export function StudioWizard() {
           )}
 
           {phase === "confirmation" && completedOrder && (
-            <OrderConfirmation order={completedOrder.order} paymentSettings={completedOrder.paymentSettings} />
+            <OrderConfirmation
+              order={completedOrder.order}
+              paymentSettings={completedOrder.paymentSettings}
+              cardPaymentAvailable={completedOrder.cardPaymentAvailable === true}
+            />
           )}
 
           {phase === "design" && (
