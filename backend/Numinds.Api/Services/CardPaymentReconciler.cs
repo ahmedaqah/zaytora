@@ -79,14 +79,16 @@ public class CardPaymentReconciler(
 
                 if (gateway.IsPendingStatus(payment.Status)) continue;
 
-                if (!gateway.IsSuccessStatus(payment.Status))
+                if (gateway.IsFailureStatus(payment.Status))
                 {
                     _finished.Add(paymentId);
                     continue;
                 }
 
+                // Success -> approve. An unrecognised status also goes to the confirmer, which alerts the admin
+                // once (and keeps being re-checked here, so it is approved as soon as the status list is fixed).
                 var result = await confirmer.ConfirmAsync(payment, ct);
-                if (result == CardConfirmResult.NotApproved)
+                if (result == CardConfirmResult.NotApproved && gateway.IsSuccessStatus(payment.Status))
                 {
                     // Paid at the gateway but failed our checks; the confirmer already alerted the admin once.
                     _flagged.Add(c.Id);
