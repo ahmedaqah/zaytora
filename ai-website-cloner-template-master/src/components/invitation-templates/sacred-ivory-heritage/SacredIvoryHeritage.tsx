@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { OpeningSequence } from "./sections/OpeningSequence";
 import { InvitationCard } from "./sections/InvitationCard";
 import { defaultTheme } from "./sacred-ivory-heritage.theme";
-import { cinzel, cinzelDecorative, dancingScript, playfair } from "./sacred-ivory-heritage.fonts";
+import { SIH_FONTS_STYLESHEET_URL, sihFontVariables } from "./sacred-ivory-heritage.fonts";
 import type { SacredIvoryHeritageProps } from "./sacred-ivory-heritage.types";
 
 const DEFAULT_TAGLINE = "We are getting married";
@@ -52,14 +52,11 @@ export function SacredIvoryHeritage({
 
   return (
     <div
-      className={cn(
-        "relative aspect-[9/16] w-full max-w-sm overflow-hidden rounded-2xl shadow-2xl",
-        cinzel.variable,
-        cinzelDecorative.variable,
-        dancingScript.variable,
-        playfair.variable,
-      )}
+      className={cn("relative aspect-[9/16] w-full max-w-sm overflow-hidden rounded-2xl shadow-2xl")}
+      style={sihFontVariables}
     >
+      {/* React 19 hoists this into <head> and de-duplicates it; see sacred-ivory-heritage.fonts.ts. */}
+      <link rel="stylesheet" href={SIH_FONTS_STYLESHEET_URL} precedence="sih-fonts" />
       {phase === "opening" && openingVideoSrc ? (
         <OpeningSequence
           videoSrc={openingVideoSrc}
