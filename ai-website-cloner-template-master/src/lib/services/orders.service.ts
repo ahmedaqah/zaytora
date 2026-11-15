@@ -1,5 +1,6 @@
 import { apiClient } from "@/lib/api/client";
 import type {
+  CardCheckoutResponse,
   CreateOrderRequest,
   OrderCreatedResponse,
   OrderDto,
@@ -57,4 +58,12 @@ export function deleteOrder(id: string) {
 // Backend rejects this for any order that isn't "pending".
 export function sendOrderReminder(id: string) {
   return apiClient.post<OrderDto>(`/orders/${id}/send-reminder`);
+}
+
+// Anonymous — starts an online card payment for a pending order and returns the
+// hosted checkout URL. The invitation is approved automatically by the payment
+// gateway's server-to-server webhook once the payment really succeeds; the
+// browser coming back from checkout is never what approves it.
+export function payOrderByCard(id: string) {
+  return apiClient.post<CardCheckoutResponse>(`/orders/${id}/pay-card`);
 }

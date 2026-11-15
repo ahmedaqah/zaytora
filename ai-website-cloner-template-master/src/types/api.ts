@@ -474,6 +474,8 @@ export interface OrderDto {
   currency: string;
   convertedAmount: number;
   paymentStatus: PaymentStatus;
+  // "bank" = manual transfer confirmed by an admin, "card" = online payment confirmed automatically.
+  paymentMethod?: "bank" | "card";
   adminNote?: string | null;
   createdAt: string;
   paidAt?: string | null;
@@ -505,6 +507,13 @@ export interface CreateOrderRequest {
 export interface OrderCreatedResponse {
   order: OrderDto;
   paymentSettings: PaymentAccountDto;
+  // True when this order's country is enabled for online card payment.
+  cardPaymentAvailable?: boolean;
+}
+
+// POST /api/orders/{id}/pay-card — the hosted checkout page to send the customer to.
+export interface CardCheckoutResponse {
+  checkoutUrl: string;
 }
 
 export interface UpdateOrderStatusRequest {
