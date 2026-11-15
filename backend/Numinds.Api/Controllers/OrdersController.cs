@@ -21,6 +21,9 @@ public class OrdersController(
     ICardPaymentConfirmer confirmer,
     ILogger<OrdersController> logger) : ControllerBase
 {
+    // Last time /verify-card asked the gateway about each order (see VerifyCard).
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<Guid, DateTime> VerifyChecks = new();
+
     private string FrontendBaseUrl => configuration["Frontend:BaseUrl"] ?? "http://localhost:3000";
 
     // POST /api/orders — anonymous is allowed, same reasoning as
@@ -486,8 +489,20 @@ public class OrdersController(
             return NotFound();
         }
 
-        if (order.PaymentStatus == "pending" && !string.IsNullOrEmpty(order.GatewayPaymentId))
+        // At most one gateway lookup per order every few seconds, so repeated calls cannot eat the gateway's rate limit.
+        var now = DateTime.UtcNow;
+        var recentlyChecked = VerifyChecks.TryGetValue(order.Id, out var last) && now - last < TimeSpan.FromSeconds(3);
+        if (order.PaymentStatus == "pending" && !string.IsNullOrEmpty(order.GatewayPaymentId) && !recentlyChecked)
         {
+            VerifyChecks[order.Id] = now;
+            if (VerifyChecks.Count > 2000)
+            {
+                foreach (var key in VerifyChecks.Where(kv => now - kv.Value > TimeSpan.FromMinutes(5)).Select(kv => kv.Key).ToList())
+                {
+                    VerifyChecks.TryRemove(key, out _);
+                }
+            }
+
             try
             {
                 var payment = await gateway.GetPaymentAsync(order.GatewayPaymentId, cancellationToken);

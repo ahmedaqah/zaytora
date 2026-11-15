@@ -149,7 +149,6 @@ public class CardPaymentConfirmer(
 
     public async Task ApplyStatusAsync(Order order, string status, string? adminNote, CancellationToken cancellationToken)
     {
-    {
         var wasPaid = order.PaymentStatus == "paid";
         order.PaymentStatus = status;
         order.AdminNote = string.IsNullOrWhiteSpace(adminNote) ? null : adminNote;

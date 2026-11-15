@@ -92,8 +92,13 @@ public class CardPaymentReconciler(
                     _flagged.Add(c.Id);
                 }
             }
-            catch (Exception ex) when (ex is InvalidOperationException or HttpRequestException or TaskCanceledException or System.Text.Json.JsonException)
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                // One bad order must not stop the others from being checked.
                 logger.LogWarning(ex, "Could not check Netloopers payment {PaymentId} for order {OrderId}.", paymentId, c.Id);
             }
         }
