@@ -16,10 +16,10 @@ namespace Numinds.Api.Services;
 //
 // Configuration (secrets go in environment variables, never in the repo):
 //   Netloopers:SecretKey       sk_test_... / sk_live_...     (required)
-//   Netloopers:ClientId        the client id that goes with the secret key (e.g. the pk_test_... / pk_live_... key of the
-//                              same environment). The live token endpoint answers the documented "Bearer sk_*" request with
-//                              401 INVALID_CLIENT "client_id and client_secret are required", so when this is set the pair
-//                              is sent in the request body instead.
+//   Netloopers:ClientId        optional and normally NOT needed: sk_* is a merchant key, not a platform client secret. If set,
+//                              the token request sends client_id + client_secret in the body instead of "Bearer sk_*".
+//                              When the token endpoint rejects the exchange (it currently answers 401 INVALID_CLIENT) the
+//                              secret key is used directly as the Bearer token (deprecated by Netloopers, sunset 2027-02-17).
 //   Netloopers:WebhookSecret   signing secret of the webhook (required for the webhook)
 //   Netloopers:EnabledCountries comma list of order country codes allowed to pay by card, e.g. "NG"
 //   Netloopers:CategorySlug    optional; sent as category_slug when the account has no default category
@@ -78,6 +78,9 @@ public sealed class NetloopersGateway(
     ILogger<NetloopersGateway> logger) : INetloopersGateway
 {
     private static readonly TimeSpan WebhookTolerance = TimeSpan.FromSeconds(300);
+
+    // How long the secret key is used directly as the Bearer token after the token endpoint rejected the exchange.
+    private const int SecretFallbackMinutes = 10;
     private static readonly string[] DefaultSuccessStatuses = ["completed", "paid", "succeeded", "success", "captured", "settled"];
 
     // One access token shared by every request on this server (it is short-lived, ~1 h).
@@ -319,12 +322,26 @@ public sealed class NetloopersGateway(
             var json = await response.Content.ReadAsStringAsync(cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
-                logger.LogError(
+                var status = (int)response.StatusCode;
+                logger.LogWarning(
                     "Netloopers token request failed ({Mode}): {Status} {Body}",
                     string.IsNullOrEmpty(ClientId) ? "bearer secret key" : "client_id + client_secret",
-                    (int)response.StatusCode,
+                    status,
                     Truncate(json));
-                throw new InvalidOperationException($"Netloopers returned {(int)response.StatusCode} for the token request.");
+
+                // A rejection (4xx other than rate limiting) is not going to fix itself on a retry. Netloopers still accepts
+                // the merchant secret key directly as the Bearer token (documented as deprecated, sunset 2027-02-17), so
+                // use that, and look at the token endpoint again in a few minutes. Server errors and rate limits are
+                // transient and are reported to the caller as before.
+                if (status is >= 400 and < 500 and not 429)
+                {
+                    logger.LogWarning("Using the Netloopers secret key directly as the Bearer token for the next {Minutes} minutes.", SecretFallbackMinutes);
+                    cachedToken = SecretKey;
+                    cachedTokenExpiresUtc = DateTime.UtcNow.AddMinutes(SecretFallbackMinutes);
+                    return SecretKey;
+                }
+
+                throw new InvalidOperationException($"Netloopers returned {status} for the token request.");
             }
 
             using var doc = JsonDocument.Parse(json);
