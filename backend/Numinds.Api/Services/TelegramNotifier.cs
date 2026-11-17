@@ -104,29 +104,47 @@ public sealed class TelegramNotifier(
         }
     }
 
+    // Pauses before the 2nd and 3rd attempt; a momentary network hiccup or a Telegram 5xx/429 no longer loses the message.
+    private static readonly TimeSpan[] RetryDelays = [TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5)];
+
     private async Task SendAsync(string text)
     {
-        try
-        {
-            var token = configuration["Telegram:BotToken"];
-            var chatId = configuration["Telegram:ChatId"];
-            if (string.IsNullOrWhiteSpace(token) || string.IsNullOrWhiteSpace(chatId)) return;
+        var token = configuration["Telegram:BotToken"];
+        var chatId = configuration["Telegram:ChatId"];
+        if (string.IsNullOrWhiteSpace(token) || string.IsNullOrWhiteSpace(chatId)) return;
 
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(8));
-            using var http = httpClientFactory.CreateClient();
-            var response = await http.PostAsJsonAsync(
-                $"https://api.telegram.org/bot{token}/sendMessage",
-                new { chat_id = chatId, text = Clean(text, 1000), disable_web_page_preview = true },
-                cts.Token);
-            if (!response.IsSuccessStatusCode)
-            {
-                logger.LogWarning("Telegram notification failed with status {Status}", (int)response.StatusCode);
-            }
-        }
-        catch (Exception ex)
+        var body = new { chat_id = chatId, text = Clean(text, 1000), disable_web_page_preview = true };
+
+        for (var attempt = 0; ; attempt++)
         {
-            // Never log ex.Message / the request URL: it would contain the bot token.
-            logger.LogWarning("Telegram notification failed ({Type})", ex.GetType().Name);
+            var failure = string.Empty;
+            var retryable = true;
+            try
+            {
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+                using var http = httpClientFactory.CreateClient();
+                using var response = await http.PostAsJsonAsync(
+                    $"https://api.telegram.org/bot{token}/sendMessage", body, cts.Token);
+                if (response.IsSuccessStatusCode) return;
+
+                var status = (int)response.StatusCode;
+                retryable = status == 429 || status >= 500;
+                failure = $"status {status}";
+            }
+            catch (Exception ex)
+            {
+                // Never log ex.Message / the request URL: it would contain the bot token.
+                failure = ex.GetType().Name;
+            }
+
+            if (!retryable || attempt >= RetryDelays.Length)
+            {
+                logger.LogWarning("Telegram notification failed ({Failure}) after {Attempts} attempt(s)", failure, attempt + 1);
+                return;
+            }
+
+            try { await Task.Delay(RetryDelays[attempt]); }
+            catch { return; }
         }
     }
 
