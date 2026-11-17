@@ -47,6 +47,13 @@ public class PaymentSettingsController(NumindsDbContext db) : ControllerBase
         CancellationToken cancellationToken)
     {
         var normalized = NormalizeCode(countryCode);
+
+        // A country with both buttons off would leave its customers with no way to pay.
+        if (!request.CardEnabled && !request.BankEnabled)
+        {
+            return BadRequest(new { title = "At least one payment method (card or bank transfer) must stay enabled." });
+        }
+
         var account = await db.PaymentAccounts.FirstOrDefaultAsync(a => a.CountryCode == normalized, cancellationToken);
         if (account is null)
         {
@@ -59,6 +66,8 @@ public class PaymentSettingsController(NumindsDbContext db) : ControllerBase
         account.BankName = string.IsNullOrWhiteSpace(request.BankName) ? null : request.BankName;
         account.Iban = string.IsNullOrWhiteSpace(request.Iban) ? null : request.Iban;
         account.Instructions = string.IsNullOrWhiteSpace(request.Instructions) ? null : request.Instructions;
+        account.CardEnabled = request.CardEnabled;
+        account.BankEnabled = request.BankEnabled;
 
         await db.SaveChangesAsync(cancellationToken);
         return Ok(ToDto(account));
@@ -97,6 +106,8 @@ public class PaymentSettingsController(NumindsDbContext db) : ControllerBase
         BankName = a.BankName,
         Iban = a.Iban,
         Instructions = a.Instructions,
+        CardEnabled = a.CardEnabled,
+        BankEnabled = a.BankEnabled,
     };
 
     // Used by OrdersController to pick which account a paying customer sees
@@ -114,12 +125,35 @@ public class PaymentSettingsController(NumindsDbContext db) : ControllerBase
         if (normalized is not null)
         {
             account = await db.PaymentAccounts.AsNoTracking()
-                .FirstOrDefaultAsync(a => a.CountryCode == normalized, cancellationToken);
+                .FirstOrDefaultAsync(a => a.CountryCode == normalized && a.AccountNumber != "", cancellationToken);
         }
 
         account ??= await db.PaymentAccounts.AsNoTracking()
             .FirstOrDefaultAsync(a => a.CountryCode == PaymentAccountCountryCodes.International, cancellationToken);
 
         return account is null ? null : ToDto(account);
+    }
+
+    // Which payment buttons a customer of this country is offered: the country's own row if the admin saved one,
+    // otherwise the "INTL" row, otherwise everything on (card and bank transfer for every country by default).
+    internal static async Task<(bool Card, bool Bank)> ResolveMethodsAsync(
+        NumindsDbContext db,
+        string? countryCode,
+        CancellationToken cancellationToken)
+    {
+        var normalized = string.IsNullOrWhiteSpace(countryCode) ? null : NormalizeCode(countryCode);
+        var codes = normalized is null
+            ? new[] { PaymentAccountCountryCodes.International }
+            : new[] { normalized, PaymentAccountCountryCodes.International };
+
+        var rows = await db.PaymentAccounts.AsNoTracking()
+            .Where(a => codes.Contains(a.CountryCode))
+            .Select(a => new { a.CountryCode, a.CardEnabled, a.BankEnabled })
+            .ToListAsync(cancellationToken);
+
+        var row = (normalized is null ? null : rows.FirstOrDefault(r => r.CountryCode == normalized))
+            ?? rows.FirstOrDefault(r => r.CountryCode == PaymentAccountCountryCodes.International);
+
+        return row is null ? (true, true) : (row.CardEnabled, row.BankEnabled);
     }
 }

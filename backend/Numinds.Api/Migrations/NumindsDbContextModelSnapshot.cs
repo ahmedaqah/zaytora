@@ -1016,9 +1016,15 @@ namespace Numinds.Api.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
 
+                    b.Property<bool>("BankEnabled")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("BankName")
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)");
+
+                    b.Property<bool>("CardEnabled")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("CountryCode")
                         .IsRequired()

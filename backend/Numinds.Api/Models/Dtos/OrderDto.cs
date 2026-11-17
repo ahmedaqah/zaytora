@@ -58,9 +58,11 @@ public class OrderCreatedResponse
 {
     public OrderDto Order { get; set; } = new();
     public PaymentAccountDto PaymentSettings { get; set; } = new();
-    // True when the customer's country is enabled for online card payment (Netloopers:EnabledCountries)
-    // and the gateway key is configured -- the confirmation screen then also offers "pay by card".
+    // True when the customer's country has card payment on (admin payment settings) and the gateway key is
+    // configured -- the confirmation screen then offers "pay by card" above the bank transfer.
     public bool CardPaymentAvailable { get; set; }
+    // Whether the bank-transfer details are offered for this order's country (admin payment settings).
+    public bool BankTransferAvailable { get; set; } = true;
 }
 
 // POST /api/orders/{id}/pay-card -- where to send the customer to pay.

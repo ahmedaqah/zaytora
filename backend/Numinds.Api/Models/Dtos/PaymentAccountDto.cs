@@ -11,6 +11,8 @@ public class PaymentAccountDto
     public string? BankName { get; set; }
     public string? Iban { get; set; }
     public string? Instructions { get; set; }
+    public bool CardEnabled { get; set; } = true;
+    public bool BankEnabled { get; set; } = true;
 }
 
 public class PaymentAccountWriteRequest
@@ -20,4 +22,6 @@ public class PaymentAccountWriteRequest
     public string? BankName { get; set; }
     public string? Iban { get; set; }
     public string? Instructions { get; set; }
+    public bool CardEnabled { get; set; } = true;
+    public bool BankEnabled { get; set; } = true;
 }

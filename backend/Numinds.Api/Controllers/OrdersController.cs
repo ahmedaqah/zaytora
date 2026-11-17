@@ -129,12 +129,16 @@ public class OrdersController(
         notifier.Notify($"🛒 طلب جديد: {order.CustomerName} ({order.AmountUsd.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)} USD)\n{FrontendBaseUrl}/admin/orders");
 
         var resolvedAccount = await PaymentSettingsController.ResolveForCountryAsync(db, order.Country, cancellationToken);
+        var methods = await PaymentSettingsController.ResolveMethodsAsync(db, order.Country, cancellationToken);
+        var cardAvailable = methods.Card && gateway.IsConfigured;
 
         return CreatedAtAction(nameof(GetById), new { id = order.Id }, new OrderCreatedResponse
         {
             Order = await ToDtoAsync(order, cancellationToken),
             PaymentSettings = resolvedAccount ?? new PaymentAccountDto(),
-            CardPaymentAvailable = gateway.IsAvailableForCountry(order.Country),
+            CardPaymentAvailable = cardAvailable,
+            // If card is the only method on but the gateway isn't configured, fall back to showing the bank details.
+            BankTransferAvailable = methods.Bank || !cardAvailable,
         });
     }
 
@@ -371,7 +375,8 @@ public class OrdersController(
             return Conflict(new { title = "This order is no longer pending." });
         }
 
-        if (!gateway.IsAvailableForCountry(order.Country))
+        var payMethods = await PaymentSettingsController.ResolveMethodsAsync(db, order.Country, cancellationToken);
+        if (!gateway.IsConfigured || !payMethods.Card)
         {
             return BadRequest(new { title = "Card payment is not available for this order." });
         }

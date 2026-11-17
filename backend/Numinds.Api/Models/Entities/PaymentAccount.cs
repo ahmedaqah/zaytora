@@ -27,4 +27,10 @@ public class PaymentAccount
 
     // Free text the admin can customize, e.g. "أرسل لقطة شاشة للتحويل عبر واتساب".
     public string? Instructions { get; set; }
+
+    // Which payment buttons a customer of this country sees after placing an order. Both default to on, so a
+    // country the admin never touched offers card and bank transfer; the "INTL" row sets the default for every
+    // country that has no row of its own. At least one of the two is always on (enforced on save).
+    public bool CardEnabled { get; set; } = true;
+    public bool BankEnabled { get; set; } = true;
 }

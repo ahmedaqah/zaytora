@@ -88,10 +88,12 @@ export function OrderConfirmation({
   order,
   paymentSettings,
   cardPaymentAvailable = false,
+  bankTransferAvailable = true,
 }: {
   order: OrderDto;
   paymentSettings: PaymentAccountDto;
   cardPaymentAvailable?: boolean;
+  bankTransferAvailable?: boolean;
 }) {
   const { language } = useLanguage();
   const t = COPY[language];
@@ -117,6 +119,8 @@ export function OrderConfirmation({
     }
   }
   const hasReceivingAccount = Boolean(paymentSettings.recipientName && paymentSettings.accountNumber);
+  // Never leave the customer without a way to pay: if card isn't offered, the bank section always shows.
+  const showBank = bankTransferAvailable || !cardPaymentAvailable;
 
   return (
     <div>
@@ -163,11 +167,11 @@ export function OrderConfirmation({
                 {t.cardError}
               </p>
             )}
-            <p className="mt-3 text-center text-xs text-muted-foreground">{t.orBank}</p>
+            {showBank && <p className="mt-3 text-center text-xs text-muted-foreground">{t.orBank}</p>}
           </div>
         )}
 
-        {hasReceivingAccount ? (
+        {!showBank ? null : hasReceivingAccount ? (
           <div className="rounded-xl border border-gold/20 bg-gold/5 p-4">
             <p className="mb-2 text-sm font-semibold text-foreground">{t.transferHeading}</p>
             <div className="divide-y divide-border">
@@ -194,10 +198,12 @@ export function OrderConfirmation({
           </div>
         )}
 
-        <div className="flex items-start gap-2 rounded-xl border border-sky-200 dark:border-sky-900/40 bg-sky-100 dark:bg-sky-950/30 px-3.5 py-3">
-          <InfoIcon className="mt-0.5 size-4 shrink-0 text-sky-700 dark:text-sky-400" />
-          <p className="text-xs leading-relaxed text-sky-600 dark:text-sky-300">{t.pendingNotice}</p>
-        </div>
+        {showBank && (
+          <div className="flex items-start gap-2 rounded-xl border border-sky-200 dark:border-sky-900/40 bg-sky-100 dark:bg-sky-950/30 px-3.5 py-3">
+            <InfoIcon className="mt-0.5 size-4 shrink-0 text-sky-700 dark:text-sky-400" />
+            <p className="text-xs leading-relaxed text-sky-600 dark:text-sky-300">{t.pendingNotice}</p>
+          </div>
+        )}
 
         <Link
           href="/dashboard"

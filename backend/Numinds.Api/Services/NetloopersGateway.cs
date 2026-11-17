@@ -21,14 +21,15 @@ namespace Numinds.Api.Services;
 //                              When the token endpoint rejects the exchange (it currently answers 401 INVALID_CLIENT) the
 //                              secret key is used directly as the Bearer token (deprecated by Netloopers, sunset 2027-02-17).
 //   Netloopers:WebhookSecret   signing secret of the webhook (required for the webhook)
-//   Netloopers:EnabledCountries comma list of order country codes allowed to pay by card, e.g. "NG"
+//   (Which countries are offered card payment is set per country in the admin payment settings, not here.)
 //   Netloopers:CategorySlug    optional; sent as category_slug when the account has no default category
 //   Netloopers:SuccessStatuses optional comma list of payment `status` values that mean "paid"
 //   Netloopers:BaseUrl         optional, defaults to https://netloopers.com/api/v1
 public interface INetloopersGateway
 {
-    // True when the key is configured AND the order's country is in EnabledCountries.
-    bool IsAvailableForCountry(string? countryCode);
+    // True when a secret key is configured. Which countries are offered card payment is decided per country in
+    // the admin's payment settings (PaymentAccount.CardEnabled), on by default.
+    bool IsConfigured { get; }
 
     Task<NetloopersCheckout> CreateCheckoutAsync(
         Guid orderId,
@@ -95,17 +96,7 @@ public sealed class NetloopersGateway(
 
     public string ExpectedEnvironment => SecretKey.StartsWith("sk_live_", StringComparison.Ordinal) ? "live" : "test";
 
-    public bool IsAvailableForCountry(string? countryCode)
-    {
-        if (string.IsNullOrWhiteSpace(SecretKey) || string.IsNullOrWhiteSpace(countryCode))
-        {
-            return false;
-        }
-
-        var enabled = (configuration["Netloopers:EnabledCountries"] ?? string.Empty)
-            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        return enabled.Contains(countryCode.Trim(), StringComparer.OrdinalIgnoreCase);
-    }
+    public bool IsConfigured => !string.IsNullOrWhiteSpace(SecretKey);
 
     public bool IsSuccessStatus(string? status)
     {

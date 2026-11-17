@@ -628,6 +628,7 @@ export function StudioWizard() {
               order={completedOrder.order}
               paymentSettings={completedOrder.paymentSettings}
               cardPaymentAvailable={completedOrder.cardPaymentAvailable === true}
+              bankTransferAvailable={completedOrder.bankTransferAvailable !== false}
             />
           )}
 

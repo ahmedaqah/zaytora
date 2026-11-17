@@ -17,13 +17,19 @@ const COPY = {
   ar: {
     heading: "إعدادات الدفع",
     subheading:
-      "لا توجد بوابة دفع إلكترونية — هذه هي حسابات استلام التحويل اليدوي، حساب لكل دولة يختارها العميل عند الدفع. لا تُخزَّن هنا أي بيانات CVV أو تاريخ انتهاء البطاقة.",
-    intlTitle: "الحساب الدولي (الاحتياطي)",
-    intlSubtitle: "يظهر تلقائياً لأي عميل يختار دولة لم تضِف لها حساباً خاصاً بعد.",
+      "تحكّم بالأزرار التي تظهر للعميل بعد إتمام الطلب لكل دولة: الدفع بالبطاقة (بوابة الدفع) والتحويل البنكي. الافتراضي أن الاثنين يظهران لكل الدول. لا تُخزَّن هنا أي بيانات CVV أو تاريخ انتهاء البطاقة.",
+    intlTitle: "الإعداد الدولي (الافتراضي)",
+    intlSubtitle: "يُطبَّق تلقائياً على أي دولة لم تضِف لها إعداداً خاصاً بعد — حساب التحويل وأزرار الدفع.",
+    methodsHeading: "الأزرار التي تظهر للعميل",
+    cardToggle: "زر الدفع بالبطاقة",
+    bankToggle: "زر التحويل البنكي (يعرض بيانات الحساب أدناه)",
+    keepOne: "يجب إبقاء طريقة دفع واحدة على الأقل.",
+    cardOn: "بطاقة",
+    bankOn: "تحويل",
     perCountryHeading: "حسابات مخصّصة لكل دولة",
     searchPlaceholder: "ابحث عن دولة...",
-    configured: "مُفعّل",
-    notConfigured: "غير مُفعّل",
+    configured: "إعداد خاص",
+    notConfigured: "الافتراضي",
     recipientName: "اسم المستلم",
     accountNumber: "رقم الحساب / البطاقة",
     bankName: "اسم البنك (اختياري)",
@@ -34,19 +40,25 @@ const COPY = {
     saved: "تم الحفظ.",
     error: "تعذر الحفظ. حاول مرة أخرى.",
     loadError: "تعذر تحميل إعدادات الدفع.",
-    remove: "إزالة (يرجع للحساب الاحتياطي)",
+    remove: "إزالة (يرجع للإعداد الدولي)",
     removing: "جارٍ الإزالة...",
   },
   en: {
     heading: "Payment Settings",
     subheading:
-      "There's no online payment gateway — these are the manual-transfer receiving accounts, one per country the customer picks at checkout. Never store a CVV or expiry date here.",
-    intlTitle: "International Account (fallback)",
-    intlSubtitle: "Shown automatically to any customer whose chosen country has no account of its own yet.",
+      "Control which buttons the customer sees after placing an order, per country: pay by card (the payment gateway) and bank transfer. By default both show for every country. Never store a CVV or expiry date here.",
+    intlTitle: "International setting (default)",
+    intlSubtitle: "Applies automatically to any country with no setting of its own yet — transfer account and payment buttons.",
+    methodsHeading: "Buttons shown to the customer",
+    cardToggle: "Pay by card button",
+    bankToggle: "Bank transfer button (shows the account details below)",
+    keepOne: "At least one payment method must stay on.",
+    cardOn: "Card",
+    bankOn: "Transfer",
     perCountryHeading: "Per-country accounts",
     searchPlaceholder: "Search for a country...",
-    configured: "Configured",
-    notConfigured: "Not configured",
+    configured: "Custom",
+    notConfigured: "Default",
     recipientName: "Recipient name",
     accountNumber: "Account / card number",
     bankName: "Bank name (optional)",
@@ -57,7 +69,7 @@ const COPY = {
     saved: "Saved.",
     error: "Couldn't save. Try again.",
     loadError: "Couldn't load payment settings.",
-    remove: "Remove (falls back to the international account)",
+    remove: "Remove (falls back to the international setting)",
     removing: "Removing...",
   },
 };
@@ -80,6 +92,8 @@ const EMPTY_ACCOUNT: PaymentAccountWriteRequest = {
   bankName: "",
   iban: "",
   instructions: "",
+  cardEnabled: true,
+  bankEnabled: true,
 };
 
 type SaveState = "idle" | "saving" | "saved" | "error";
@@ -138,6 +152,32 @@ function AccountEditor({
 
   return (
     <div className="border-t border-border px-4 py-4">
+      <div className="mb-4 rounded-xl border border-border bg-background/5 p-3">
+        <p className="mb-2 text-xs font-semibold text-foreground">{t.methodsHeading}</p>
+        <div className="flex flex-col gap-2 sm:flex-row sm:gap-6">
+          <label className="flex items-center gap-2 text-sm text-body-foreground">
+            <input
+              type="checkbox"
+              checked={form.cardEnabled}
+              disabled={form.cardEnabled && !form.bankEnabled}
+              onChange={(e) => patch({ cardEnabled: e.target.checked })}
+              className="size-4 accent-[#C8A24A]"
+            />
+            {t.cardToggle}
+          </label>
+          <label className="flex items-center gap-2 text-sm text-body-foreground">
+            <input
+              type="checkbox"
+              checked={form.bankEnabled}
+              disabled={form.bankEnabled && !form.cardEnabled}
+              onChange={(e) => patch({ bankEnabled: e.target.checked })}
+              className="size-4 accent-[#C8A24A]"
+            />
+            {t.bankToggle}
+          </label>
+        </div>
+        <p className="mt-2 text-[11px] text-muted-foreground">{t.keepOne}</p>
+      </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field label={t.recipientName}>
           <input value={form.recipientName} onChange={(e) => patch({ recipientName: e.target.value })} className={inputClass} />
@@ -304,6 +344,16 @@ export function PaymentSettingsForm({ language }: { language: "ar" | "en" }) {
                 >
                   <span className="text-sm text-body-foreground">{country[language]}</span>
                   <span className="flex items-center gap-2">
+                    {accounts[country.code] && (
+                      <span className="hidden text-[11px] text-muted-foreground sm:inline">
+                        {[
+                          accounts[country.code].cardEnabled ? t.cardOn : null,
+                          accounts[country.code].bankEnabled ? t.bankOn : null,
+                        ]
+                          .filter(Boolean)
+                          .join(" + ")}
+                      </span>
+                    )}
                     <span
                       className={cn(
                         "flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium",

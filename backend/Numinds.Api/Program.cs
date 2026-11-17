@@ -157,7 +157,7 @@ builder.Services.AddSingleton<Numinds.Api.Services.IAdminNotifier, Numinds.Api.S
 // config keys and its degrade-gracefully-when-unset behavior.
 builder.Services.AddHttpClient<IMetaConversionsApiService, MetaConversionsApiService>();
 
-// Online card payments (Netloopers); only active for the countries in Netloopers:EnabledCountries.
+// Online card payments (Netloopers); active once Netloopers:SecretKey is set; countries are switched per country in the admin payment settings.
 builder.Services.AddHttpClient<INetloopersGateway, NetloopersGateway>(client => client.Timeout = TimeSpan.FromSeconds(20));
 builder.Services.AddScoped<ICardPaymentConfirmer, CardPaymentConfirmer>();
 builder.Services.AddHostedService<CardPaymentReconciler>();

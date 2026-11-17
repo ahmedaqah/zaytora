@@ -437,6 +437,9 @@ export interface PaymentAccountDto {
   bankName?: string | null;
   iban?: string | null;
   instructions?: string | null;
+  // Which buttons customers of this country see after placing an order (both on by default).
+  cardEnabled: boolean;
+  bankEnabled: boolean;
 }
 
 export type PaymentAccountWriteRequest = Omit<PaymentAccountDto, "countryCode">;
@@ -509,6 +512,8 @@ export interface OrderCreatedResponse {
   paymentSettings: PaymentAccountDto;
   // True when this order's country is enabled for online card payment.
   cardPaymentAvailable?: boolean;
+  // True when the bank-transfer details should be shown for this order's country.
+  bankTransferAvailable?: boolean;
 }
 
 // POST /api/orders/{id}/pay-card — the hosted checkout page to send the customer to.
