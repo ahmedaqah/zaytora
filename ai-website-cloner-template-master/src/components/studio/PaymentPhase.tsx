@@ -72,7 +72,6 @@ const COPY = {
     giftFee: "رسم قسم الهدايا",
     total: "الإجمالي",
     placeOrder: "إتمام الطلب",
-    manualPaymentNotice: "لا توجد بوابة دفع إلكترونية — بعد إتمام الطلب ستظهر لك تفاصيل حساب التحويل اليدوي.",
     backToDesign: "العودة للتصميم",
     missingFields: "الرجاء إدخال الاسم والبريد الإلكتروني واختيار الدولة.",
     orderError: "تعذّر إنشاء الطلب. حاول مرة أخرى.",
@@ -97,7 +96,6 @@ const COPY = {
     giftFee: "Gift section fee",
     total: "Total",
     placeOrder: "Place Order",
-    manualPaymentNotice: "There's no online payment gateway — after placing your order you'll see manual transfer account details.",
     backToDesign: "Back to design",
     missingFields: "Please enter your name, email, and select your country.",
     orderError: "Couldn't create the order. Please try again.",
@@ -412,8 +410,6 @@ export function PaymentPhase({
         >
           {submitting ? <LoaderIcon className="size-4 animate-spin" /> : `${t.placeOrder} — ${symbol} ${fmt(totalAmount)}`}
         </button>
-        <p className="text-center text-xs text-muted-foreground">{t.manualPaymentNotice}</p>
-
         <button
           type="button"
           onClick={onBack}
