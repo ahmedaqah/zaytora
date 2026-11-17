@@ -23,7 +23,7 @@ const STATUS_TONE: Record<PaymentStatus, StatusTone> = {
 
 const COPY = {
   ar: {
-    subtitle: "سجل مشتريات الدعوات الرقمية — لا توجد بوابة دفع، الأدمن يؤكد التحويلات يدوياً.",
+    subtitle: "سجل مشتريات الدعوات الرقمية — الدفع بالبطاقة يُعتمد تلقائياً، أما التحويلات البنكية فيؤكدها الأدمن يدوياً.",
     searchPlaceholder: "ابحث عن عميل أو بريد إلكتروني أو كود شريك...",
     all: "الكل",
     statusLabels: { paid: "مدفوع", pending: "قيد الانتظار", failed: "فشل" },
@@ -49,7 +49,7 @@ const COPY = {
     loadError: "تعذّر تحميل الطلبات.",
   },
   en: {
-    subtitle: "Digital invitation purchase log — no payment gateway, admin manually confirms transfers.",
+    subtitle: "Digital invitation purchase log — card payments are approved automatically; the admin confirms bank transfers manually.",
     searchPlaceholder: "Search customer, email, or partner code...",
     all: "All",
     statusLabels: { paid: "Paid", pending: "Pending", failed: "Failed" },

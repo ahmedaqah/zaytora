@@ -11,7 +11,7 @@ const COPY = {
     eyebrow: "الشروط والسياسات",
     heading: "سياسة الاسترداد",
     intro:
-      "يتم الدفع في زيتورا عبر تحويل بنكي يدوي (لا توجد بوابة دفع إلكترونية)، ويقوم فريقنا بمراجعة كل تحويل وتفعيل الدعوة يدويًا خلال 24 ساعة من تأكيد الاستلام. توضح هذه الصفحة حقوقك بخصوص استرداد المبلغ في كل مرحلة.",
+      "يتم الدفع في زيتورا إما بالبطاقة عبر بوابة دفع إلكترونية آمنة (وتُفعَّل الدعوة تلقائيًا فور نجاح الدفع)، أو بتحويل بنكي يدوي (يراجعه فريقنا ويفعّل الدعوة يدويًا خلال 24 ساعة من تأكيد الاستلام). توضح هذه الصفحة حقوقك بخصوص استرداد المبلغ في كل مرحلة.",
     sections: [
       {
         title: "١. قبل تفعيل الدعوة",
@@ -35,11 +35,11 @@ const COPY = {
       },
       {
         title: "٤. كيف تطلب استرداد",
-        body: [`تواصل معنا عبر واتساب (${WHATSAPP_DISPLAY}) أو البريد الإلكتروني (${SUPPORT_EMAIL})، مع ذكر رقم الطلب وصورة إثبات التحويل.`],
+        body: [`تواصل معنا عبر واتساب (${WHATSAPP_DISPLAY}) أو البريد الإلكتروني (${SUPPORT_EMAIL})، مع ذكر رقم الطلب وصورة إثبات الدفع أو التحويل.`],
       },
       {
         title: "٥. طريقة الاسترداد ومدته",
-        body: ["يتم رد المبلغ بنفس طريقة الدفع (تحويل بنكي) إلى نفس الحساب الذي حوّلت منه، خلال 3-5 أيام عمل من الموافقة على الطلب."],
+        body: ["يتم رد المبلغ بنفس طريقة الدفع: إلى نفس البطاقة إن دفعت بالبطاقة، أو إلى نفس الحساب الذي حوّلت منه إن دفعت بالتحويل البنكي، خلال 3-5 أيام عمل من الموافقة على الطلب."],
       },
       {
         title: "٦. ملاحظة",
@@ -54,7 +54,7 @@ const COPY = {
     eyebrow: "Terms & Policies",
     heading: "Refund Policy",
     intro:
-      "Payment on Zaytora is made by manual bank transfer (there is no electronic payment gateway). Our team reviews every transfer and activates the invitation manually within 24 hours of confirming receipt. This page explains your refund rights at every stage.",
+      "Payment on Zaytora is made either by card through a secure online payment gateway (the invitation activates automatically once the payment succeeds) or by manual bank transfer (our team reviews it and activates the invitation within 24 hours of confirming receipt). This page explains your refund rights at every stage.",
     sections: [
       {
         title: "1. Before your invitation is activated",
@@ -78,11 +78,11 @@ const COPY = {
       },
       {
         title: "4. How to request a refund",
-        body: [`Contact us on WhatsApp (${WHATSAPP_DISPLAY}) or by email (${SUPPORT_EMAIL}), with your order number and proof of transfer.`],
+        body: [`Contact us on WhatsApp (${WHATSAPP_DISPLAY}) or by email (${SUPPORT_EMAIL}), with your order number and proof of payment or transfer.`],
       },
       {
         title: "5. Refund method and timeline",
-        body: ["Refunds are issued the same way you paid (bank transfer) to the same sending account, within 3-5 business days of approval."],
+        body: ["Refunds are issued the same way you paid: to the same card if you paid by card, or to the same sending account if you paid by bank transfer, within 3-5 business days of approval."],
       },
       {
         title: "6. Note",
