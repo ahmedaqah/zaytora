@@ -302,6 +302,19 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
     ForwardLimit = null,
 });
 
+// Every real visitor reaches this API over HTTPS at Cloudflare/Render's edge, but the hop into the container is plain
+// HTTP and the forwarded-proto header was not turning the scheme into https here: Google sign-in then sent
+// "http://api.../signin-google" as its redirect_uri (redirect_uri_mismatch) and would also set insecure
+// correlation cookies. Outside development the scheme is therefore always https.
+if (!app.Environment.IsDevelopment())
+{
+    app.Use((context, next) =>
+    {
+        context.Request.Scheme = "https";
+        return next();
+    });
+}
+
 // If wwwroot doesn't exist yet at startup (first run — nothing's been
 // uploaded), IWebHostEnvironment.WebRootFileProvider binds to a
 // NullFileProvider and UseStaticFiles() below silently 404s forever, even
