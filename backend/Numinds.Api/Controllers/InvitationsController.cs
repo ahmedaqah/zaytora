@@ -71,9 +71,13 @@ public class InvitationsController(
         // accumulated several claimed drafts over time would otherwise keep
         // counting all of them against this cap forever, long after they
         // stopped being "this guest's" drafts to count.
-        var existingCount = userId is not null
-            ? await db.Invitations.Where(i => i.UserId == userId).CountAsync(HasContent, cancellationToken)
-            : await db.Invitations.Where(i => i.GuestId == guestId && i.UserId == null).CountAsync(HasContent, cancellationToken);
+        // Signed-in admins are exempt: they have no limit on their own account.
+        var isAdmin = userId is not null && User.IsInRole(Roles.Admin);
+        var existingCount = isAdmin
+            ? 0
+            : userId is not null
+                ? await db.Invitations.Where(i => i.UserId == userId).CountAsync(HasContent, cancellationToken)
+                : await db.Invitations.Where(i => i.GuestId == guestId && i.UserId == null).CountAsync(HasContent, cancellationToken);
         if (existingCount >= MaxInvitationsPerUser)
         {
             return Conflict(new
